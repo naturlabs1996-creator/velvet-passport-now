@@ -5,3 +5,5 @@
 @media(max-width:600px){.hero h1 em{display:block;font-size:.82em;white-space:nowrap}}
 
 @media(max-width:600px){.uncovered{padding-left:32px;padding-right:32px;gap:46px}.uncovered h2{font-size:43px;line-height:1.02;letter-spacing:-2px}.uncovered aside{padding:28px 24px}.final{padding-left:24px;padding-right:24px}.final h2{font-size:48px;line-height:1.02;letter-spacing:-2px;max-width:620px}.largeRings{margin-inline:auto;transform:translateX(-1px)}.final>small{max-width:520px;line-height:1.45}}
+
+@media(max-width:600px){.uncovered aside>small{font-size:10px;letter-spacing:.7px;font-weight:600;line-height:1.4}}
