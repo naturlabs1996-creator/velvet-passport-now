@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Paris NOW Pass | Velvet Passport NOW",
+  title: "Paris NOW Pass | By Velvet Passport",
   description: "An intelligent Paris travel companion that adapts to your time, location, weather, energy and tickets—exactly when you need it.",
   other: {
     "codex-preview": "development",
