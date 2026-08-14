@@ -73,3 +73,10 @@
 /* Avoid an Olympic-rings reading: use one compact horizontal product lockup */
 .finalProductMark{flex-direction:row;gap:12px;margin-bottom:18px}.finalProductMark .largeRings{width:38px;height:27px;flex:0 0 38px}.finalProductMark .largeRings i{width:25px;height:25px;top:1px}.finalProductMark .largeRings i+i{left:12px}.finalProductMark>b{font-size:25px}.finalProductMark>b>em{font-size:24px}
 @media(max-width:600px){.finalProductMark{flex-direction:row;gap:10px;margin-bottom:18px}.finalProductMark .largeRings{width:34px;height:24px;flex-basis:34px}.finalProductMark .largeRings i{width:22px;height:22px}.finalProductMark .largeRings i+i{left:11px}.finalProductMark>b{font-size:23px}.finalProductMark>b>em{font-size:22px}}
+
+/* Make Paris Uncovered unmistakably separate and directly purchasable */
+.uncovered>div>p b{color:#d8d1c5;font-weight:600}.uncoveredCta{display:flex;align-items:center;justify-content:center;min-height:52px;margin-top:22px;background:var(--gold);color:#15120c;font-size:9px;letter-spacing:1.5px;font-weight:700}.uncoveredCta:hover{background:var(--gold2)}
+
+/* Minimal centered legal footer */
+footer{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:24px;padding-block:38px}footer nav{justify-content:center;gap:30px}footer>small{width:100%;padding-top:20px}
+@media(max-width:600px){footer{display:flex;padding:34px 24px;gap:24px}footer nav{width:100%;justify-content:center;gap:26px;flex-wrap:wrap}.uncoveredCta{min-height:56px;font-size:10px}}
