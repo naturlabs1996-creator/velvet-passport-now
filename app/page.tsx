@@ -43,7 +43,7 @@ export default function Home(){
 
     <section className="faq"><div><p className="kicker">QUESTIONS, ANSWERED</p><h2>Before you enter Paris NOW.</h2></div><div>{faqs.map((f,i)=><article className={openFaq===i?"open":""} key={f[0]}><button onClick={()=>setOpenFaq(openFaq===i?-1:i)} aria-expanded={openFaq===i}><b>{f[0]}</b><span>{openFaq===i?"−":"+"}</span></button>{openFaq===i&&<p>{f[1]}</p>}</article>)}</div></section>
     <section className="final"><div className="finalProductMark"><span className="largeRings"><i/><i/></span><b><span>Paris</span><em>NOW</em></b></div><p className="kicker">THE GUIDED APP THAT DIDN’T EXIST—UNTIL NOW</p><h2>Paris, exactly when<br/><em>you need it.</em></h2><a className="button gold" href="#passes">CHOOSE YOUR PASS →</a><small>One intelligent travel companion. Every city, exactly when you need it.</small></section>
-    <footer><nav><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Refund policy</a><a href="#">Contact</a></nav><small>© 2026 Velvet Passport. Attraction names and trademarks belong to their respective owners.</small></footer>
+    <footer><nav><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund-policy">Refund policy</a><a href="/contact">Contact</a></nav><small>© 2026 Velvet Passport. Attraction names and trademarks belong to their respective owners.</small></footer>
   </main>
 }
 
