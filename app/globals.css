@@ -122,3 +122,7 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
 /* Correct NOW hierarchy everywhere except the approved top navigation */
 .finalProductMark>b,.sectionNowMark>b{font-size:24px}.finalProductMark>b>em,.sectionNowMark>b>em{font-size:31px;line-height:.85;letter-spacing:2.2px;margin-left:2px}.inlineNow>b{font-size:1.08em;line-height:.84;letter-spacing:1.8px;margin-left:2px}
 @media(max-width:600px){.finalProductMark>b,.sectionNowMark>b{font-size:22px}.finalProductMark>b>em,.sectionNowMark>b>em{font-size:29px;line-height:.85;letter-spacing:2px}.inlineNow>b{font-size:1.08em;line-height:.84;letter-spacing:1.4px}}
+
+/* Make NOW unmistakably dominant inside the Paris NOW editorial headline */
+.inlineNow>b{font-size:1.28em;line-height:.72;letter-spacing:1.6px;transform:translateY(-1px)}
+@media(max-width:600px){.inlineNow>b{font-size:1.32em;line-height:.7;letter-spacing:1.2px;transform:translateY(-1px)}}
