@@ -33,3 +33,6 @@
 /* Make the six core NOW feature labels clearly readable */
 .featureGrid small{font-size:9px;letter-spacing:1.55px;font-weight:600;line-height:1.5;color:#b49343}
 @media(max-width:600px){.featureGrid small{font-size:11px;letter-spacing:1.35px;line-height:1.55;margin-top:30px}}
+
+/* Make the three pre-purchase assurances readable on mobile */
+@media(max-width:600px){.trust{font-size:11px;line-height:1.45;color:#aaa59b;gap:10px;margin-top:28px;margin-bottom:22px}.trust span{display:block}.trust span::first-letter{color:var(--gold2)}}
