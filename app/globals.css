@@ -111,3 +111,7 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
 /* Strengthen the proof statement above the decision-engine message */
 .proof p{font-size:12px;letter-spacing:2.3px;font-weight:700;line-height:1.45}
 @media(max-width:600px){.proof p{font-size:13px;letter-spacing:2.1px;line-height:1.5;margin-bottom:10px}}
+
+/* Product-led hierarchy for the Inside Your Pass section */
+.featuresHeading{display:flex;flex-direction:column;align-items:center}.sectionNowMark{display:flex;align-items:center;gap:12px;margin-bottom:23px}.sectionNowMark>.rings{width:38px;height:27px}.sectionNowMark>.rings i{width:25px;height:25px;border-color:var(--gold2)}.sectionNowMark>.rings i+i{left:12px;border-color:#fff}.sectionNowMark>b{display:flex;align-items:baseline;font:500 25px/1 Georgia,serif}.sectionNowMark>b>span{color:#fff}.sectionNowMark>b>em{margin-left:2px;color:var(--gold2);font:700 24px/1 Arial,sans-serif;letter-spacing:2.3px;font-style:normal}.featuresHeading h2{margin-bottom:24px}.featureKicker{font-size:13px!important;letter-spacing:3px!important;color:var(--gold2)!important;margin:0}
+@media(max-width:600px){.sectionNowMark{gap:10px;margin-bottom:25px}.sectionNowMark>.rings{width:34px;height:24px}.sectionNowMark>.rings i{width:22px;height:22px}.sectionNowMark>.rings i+i{left:11px}.sectionNowMark>b{font-size:23px}.sectionNowMark>b>em{font-size:22px;letter-spacing:2px}.featuresHeading h2{margin-top:8px;margin-bottom:26px}.featureKicker{font-size:14px!important;letter-spacing:2.4px!important;line-height:1.4}}
