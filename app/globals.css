@@ -51,3 +51,6 @@
 
 /* Dual-color rings within the cohesive horizontal NOW mark */
 .nowWordmark>.rings i:first-child{border-color:var(--gold2)}.nowWordmark>.rings i:last-child{border-color:#fff}
+
+/* Carry the Paris NOW dual-color rings into the closing signature */
+.largeRings i:first-child{border-color:var(--gold2)}.largeRings i:last-child{border-color:#fff}
