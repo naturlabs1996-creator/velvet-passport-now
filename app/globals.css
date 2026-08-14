@@ -100,3 +100,6 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
 .uncovered .kicker{font-size:12px;letter-spacing:2.7px;color:#c2a154;line-height:1.45}.uncovered h2{font-size:clamp(42px,4.5vw,64px);line-height:1.02}.final>small{display:flex;flex-direction:column;align-items:center;gap:3px}.final>small span{display:block}
 @media(max-width:600px){.uncovered .kicker{font-size:13px;letter-spacing:2.1px;line-height:1.5}.uncovered h2{font-size:42px;line-height:1.04;letter-spacing:-1.8px}.final>small{font-size:13px;line-height:1.45;gap:1px;max-width:100%}.final>small span{white-space:nowrap}}
 @media(max-width:390px){.final>small{font-size:12px}}
+
+/* Premium label in unmistakable gold */
+.uncovered .kicker{color:var(--gold2)!important}
