@@ -40,3 +40,7 @@
 /* Place the Velvet Passport house signature beside the primary CTA */
 .navRight{display:flex;align-items:center;gap:18px}.navHouse{display:flex;align-items:center;gap:5px}.navHouse small{font-size:5px;letter-spacing:1.2px;color:#8f8a80}.navHouse img{display:block;width:74px;height:auto;max-height:34px;object-fit:contain}.nav>.wordmark .productBrand{gap:0}
 @media(max-width:600px){.navRight{gap:8px}.navHouse{gap:3px}.navHouse small{font-size:4px}.navHouse img{width:48px;max-height:23px}.nav>.wordmark{gap:6px}.nav>.wordmark .rings{width:27px}.nav>.wordmark .productBrand b{font-size:10px}.navCta{padding:11px 10px}}
+
+/* Dual-color NOW product mark: city + NOW above paired rings */
+.nowWordmark{align-items:center}.nowWordmark .productBrand{align-items:center;gap:4px}.nowWordmark .productBrand>b{display:block;white-space:nowrap}.nowWordmark .productBrand>b>span{color:var(--gold2)}.nowWordmark .productBrand>b>em{color:#fff}.dualRings{width:31px;height:14px}.dualRings i{top:0;width:14px;height:14px;border-color:var(--gold2)}.dualRings i+i{left:8px;border-color:#fff}
+@media(max-width:600px){.nowWordmark .productBrand{gap:3px}.dualRings{height:12px;width:27px}.dualRings i{width:12px;height:12px}.dualRings i+i{left:7px}}
