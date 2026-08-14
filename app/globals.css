@@ -21,3 +21,7 @@
 
 /* Keep the complete phone presentation centered on mobile */
 @media(max-width:600px){.product{width:calc(100% / .88);margin:-10px calc((100% - (100% / .88)) / 2) 0;transform:scale(.88);transform-origin:top center;justify-self:center}.product .phone{margin-inline:auto}.product .halo{left:50%;transform:translateX(-50%)}}
+
+/* Official Velvet Passport endorsement within the NOW product lockup */
+.productBrand{gap:3px}.brandBy{display:flex;align-items:center;gap:5px;height:27px}.brandBy>small{font-size:5px;letter-spacing:1.3px;color:#8f8a80}.brandBy>img{display:block;width:63px;height:auto;max-height:27px;object-fit:contain;object-position:left center}.productBrand>b{font-family:Georgia,serif;font-weight:500;letter-spacing:.4px}.productBrand>b em{font-family:Arial,sans-serif;font-weight:700;font-size:1.08em;letter-spacing:2px}
+@media(max-width:600px){.brandBy{height:24px;gap:4px}.brandBy>small{font-size:4px}.brandBy>img{width:56px;max-height:24px}.productBrand>b{font-size:11px}.productBrand>b em{letter-spacing:1.6px}}
