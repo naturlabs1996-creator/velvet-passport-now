@@ -130,3 +130,7 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
 /* Use the approved header-ring geometry in every large Paris NOW signature */
 .sectionNowMark>.rings,.finalProductMark .largeRings{width:30px;height:21px;flex:0 0 30px}.sectionNowMark>.rings i,.finalProductMark .largeRings i{top:1px;width:20px;height:20px;border-radius:50%}.sectionNowMark>.rings i:first-child,.finalProductMark .largeRings i:first-child{left:0;border-color:var(--gold2)}.sectionNowMark>.rings i:last-child,.finalProductMark .largeRings i:last-child{left:9px;border-color:#fff}
 @media(max-width:600px){.sectionNowMark>.rings,.finalProductMark .largeRings{width:30px;height:21px;flex-basis:30px}.sectionNowMark>.rings i,.finalProductMark .largeRings i{top:1px;width:20px;height:20px}.sectionNowMark>.rings i:first-child,.finalProductMark .largeRings i:first-child{left:0}.sectionNowMark>.rings i:last-child,.finalProductMark .largeRings i:last-child{left:9px}}
+
+/* Keep secondary rings distinct: light interlock, no heavy superposition */
+.sectionNowMark>.rings,.finalProductMark .largeRings{width:36px;flex-basis:36px}.sectionNowMark>.rings i:last-child,.finalProductMark .largeRings i:last-child{left:15px}
+@media(max-width:600px){.sectionNowMark>.rings,.finalProductMark .largeRings{width:36px;flex-basis:36px}.sectionNowMark>.rings i:last-child,.finalProductMark .largeRings i:last-child{left:15px}}
