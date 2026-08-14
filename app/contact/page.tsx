@@ -4,12 +4,23 @@ import LegalPage from "../legal-shell";
 export const metadata: Metadata = { title: "Contact | Paris NOW" };
 
 export default function Contact() {
-  return <LegalPage eyebrow="VELVET PASSPORT SUPPORT" title="Contact us" intro="Tell us what happened and include the information that lets us help without sending you through unnecessary steps.">
-    <section className="contactCards">
-      <article><small>PARIS NOW</small><h2>Pass and technical support</h2><p>For activation, access, billing or route issues, include your order reference, the email used at checkout, your device and a short description of the problem.</p><p className="supportNotice">The dedicated Paris NOW support address will be displayed here before paid checkout is activated.</p></article>
-      <article><small>PARIS UNCOVERED</small><h2>Etsy order support</h2><p>For download, order or payment questions concerning Paris Uncovered, contact Velvet Passport directly through Etsy so the purchase record is attached to your message.</p><a className="legalButton" href="https://www.etsy.com/shop/VelvetPassportParis" target="_blank" rel="noreferrer">CONTACT ON ETSY →</a></article>
+  return <LegalPage eyebrow="VELVET PASSPORT SUPPORT" title="Contact us" intro="Send your request directly to the Velvet Passport team. We will reply to the email address entered below.">
+    <section className="contactFormSection">
+      <div className="contactFormIntro"><small>PARIS NOW SUPPORT</small><h2>How can we help?</h2><p>For activation, access, payment, refund or technical issues, include your order number when available.</p></div>
+      <form className="contactForm" action="https://formsubmit.co/velvetpassport26@gmail.com" method="POST">
+        <input type="hidden" name="_subject" value="New Paris NOW support request"/>
+        <input type="hidden" name="_next" value="https://velvet-passport-now.vercel.app/contact/thanks"/>
+        <input type="hidden" name="_template" value="table"/>
+        <input type="hidden" name="_captcha" value="false"/>
+        <input className="contactHoney" type="text" name="_honey" tabIndex={-1} autoComplete="off"/>
+        <label><span>Name *</span><input type="text" name="Name" autoComplete="name" required/></label>
+        <label><span>Email *</span><input type="email" name="Email" autoComplete="email" required/></label>
+        <label><span>Order number <em>optional</em></span><input type="text" name="Order number" autoComplete="off"/></label>
+        <label><span>Subject *</span><select name="Topic" required defaultValue=""><option value="" disabled>Select a subject</option><option>Pass access or activation</option><option>Payment or billing</option><option>Refund request</option><option>Technical problem</option><option>Paris Uncovered</option><option>Privacy request</option><option>Other</option></select></label>
+        <label className="contactMessage"><span>Message *</span><textarea name="Message" rows={7} required/></label>
+        <button type="submit">SEND MESSAGE →</button>
+      </form>
     </section>
-    <section><h2>Privacy requests</h2><p>For access, correction or deletion requests, identify the email connected to the service and state the privacy right you wish to exercise. We may need to verify your identity before acting.</p></section>
-    <section><h2>Safety and emergencies</h2><p>Paris NOW is not an emergency service. For urgent medical, police or safety assistance, contact the appropriate local emergency service.</p></section>
+    <section className="contactSecondary"><div><h2>Paris Uncovered on Etsy</h2><p>For an Etsy order, you may also contact Velvet Passport through Etsy so the purchase record is attached automatically.</p><a href="https://www.etsy.com/shop/VelvetPassportParis" target="_blank" rel="noreferrer">CONTACT ON ETSY →</a></div><div><h2>Safety and emergencies</h2><p>Paris NOW is not an emergency service. For urgent medical, police or safety assistance, contact the appropriate local emergency service.</p></div></section>
   </LegalPage>;
 }
