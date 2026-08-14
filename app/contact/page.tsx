@@ -9,8 +9,9 @@ export default function Contact() {
       <div className="contactFormIntro"><small>PARIS NOW SUPPORT</small><h2>How can we help?</h2><p>For activation, access, payment, refund or technical issues, include your order number when available.</p></div>
       <form className="contactForm" action="https://api.web3forms.com/submit" method="POST">
         <input type="hidden" name="access_key" value="17a72d0a-253a-4a3b-951c-5d7f7bfaa35a"/>
-        <input type="hidden" name="subject" value="New Paris NOW support request"/>
+        <input type="hidden" name="subject" value="New NOW Contact request"/>
         <input type="hidden" name="redirect" value="https://velvet-passport-now.vercel.app/contact/thanks"/>
+        <input type="hidden" name="Product" value="Paris NOW"/>
         <input className="contactHoney" type="checkbox" name="botcheck" tabIndex={-1} aria-hidden="true"/>
         <label><span>Name *</span><input type="text" name="Name" autoComplete="name" required/></label>
         <label><span>Email *</span><input type="email" name="Email" autoComplete="email" required/></label>
