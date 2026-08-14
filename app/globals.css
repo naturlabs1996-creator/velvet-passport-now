@@ -107,3 +107,7 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
 /* Preserve the Paris NOW product identity inside the editorial headline */
 .inlineNow{display:inline-flex;align-items:baseline;white-space:nowrap}.inlineNow>span{color:#fff}.inlineNow>b{margin-left:2px;color:var(--gold2);font:700 .78em/1 Arial,sans-serif;letter-spacing:2px}
 @media(max-width:600px){.inlineNow>b{margin-left:1px;letter-spacing:1.5px}}
+
+/* Strengthen the proof statement above the decision-engine message */
+.proof p{font-size:12px;letter-spacing:2.3px;font-weight:700;line-height:1.45}
+@media(max-width:600px){.proof p{font-size:13px;letter-spacing:2.1px;line-height:1.5;margin-bottom:10px}}
