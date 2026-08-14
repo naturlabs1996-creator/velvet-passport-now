@@ -1,18 +1,105 @@
 "use client";
 import { useState } from "react";
 
+type DemoStop = { time: string; duration: string; name: string; detail: string };
+
 const scenarios = {
-  rain:["It’s raining","A beautiful way through Paris—mostly under cover.","Galerie Vivienne → Palais-Royal arcades → Véro-Dodat","64 min · 0.8 km · mostly sheltered"],
-  heat:["It’s too hot","Cool interiors, short crossings, no wasted energy.","Salle Ovale → covered passages → quiet museum option","72 min · low effort · indoor-first"],
-  ticket:["I have a ticket","Your reservation becomes the anchor of your day.","Flexible discovery → correct Louvre entrance → protected arrival","20 min safety margin · route contracts if needed"],
-  secret:["Surprise me","The Paris most visitors walk straight past.","A rare gallery → overlooked courtyard → quiet reveal","58 min · no ticket · Velvet Pick"],
-};
+  rain: {
+    label: "It’s raining",
+    icon: "☂",
+    title: "A beautiful way through Paris—mostly under cover.",
+    route: "Galerie Vivienne → Palais-Royal → Passage Véro-Dodat",
+    meta: "64 min · 0.8 km · 82% sheltered",
+    compatibility: "96%",
+    reason: "Long covered sections, short street crossings and one memorable reveal without sacrificing the atmosphere of Paris.",
+    change: "RAIN GETS HEAVIER",
+    recoveredTitle: "Route contracted—more shelter, no wasted crossing.",
+    recoveredMeta: "48 min · 0.5 km · 94% sheltered",
+    stops: [
+      { time: "NOW", duration: "18 min", name: "Galerie Vivienne", detail: "Enter through rue Vivienne · covered" },
+      { time: "+24", duration: "16 min", name: "Palais-Royal arcades", detail: "6 min walk · mostly sheltered" },
+      { time: "+48", duration: "12 min", name: "Passage Véro-Dodat", detail: "8 min walk · final reveal" },
+    ],
+    recovery: [
+      { time: "NOW", duration: "22 min", name: "Galerie Vivienne", detail: "Stay inside while the rain intensifies" },
+      { time: "+28", duration: "16 min", name: "Palais-Royal arcades", detail: "6 min transfer · sheltered finish" },
+    ],
+  },
+  heat: {
+    label: "It’s too hot",
+    icon: "◒",
+    title: "Cool interiors, short crossings, no wasted energy.",
+    route: "Salle Ovale → Galerie Colbert → shaded Palais-Royal",
+    meta: "72 min · low effort · indoor-first",
+    compatibility: "94%",
+    reason: "Air-conditioned or naturally cool interiors lead the route, with shade and recovery time built between stops.",
+    change: "ENERGY DROPS",
+    recoveredTitle: "Route shortened—same quality, less effort.",
+    recoveredMeta: "49 min · seated recovery · 0.6 km",
+    stops: [
+      { time: "NOW", duration: "24 min", name: "Salle Ovale", detail: "Cool interior · free entry" },
+      { time: "+29", duration: "16 min", name: "Galerie Colbert", detail: "5 min crossing · indoors" },
+      { time: "+52", duration: "14 min", name: "Palais-Royal shade", detail: "7 min walk · seated finish" },
+    ],
+    recovery: [
+      { time: "NOW", duration: "28 min", name: "Salle Ovale", detail: "Longer cool recovery" },
+      { time: "+34", duration: "12 min", name: "Galerie Colbert", detail: "6 min transfer · indoor finish" },
+    ],
+  },
+  ticket: {
+    label: "I have a Louvre ticket",
+    icon: "◇",
+    title: "Your reservation becomes the anchor of the day.",
+    route: "Quiet discovery → correct Louvre entrance → protected arrival",
+    meta: "20 min safety margin · ticket protected",
+    compatibility: "98%",
+    reason: "NOW works backward from the reservation, removes risky detours and preserves a calm discovery before the correct entrance.",
+    change: "METRO DELAY DETECTED",
+    recoveredTitle: "Discovery removed—your Louvre arrival stays protected.",
+    recoveredMeta: "Direct route · 18 min margin retained",
+    stops: [
+      { time: "3:18", duration: "18 min", name: "Palais-Royal courtyard", detail: "Low-risk discovery near the Louvre" },
+      { time: "3:42", duration: "8 min", name: "Walk to Carrousel entrance", detail: "Correct access · crowd-aware" },
+      { time: "4:00", duration: "20 min", name: "Protected arrival window", detail: "Ticket 4:30 PM · no rush" },
+    ],
+    recovery: [
+      { time: "3:34", duration: "12 min", name: "Direct approach", detail: "Optional stop removed automatically" },
+      { time: "3:52", duration: "18 min", name: "Protected Louvre arrival", detail: "Correct entrance · ticket safe" },
+    ],
+  },
+  secret: {
+    label: "Surprise me",
+    icon: "✦",
+    title: "The Paris most visitors walk straight past.",
+    route: "Rare gallery → overlooked courtyard → quiet final reveal",
+    meta: "58 min · no ticket · Velvet Pick",
+    compatibility: "92%",
+    reason: "The route avoids famous anchors and combines three verified places with genuine discovery value and a natural walking sequence.",
+    change: "FIRST PLACE IS CLOSED",
+    recoveredTitle: "Closure absorbed—a new rare opening takes its place.",
+    recoveredMeta: "61 min · replacement verified · no backtracking",
+    stops: [
+      { time: "NOW", duration: "16 min", name: "A discreet historic gallery", detail: "Unmarked entrance · Velvet Pick" },
+      { time: "+23", duration: "14 min", name: "An overlooked courtyard", detail: "7 min walk · free" },
+      { time: "+44", duration: "10 min", name: "A quiet architectural reveal", detail: "7 min walk · final stop" },
+    ],
+    recovery: [
+      { time: "NOW", duration: "19 min", name: "Replacement Velvet Pick", detail: "Verified open · 5 min away" },
+      { time: "+27", duration: "14 min", name: "Overlooked courtyard", detail: "8 min walk · route preserved" },
+      { time: "+48", duration: "9 min", name: "Quiet final reveal", detail: "7 min walk · no backtracking" },
+    ],
+  },
+} as const;
 
 export default function Home(){
   const [scenario,setScenario]=useState<keyof typeof scenarios>("rain");
   const [openFaq,setOpenFaq]=useState(0);
   const [checkout,setCheckout]=useState(false);
+  const [demoPhase,setDemoPhase]=useState<"ready"|"building"|"result"|"recovered">("result");
   const selected=scenarios[scenario];
+  const selectScenario=(key:keyof typeof scenarios)=>{setScenario(key);setDemoPhase("ready")};
+  const runDemo=(recovery=false)=>{setDemoPhase("building");setTimeout(()=>setDemoPhase(recovery?"recovered":"result"),650)};
+  const activeStops:readonly DemoStop[]=demoPhase==="recovered"?selected.recovery:selected.stops;
   const buy=()=>{setCheckout(true);setTimeout(()=>document.querySelector("#checkout")?.scrollIntoView({behavior:"smooth",block:"center"}),20)};
   const faqs=[
     ["When does my Pass start?","Only when you press “Activate now” and confirm. Buying or opening your link does not start the clock."],
@@ -31,7 +118,9 @@ export default function Home(){
     <section className="proof"><p>NOT ANOTHER LIST OF PLACES</p><strong>A decision engine for the city you are actually experiencing.</strong></section>
     <section className="problem" id="how"><div className="problemIntro"><p className="kicker">THE GUIDEBOOK PROBLEM</p><h2>A city never follows<br/><em>the plan you made at home.</em></h2><figure className="editorialImage problemImage"><img src="/images/paris-covered-passage.webp" alt="A rain-washed historic covered passage in Paris at blue hour"/></figure></div><div className="problemGrid">{[["01","The weather turns","NOW changes the kind of experience—not merely the order of the same list."],["02","Your energy changes","Choose low effort, fewer crowds, less walking or a shorter, better route."],["03","A ticket controls the day","NOW protects the reservation, correct entrance and time needed to arrive."],["04","You have an unexpected hour","Start where you really are. No “Start walking” from the wrong side of Paris."]].map(x=><article key={x[0]}><span>{x[0]}</span><h3>{x[1]}</h3><p>{x[2]}</p></article>)}</div></section>
 
-    <section className="demo" id="demo"><Heading kicker="PUT NOW TO THE TEST" title="Tell Paris NOW what changed." text="One city. A different decision every time."/><div className="demoGrid"><div className="controls">{Object.entries(scenarios).map(([key,value])=><button className={scenario===key?"active":""} onClick={()=>setScenario(key as keyof typeof scenarios)} key={key}><span>{scenario===key?"●":"○"}</span>{value[0]}</button>)}</div><div className="decision"><div className="decisionTop"><small>BEST MATCH · LIVE EXAMPLE</small><span>96% compatible</span></div><h3>{selected[1]}</h3><div className="route"><i/><div><small>YOUR NOW ROUTE</small><b>{selected[2]}</b><span>{selected[3]}</span></div></div><p><b>Why this route?</b> It protects your time, removes the wrong conditions and preserves one genuinely memorable discovery.</p><a href="#passes">GET THIS KIND OF HELP IN PARIS →</a></div></div></section>
+    <section className="howNow"><div className="heading"><p className="kicker">HOW PARIS NOW WORKS</p><h2>Give it the moment.<br/>Get the right next move.</h2></div><div className="howSteps"><article><span>01</span><small>TELL NOW WHAT YOU HAVE</small><h3>Your real situation</h3><p>Location, available time, weather, energy and any ticket that controls the day.</p></article><article><span>02</span><small>GET YOUR ROUTE</small><h3>A realistic sequence</h3><p>Verified places, walking time, useful margins and a minute-by-minute order that makes sense.</p></article><article><span>03</span><small>ADAPT AS PARIS CHANGES</small><h3>Your day stays intact</h3><p>Rain, heat, delays, closures or fatigue can contract or rebuild the route without starting over.</p></article></div></section>
+
+    <section className="demo" id="demo"><Heading kicker="TRY IT BEFORE YOU BUY" title="Watch Paris NOW make the decision." text="A real demonstration in Louvre & Opéra. Choose what changed, then build or rebuild the route."/><div className="demoGrid demoExperience"><div className="controls"><small className="controlLabel">WHAT CHANGED?</small>{Object.entries(scenarios).map(([key,value])=><button className={scenario===key?"active":""} onClick={()=>selectScenario(key as keyof typeof scenarios)} key={key}><span>{value.icon}</span>{value.label}</button>)}<p>Free demonstration · no account · one Paris zone</p></div><div className="decision demoDecision"><div className="decisionTop"><small>LOUVRE & OPÉRA · LIVE DEMO</small><span>{selected.compatibility} compatible</span></div>{demoPhase==="ready"?<div className="demoReady"><span className="demoIcon">{selected.icon}</span><h3>{selected.title}</h3><p>Paris NOW is ready to combine your conditions with verified places and realistic travel time.</p><button className="demoBuild" onClick={()=>runDemo(false)}>BUILD MY DEMO ROUTE →</button></div>:demoPhase==="building"?<div className="demoBuilding"><span className="demoSpinner"/><b>Paris NOW is rebuilding your route…</b><small>Checking time · conditions · walking logic · recovery margin</small></div>:<><div className="demoResultHead"><small>{demoPhase==="recovered"?"RECOVERY MODE · ROUTE REBUILT":"YOUR NOW ROUTE"}</small><h3>{demoPhase==="recovered"?selected.recoveredTitle:selected.title}</h3><p>{demoPhase==="recovered"?selected.recoveredMeta:selected.meta}</p></div><div className="routeTimeline">{activeStops.map((stop,index)=><article key={stop.name}><div className="routeTime"><b>{stop.time}</b><small>{stop.duration}</small></div><i/><div className="routeStop"><b>{stop.name}</b><span>{stop.detail}</span></div>{index<activeStops.length-1&&<em/>}</article>)}</div><div className="demoWhy"><small>WHY NOW CHOSE THIS</small><p>{selected.reason}</p></div>{demoPhase==="result"&&<button className="demoChange" onClick={()=>runDemo(true)}>{selected.change} — REBUILD →</button>}{demoPhase==="recovered"&&<button className="demoChange secondary" onClick={()=>setDemoPhase("ready")}>TRY ANOTHER VERSION ↻</button>}<a className="demoCta" href="#passes">UNLOCK PARIS ACROSS THE CITY →</a></>}</div></div><p className="demoDisclosure">This demonstration uses one prepared scenario in one zone. A paid Pass unlocks the complete Paris NOW decision system across available Paris zones.</p></section>
 
     <section className="features" id="features"><div className="heading dark featuresHeading"><div className="sectionNowMark"><span className="rings"><i/><i/></span><b><span>Paris</span><em>NOW</em></b></div><h2>Built for the moments that ordinary travel apps ignore.</h2><p className="kicker featureKicker">INSIDE YOUR PASS</p></div><figure className="editorialImage featureImage"><img src="/images/paris-hidden-courtyard.webp" alt="A secluded Paris courtyard illuminated at dusk"/></figure><div className="featureGrid">{[["⌁","01 · NOW ROUTES","Minute-by-minute routes","Pre-researched experiences that contract or rebuild around your real time and location."],["☂","02 · WEATHER INTELLIGENCE","Too hot. Too cold. Rain. Snow.","Conditions change the recommendation itself, with shelter and recovery logic."],["◉","03 · TICKET RESCUE","Find a viable ticket—fast","Official ticketing first, qualified alternatives and always a no-ticket Plan B."],["◇","04 · TICKET PROTECTION","Protect what you booked","Your ticket becomes the anchor. NOW contracts the route and guides the right access."],["✦","05 · VELVET PICKS","Rare, discreet, exceptional","NOW can favour places with genuine discovery value, not only famous attractions."],["↗","06 · RECOVERY MODE","When the day goes wrong","A closure, delay or refusal does not need to destroy the day. NOW rebuilds it."]].map(x=><article key={x[1]}><span>{x[0]}</span><small>{x[1]}</small><h3>{x[2]}</h3><p>{x[3]}</p></article>)}</div></section>
 
@@ -39,10 +128,13 @@ export default function Home(){
 
     <section className="pricing" id="passes"><Heading kicker="CHOOSE YOUR PARIS NOW PASS" title="Less than the price of one wasted hour." text="Tickets, transport and paid attractions are purchased separately."/><div className="priceGrid"><Price title="Paris NOW 72 Hours" price="11" cents=".90" description="Three continuous days from activation." items={["Full NOW decision engine","Weather and energy filters","NOW routes and Velvet Picks","Ticket Rescue and Protection","Activate within 12 months"]} buy={buy}/><Price featured title="Paris NOW 7 Days" price="18" cents=".90" description="Seven continuous days from activation." items={["Everything in the 72-hour Pass","More room for changing plans","Ideal for a full Paris stay","One account, one secure Pass","Activate within 12 months"]} buy={buy}/></div><div id="checkout" className={`checkout ${checkout?"show":""}`}><span>◇</span><div><b>Stripe Checkout will open here.</b><p>Live payment links will be connected after the commercial offer and refund policy are approved. No payment has been taken.</p></div></div><p className="micro">Secure checkout powered by Stripe · Buy now, activate later · English launch edition</p></section>
 
+    <section className="productCompare"><div className="heading"><p className="kicker">TWO DIFFERENT WAYS TO EXPERIENCE PARIS</p><h2>NOW guides the moment.<br/>Uncovered stays with you.</h2></div><div className="compareGrid"><article className="compareNow"><small>LIVE GUIDED WEB APP</small><h3>Paris <b>NOW</b></h3><ul><li>72-hour or 7-day Pass</li><li>Builds and rebuilds live routes</li><li>Uses time, weather, energy and tickets</li><li>Designed for decisions during the trip</li></ul><a href="#passes">CHOOSE A NOW PASS →</a></article><article><small>PERMANENT DIGITAL GUIDE</small><h3>Paris Uncovered</h3><ul><li>One-time purchase</li><li>25 secret addresses and exact locations</li><li>Mobile-friendly PDF with permanent access</li><li>Designed for deeper independent discovery</li></ul><a href="https://www.etsy.com/listing/4517688727/paris-uncovered-25-secret-addresses" target="_blank" rel="noreferrer">BUY PARIS UNCOVERED →</a></article></div><p>They complement each other, but neither is required to use the other.</p></section>
+
     <section className="uncovered"><div><p className="kicker">PARIS UNCOVERED PREMIUM OPTION</p><h2><span className="inlineNow"><span>Paris</span><b>NOW</b></span> guides your day.<br/><em>Paris Uncovered takes you beyond the obvious.</em></h2><p><b>Paris Uncovered is a separate permanent digital guide—not included in your Paris NOW Pass.</b> It reveals 25 secret addresses, with exact locations and practical details, for travellers who want to explore beyond their live NOW routes.</p></div><div className="uncoveredSide"><figure className="editorialImage uncoveredImage"><img src="/images/paris-haussmann-evening.webp" alt="A quiet Haussmannian Paris street glowing after rain"/></figure><aside><small>SEPARATE DIGITAL GUIDE · OPTIONAL</small><b>Paris Uncovered</b><span>25 secret addresses · exact locations · mobile-friendly PDF</span><p>Buy once and keep it permanently. Delivered instantly through Etsy.</p><a className="uncoveredCta" href="https://www.etsy.com/listing/4517688727/paris-uncovered-25-secret-addresses" target="_blank" rel="noreferrer">BUY PARIS UNCOVERED →</a></aside></div></section>
 
     <section className="faq"><div><p className="kicker">QUESTIONS, ANSWERED</p><h2>Before you enter Paris NOW.</h2></div><div>{faqs.map((f,i)=><article className={openFaq===i?"open":""} key={f[0]}><button onClick={()=>setOpenFaq(openFaq===i?-1:i)} aria-expanded={openFaq===i}><b>{f[0]}</b><span>{openFaq===i?"−":"+"}</span></button>{openFaq===i&&<p>{f[1]}</p>}</article>)}</div></section>
     <section className="final"><div className="finalProductMark"><span className="largeRings"><i/><i/></span><b><span>Paris</span><em>NOW</em></b></div><p className="kicker">THE GUIDED APP THAT DIDN’T EXIST—UNTIL NOW</p><h2>Paris, exactly when<br/><em>you need it.</em></h2><a className="button gold" href="#passes">CHOOSE YOUR PASS →</a><small><span>One intelligent travel companion.</span><span>Every city, exactly when you need it.</span></small></section>
+    <a className="mobileStickyCta" href="#passes"><span>GET PARIS NOW</span><small>FROM €11.90</small></a>
     <footer><nav><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refund-policy">Refund policy</a><a href="/contact">Contact</a></nav><small>© 2026 Velvet Passport. Attraction names and trademarks belong to their respective owners.</small></footer>
   </main>
 }
