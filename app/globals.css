@@ -198,3 +198,52 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
 /* Guardian must explain every emergency number—never show unexplained digits */
 .guardianHelpPanel{margin:4px 0 24px;border:1px solid #cba9a5;background:#fff8f7;padding:18px}.guardianLocation{display:flex;flex-direction:column;gap:5px;padding:3px 2px 16px;border-bottom:1px solid #ead4d1}.guardianLocation small{color:#a43f36;font-size:8px;letter-spacing:1.4px;font-weight:700}.guardianLocation b{font:20px/1.15 Georgia,serif}.guardianLocation span{color:#777;font-size:9px}.guardianNumbers{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:15px}.guardianNumbers button{min-height:66px;border:1px solid #dfc7c3;background:#fff;color:#17130b;text-align:left;padding:11px 12px;display:flex;flex-direction:column;gap:6px;cursor:default}.guardianNumbers button small{color:#9b4941;font-size:7px;letter-spacing:1px;font-weight:700}.guardianNumbers button b{font:16px/1.1 Georgia,serif}.guardianNumbers .nearbyHelp{border-color:#cbb77d;background:#fffcf3}.guardianNumbers .nearbyHelp small{color:#8a6a20}.guardianHelpPanel>p{margin:13px 0 0;color:#9b918e;font-size:7px;line-height:1.4}.guardianHelpPanel+.routeTimeline .routeStop>span{max-width:420px}
 @media(max-width:600px){.guardianHelpPanel{padding:15px 13px}.guardianLocation b{font-size:19px}.guardianLocation span{font-size:10px}.guardianNumbers{grid-template-columns:1fr}.guardianNumbers button{min-height:61px}.guardianNumbers button small{font-size:8px}.guardianNumbers button b{font-size:17px}.guardianHelpPanel>p{font-size:8px}}
+
+
+/* Demo V2 — grouped needs, live recalculation, no dead controls */
+.demoExperience{grid-template-columns:365px minmax(0,1fr)}
+.controls{display:flex!important;flex-direction:column;gap:0;padding:28px!important}
+.controls>.controlLabel{margin-bottom:20px!important;font-size:10px!important}
+.controlGroup{padding:17px 0;border-top:1px solid #ffffff17}
+.controlGroup>small{display:block;color:#8f897e;font-size:7px;letter-spacing:1.5px;font-weight:700;margin-bottom:10px}
+.controlGroup>div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.controlGroup button{width:100%;min-height:54px!important;margin:0!important;padding:10px 10px!important;display:flex!important;align-items:center;justify-content:flex-start;text-align:left;border:1px solid #ffffff18!important;background:#161619!important;color:#bdb7ae!important;font-size:9px!important;line-height:1.25}
+.controlGroup button:hover,.controlGroup button:focus-visible{border-color:#8c753f!important;outline:none}
+.controlGroup button.active{border-color:var(--gold)!important;background:#29251c!important;color:#fff!important;box-shadow:inset 0 0 0 1px #caaa54}
+.controlGroup button span{width:22px!important;flex:0 0 22px;font-size:14px!important;color:var(--gold2)!important}
+.controlGroup button span:not(:empty){margin-right:5px}
+.controls>p{padding-top:17px;border-top:1px solid #ffffff17;margin-top:0!important;font-size:8px!important}
+.compatibilityWarning{color:#b34339!important}
+
+.restaurantChoices{gap:10px}
+.restaurantChoices button{position:relative;min-height:190px;border-width:1px!important;padding:17px 14px}
+.restaurantChoices button h4{font:22px/1.08 Georgia,serif;margin:11px 0 9px;color:#17130b}
+.restaurantChoices button>b{font:16px/1.15 Arial,sans-serif;margin:0 0 7px}
+.restaurantChoices button>b i{color:#a18d5b;font-style:normal}
+.restaurantChoices button>span{font-size:8px;line-height:1.4}
+.restaurantChoices button>em{font-size:8px;line-height:1.45}
+.restaurantChoices button>strong{line-height:1.35}
+.restaurantChoices button.conflict{border-color:#c9aaa6;background:#fff9f8}
+.restaurantChoices button.conflict>small,.restaurantChoices button.conflict>strong{color:#a54037}
+.restaurantChoices button.conflict.selected{border-color:#b34339;box-shadow:inset 0 0 0 1px #b34339}
+.routeTimeline.result article.problemStop>i{border-color:#b84a3e;background:#b84a3e;box-shadow:0 0 0 5px #f1d8d3}
+.routeTimeline.result article.problemStop .routeStop>b,.routeTimeline.result article.problemStop .routeTime>b{color:#9d332a}
+.routeTimeline.result article.problemStop>em:after{background:#b84a3e}
+.demoResultHead>p{font-size:11px;line-height:1.45;font-weight:600;color:#6e675e}
+.decisionTop .compatibilityWarning{border-color:#b34339}
+@media(max-width:800px){.demoExperience{grid-template-columns:1fr}.controls{padding:24px!important}.controlGroup>div{grid-template-columns:1fr 1fr}.demoDecision{min-height:650px}}
+@media(max-width:600px){
+ .controls{padding:22px 18px!important}
+ .controls>.controlLabel{font-size:11px!important}
+ .controlGroup{padding:15px 0}
+ .controlGroup>small{font-size:8px}
+ .controlGroup>div{gap:7px}
+ .controlGroup button{min-height:58px!important;padding:9px 8px!important;font-size:10px!important}
+ .controlGroup button span{width:20px!important;flex-basis:20px;font-size:13px!important}
+ .restaurantChoices button{min-height:145px}
+ .restaurantChoices button h4{font-size:24px}
+ .restaurantChoices button>b{font-size:16px}
+ .restaurantChoices button>span,.restaurantChoices button>em{font-size:10px}
+ .restaurantChoices button>strong{font-size:8px}
+ .demoResultHead>p{font-size:12px}
+}
