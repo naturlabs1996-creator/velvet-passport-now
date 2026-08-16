@@ -88,6 +88,48 @@ const scenarios = {
       { time: "+38", duration: "14 min", name: "Direct protected arrival", detail: "Optional discovery removed" },
     ],
   },
+  water: {
+    label: "I need water",
+    icon: "◉",
+    title: "Water now—the route can wait three minutes.",
+    route: "Nearest verified water point → quick reset → route resumes",
+    meta: "3 min away · free · no meaningful delay",
+    compatibility: "99%",
+    reason: "NOW prioritizes a verified drinking-water point on the natural direction of travel, without creating unnecessary backtracking.",
+    change: "THE WATER POINT IS UNAVAILABLE",
+    recoveredTitle: "Next verified water point selected.",
+    recoveredMeta: "5 min away · open access · route preserved",
+    stops: [
+      { time: "NOW", duration: "3 min", name: "Walk to public drinking water", detail: "Verified point · on your route" },
+      { time: "+03", duration: "4 min", name: "Water and short reset", detail: "Free · public access" },
+      { time: "+07", duration: "12 min", name: "Resume current route", detail: "Destination remains protected" },
+    ],
+    recovery: [
+      { time: "NOW", duration: "5 min", name: "Alternate water point", detail: "Verified available · 350 m" },
+      { time: "+09", duration: "12 min", name: "Resume current route", detail: "Only 2 minutes added" },
+    ],
+  },
+  restroom: {
+    label: "I need a restroom",
+    icon: "WC",
+    title: "The nearest practical restroom—not merely the nearest pin.",
+    route: "Verified access → facilities → resume from the correct exit",
+    meta: "5 min away · open access · route protected",
+    compatibility: "98%",
+    reason: "NOW checks practical access, opening status and walking direction before inserting the stop into the active route.",
+    change: "FACILITIES TEMPORARILY CLOSED",
+    recoveredTitle: "A verified alternative is ready nearby.",
+    recoveredMeta: "7 min away · accessible · +3 min total",
+    stops: [
+      { time: "NOW", duration: "5 min", name: "Carrousel du Louvre facilities", detail: "Access route verified · open in demo" },
+      { time: "+05", duration: "8 min", name: "Restroom stop", detail: "Indoor · accessible facilities" },
+      { time: "+13", duration: "12 min", name: "Resume from Carrousel exit", detail: "Original destination preserved" },
+    ],
+    recovery: [
+      { time: "NOW", duration: "7 min", name: "Alternative public facilities", detail: "Verified access · no backtracking" },
+      { time: "+15", duration: "12 min", name: "Resume protected route", detail: "3 minutes added" },
+    ],
+  },
   guardian: {
     label: "I need help",
     icon: "✚",
@@ -180,11 +222,25 @@ const scenarioVisuals = {
   heat: { start: "/images/paris-hidden-courtyard.webp", end: "/images/paris-covered-passage.webp" },
   ticket: { start: "/images/paris-haussmann-evening.webp", end: "/images/paris-covered-passage.webp" },
   care: { start: "/images/paris-covered-passage.webp", end: "/images/paris-quiet-cafe.webp" },
+  water: { start: "/images/paris-haussmann-evening.webp", end: "/images/paris-covered-passage.webp" },
+  restroom: { start: "/images/paris-haussmann-evening.webp", end: "/images/paris-covered-passage.webp" },
   guardian: { start: "/images/paris-haussmann-evening.webp", end: "/images/paris-covered-passage.webp" },
   blocked: { start: "/images/paris-haussmann-evening.webp", end: "/images/paris-hidden-courtyard.webp" },
   food: { start: "/images/paris-haussmann-evening.webp", end: "/images/paris-quiet-cafe.webp" },
   secret: { start: "/images/paris-haussmann-evening.webp", end: "/images/paris-hidden-courtyard.webp" },
 } as const;
+
+const foodOptions = [
+  { tag: "BEST FIT", name: "Chez Vong", rating: "9.1/10", reviews: "TheFork rating", price: "€€€", travel: "11 min walk", walk: 11, meal: 48, resume: 14, margin: 17, note: "Cantonese · 10 rue de la Grande Truanderie", status: "Open in demo · table likely", fits: true },
+  { tag: "BEST VALUE", name: "Nouilles Ceinture", rating: "4.6 ★", reviews: "1,000+ demo reviews", price: "€", travel: "7 min walk", walk: 7, meal: 36, resume: 12, margin: 35, note: "Hand-pulled noodles · quick service", status: "Open in demo · no reservation", fits: true },
+  { tag: "PREMIUM", name: "Shang Palace", rating: "MICHELIN ★", reviews: "Official Guide status", price: "€€€€", travel: "24 min by car", walk: 24, meal: 90, resume: 28, margin: -52, note: "Cantonese fine dining · reservation required", status: "Does not fit before Louvre", fits: false },
+] as const;
+
+const scenarioGroups = [
+  { label: "CITY & ROUTE", keys: ["rain","heat","ticket","blocked"] as const },
+  { label: "HUMAN NEEDS", keys: ["food","water","restroom","care"] as const },
+  { label: "DISCOVERY & SAFETY", keys: ["secret","guardian"] as const },
+] as const;
 
 export default function Home(){
   const [scenario,setScenario]=useState<keyof typeof scenarios>("rain");
@@ -194,9 +250,20 @@ export default function Home(){
   const [demoPhase,setDemoPhase]=useState<"ready"|"building"|"result"|"problem"|"recovered">("result");
   const selected=scenarios[scenario];
   const visual=scenarioVisuals[scenario];
+  const selectedFood=foodOptions[foodChoice];
   const selectScenario=(key:keyof typeof scenarios)=>{setScenario(key);setDemoPhase("ready")};
   const runDemo=(recovery=false)=>{if(recovery){setDemoPhase("problem");setTimeout(()=>{setDemoPhase("building");setTimeout(()=>setDemoPhase("recovered"),1600)},2800);return}setDemoPhase("building");setTimeout(()=>setDemoPhase("result"),1400)};
-  const activeStops:readonly DemoStop[]=demoPhase==="recovered"?selected.recovery:selected.stops;
+  const chooseFood=(index:number)=>{if(index===foodChoice)return;setFoodChoice(index);setDemoPhase("building");setTimeout(()=>setDemoPhase("result"),900)};
+  const foodArrival=selectedFood.walk+selectedFood.meal+4;
+  const foodStops:readonly DemoStop[]=[
+    {time:"NOW",duration:selectedFood.travel,name:`Go to ${selectedFood.name}`,detail:`${selectedFood.status} · ${selectedFood.price}`},
+    {time:`+${selectedFood.walk}`,duration:`${selectedFood.meal} min`,name:selectedFood.name,detail:`${selectedFood.rating} · ${selectedFood.reviews} · ${selectedFood.note}`},
+    {time:`+${foodArrival}`,duration:`${selectedFood.resume} min`,name:selectedFood.fits?"Resume protected route":"Louvre ticket conflict",detail:selectedFood.fits?`${selectedFood.margin} min arrival margin remains`:"Save this restaurant for dinner or change the ticket plan"},
+  ];
+  const activeStops:readonly DemoStop[]=scenario==="food"&&demoPhase!=="recovered"?foodStops:demoPhase==="recovered"?selected.recovery:selected.stops;
+  const displayedTitle=scenario==="food"&&demoPhase==="result"?(selectedFood.fits?`${selectedFood.name} fits your day.`:`${selectedFood.name} does not fit safely before the Louvre.`):selected.title;
+  const displayedMeta=scenario==="food"&&demoPhase==="result"?(selectedFood.fits?`${foodArrival+selectedFood.resume} min total · ${selectedFood.margin} min ticket margin retained`:`${foodArrival+selectedFood.resume} min total · 52 min ticket conflict`):selected.meta;
+  const displayedCompatibility=scenario==="food"?(selectedFood.fits?"95%":"34%"):selected.compatibility;
   const buy=()=>{setCheckout(true);setTimeout(()=>document.querySelector("#checkout")?.scrollIntoView({behavior:"smooth",block:"center"}),20)};
   const faqs=[
     ["When does my Pass start?","Only when you press “Activate now” and confirm. Buying or opening your link does not start the clock."],
@@ -217,11 +284,7 @@ export default function Home(){
 
     <section className="howNow" id="how"><div className="heading"><p className="kicker">HOW PARIS NOW WORKS</p><h2>Give it the moment.<br/>Get the right next move.</h2></div><div className="howSteps"><article><span>01</span><small>TELL NOW WHAT YOU HAVE</small><h3>Your real situation</h3><p>Location, available time, weather, energy and any ticket that controls the day.</p></article><article><span>02</span><small>GET YOUR ROUTE</small><h3>A realistic sequence</h3><p>Verified places, walking time, useful margins and a minute-by-minute order that makes sense.</p></article><article><span>03</span><small>ADAPT AS PARIS CHANGES</small><h3>Your day stays intact</h3><p>Rain, heat, delays, closures or fatigue can contract or rebuild the route without starting over.</p></article></div></section>
 
-    <section className="demo" id="demo"><Heading kicker="TRY IT BEFORE YOU BUY" title="Watch Paris NOW make the decision." text="A real demonstration in Louvre & Opéra. Choose what changed, then build or rebuild the route."/><div className="demoGrid demoExperience"><div className="controls"><small className="controlLabel">WHAT CHANGED?</small>{Object.entries(scenarios).map(([key,value])=><button className={scenario===key?"active":""} type="button" onClick={()=>selectScenario(key as keyof typeof scenarios)} key={key}><span>{value.icon}</span>{value.label}</button>)}<p>Free demonstration · no account · one Paris zone</p></div><div className="decision demoDecision" aria-live="polite"><div className="decisionTop"><small>LOUVRE & OPÉRA · LIVE DEMO</small><span>{selected.compatibility} compatible</span></div>{demoPhase==="ready"?<div className="demoReady"><span className="demoIcon">{selected.icon}</span><h3>{selected.title}</h3><p>Paris NOW is ready to combine your conditions with verified places and realistic travel time.</p><button type="button" className="demoBuild" onClick={()=>runDemo(false)}>BUILD MY DEMO ROUTE →</button></div>:demoPhase==="building"?<div className="demoBuilding"><span className="demoSpinner"/><b>Paris NOW is rebuilding your route…</b><small>Checking time · conditions · walking logic · recovery margin</small></div>:<><div className="demoResultHead"><small>{demoPhase==="recovered"?"RECOVERY MODE · ROUTE REBUILT":demoPhase==="problem"?"LIVE PROBLEM DETECTED":"YOUR NOW ROUTE"}</small><h3>{demoPhase==="recovered"?selected.recoveredTitle:demoPhase==="problem"?selected.change:selected.title}</h3><p>{demoPhase==="recovered"?selected.recoveredMeta:demoPhase==="problem"?"Paris NOW is isolating the affected step before rebuilding.":selected.meta}</p></div>{scenario==="food"&&demoPhase!=="problem"&&<div className="restaurantChoices"><div className="restaurantChoicesTitle"><small>3 RECOMMENDATIONS FOR THIS MOMENT</small><span>Illustrative demo</span></div>{[
-  ["BEST FIT","4.6 ★ · €€","6 min walk","Open now · strong review confidence"],
-  ["BEST VALUE","4.5 ★ · €","8 min walk","Open now · quick service"],
-  ["PREMIUM OPTION","MICHELIN GUIDE · €€€€","12 min away","Official status checked live · reservation may be required"],
-].map((item,index)=><button type="button" className={foodChoice===index?"selected":""} onClick={()=>setFoodChoice(index)} key={item[0]}><small>{item[0]}</small><b>{item[1]}</b><span>{item[2]}</span><em>{item[3]}</em><strong>{foodChoice===index?"SELECTED ✓":"ADD TO ROUTE"}</strong></button>)}</div>}{scenario==="guardian"?<div className="guardianHelpPanel"><div className="guardianLocation"><small>YOUR LOCATION IS READY</small><b>Share my exact position</b><span>With my hotel or trusted contact</span></div><div className="guardianNumbers"><button type="button"><small>MEDICAL EMERGENCY</small><b>SAMU · 15</b></button><button type="button"><small>POLICE OR GENDARMERIE</small><b>CALL · 17</b></button><button type="button"><small>FIRE OR RESCUE</small><b>FIREFIGHTERS · 18</b></button><button type="button"><small>EUROPEAN EMERGENCY</small><b>CALL · 112</b></button><button type="button"><small>EMERGENCY BY TEXT</small><b>TEXT · 114</b></button><button type="button" className="nearbyHelp"><small>NEARBY CARE</small><b>Hospital · Pharmacy</b></button></div><p>Demo preview only · Buttons do not place a call.</p></div>:<div className="routeVisuals"><figure><img src={visual.start} alt="Visual preview of the starting area"/><figcaption><small>STARTING POINT</small><b>{activeStops[0].name}</b></figcaption></figure><span>→</span><figure className="arrivalVisual"><img src={visual.end} alt="Visual preview of the final area"/><figcaption><small>FINAL DESTINATION</small><b>{activeStops[activeStops.length-1].name}</b></figcaption></figure></div>}<div className={`routeTimeline ${demoPhase}`}>{activeStops.map((stop,index)=><article className={index===activeStops.length-1?"destinationStop":demoPhase==="problem"&&index===1?"problemStop":""} key={stop.name}><div className="routeTime"><b>{stop.time}</b><small>{stop.duration}</small></div><i/><div className="routeStop"><b>{stop.name}</b><span>{stop.detail}</span></div>{index<activeStops.length-1&&<em/>}</article>)}</div><div className="routeLegend"><span><i/>Current</span><span><i/>Next</span><span><i/>Destination</span></div><div className="demoWhy"><small>WHY NOW CHOSE THIS</small><p>{selected.reason}</p></div>{demoPhase==="result"&&<button type="button" className="demoChange" onClick={()=>runDemo(true)}>{selected.change} — REBUILD →</button>}{demoPhase==="recovered"&&<button type="button" className="demoChange secondary" onClick={()=>setDemoPhase("ready")}>TRY ANOTHER VERSION ↻</button>}<a className="demoCta" href="#passes">UNLOCK PARIS ACROSS THE CITY →</a></>}</div></div><p className="demoDisclosure">This demonstration uses prepared scenarios and illustrative location photography and restaurant data in one zone. A paid Pass will unlock the complete Paris NOW decision system across available Paris zones.</p></section>
+    <section className="demo" id="demo"><Heading kicker="TRY IT BEFORE YOU BUY" title="Watch Paris NOW make the decision." text="Choose a city condition or a human need. Every selection recalculates the route in front of you."/><div className="demoGrid demoExperience"><div className="controls"><small className="controlLabel">WHAT DO YOU NEED RIGHT NOW?</small>{scenarioGroups.map(group=><div className="controlGroup" key={group.label}><small>{group.label}</small><div>{group.keys.map(key=>{const value=scenarios[key];return <button className={scenario===key?"active":""} type="button" onClick={()=>selectScenario(key)} key={key}><span>{value.icon}</span>{value.label}</button>})}</div></div>)}<p>Interactive demonstration · every option rebuilds the result</p></div><div className="decision demoDecision" aria-live="polite"><div className="decisionTop"><small>LOUVRE & OPÉRA · LIVE DEMO</small><span className={scenario==="food"&&!selectedFood.fits?"compatibilityWarning":""}>{displayedCompatibility} compatible</span></div>{demoPhase==="ready"?<div className="demoReady"><span className="demoIcon">{selected.icon}</span><h3>{selected.title}</h3><p>Paris NOW is ready to combine your conditions with verified places and realistic travel time.</p><button type="button" className="demoBuild" onClick={()=>runDemo(false)}>BUILD MY DEMO ROUTE →</button></div>:demoPhase==="building"?<div className="demoBuilding"><span className="demoSpinner"/><b>Paris NOW is rebuilding your route…</b><small>Checking time · conditions · walking logic · recovery margin</small></div>:<><div className="demoResultHead"><small>{demoPhase==="recovered"?"RECOVERY MODE · ROUTE REBUILT":demoPhase==="problem"?"LIVE PROBLEM DETECTED":"YOUR NOW ROUTE"}</small><h3>{demoPhase==="recovered"?selected.recoveredTitle:demoPhase==="problem"?selected.change:displayedTitle}</h3><p>{demoPhase==="recovered"?selected.recoveredMeta:demoPhase==="problem"?"Paris NOW is isolating the affected step before rebuilding.":displayedMeta}</p></div>{scenario==="food"&&demoPhase!=="problem"&&<div className="restaurantChoices"><div className="restaurantChoicesTitle"><small>3 LIVE-STYLE RESULTS · PALAIS-ROYAL</small><span>Tap one to recalculate</span></div>{foodOptions.map((item,index)=><button type="button" className={`${foodChoice===index?"selected":""} ${!item.fits?"conflict":""}`} onClick={()=>chooseFood(index)} key={item.name}><small>{item.tag}</small><h4>{item.name}</h4><b>{item.rating} <i>·</i> {item.price}</b><span>{item.reviews} · {item.travel}</span><em>{item.note}</em><strong>{foodChoice===index?(item.fits?"SELECTED · ROUTE UPDATED ✓":"SELECTED · CONFLICT SHOWN"):(item.fits?"ADD & RECALCULATE":"CHECK THIS OPTION")}</strong></button>)}</div>}{scenario==="guardian"?<div className="guardianHelpPanel"><div className="guardianLocation"><small>YOUR LOCATION IS READY</small><b>Share my exact position</b><span>With my hotel or trusted contact</span></div><div className="guardianNumbers"><button type="button"><small>MEDICAL EMERGENCY</small><b>SAMU · 15</b></button><button type="button"><small>POLICE OR GENDARMERIE</small><b>CALL · 17</b></button><button type="button"><small>FIRE OR RESCUE</small><b>FIREFIGHTERS · 18</b></button><button type="button"><small>EUROPEAN EMERGENCY</small><b>CALL · 112</b></button><button type="button"><small>EMERGENCY BY TEXT</small><b>TEXT · 114</b></button><button type="button" className="nearbyHelp"><small>NEARBY CARE</small><b>Hospital · Pharmacy</b></button></div><p>Demo preview only · Buttons do not place a call.</p></div>:<div className="routeVisuals"><figure><img src={visual.start} alt="Visual preview of the starting area"/><figcaption><small>STARTING POINT</small><b>{activeStops[0].name}</b></figcaption></figure><span>→</span><figure className="arrivalVisual"><img src={visual.end} alt="Visual preview of the final area"/><figcaption><small>FINAL DESTINATION</small><b>{activeStops[activeStops.length-1].name}</b></figcaption></figure></div>}<div className={`routeTimeline ${demoPhase}`}>{activeStops.map((stop,index)=><article className={index===activeStops.length-1?(scenario==="food"&&!selectedFood.fits?"problemStop":"destinationStop"):demoPhase==="problem"&&index===1?"problemStop":""} key={stop.name}><div className="routeTime"><b>{stop.time}</b><small>{stop.duration}</small></div><i/><div className="routeStop"><b>{stop.name}</b><span>{stop.detail}</span></div>{index<activeStops.length-1&&<em/>}</article>)}</div><div className="routeLegend"><span><i/>Current</span><span><i/>Next</span><span><i/>Destination</span></div><div className="demoWhy"><small>WHY NOW CHOSE THIS</small><p>{selected.reason}</p></div>{demoPhase==="result"&&<button type="button" className="demoChange" onClick={()=>runDemo(true)}>{selected.change} — REBUILD →</button>}{demoPhase==="recovered"&&<button type="button" className="demoChange secondary" onClick={()=>setDemoPhase("ready")}>TRY ANOTHER VERSION ↻</button>}<a className="demoCta" href="#passes">UNLOCK PARIS ACROSS THE CITY →</a></>}</div></div><p className="demoDisclosure">This demonstration uses prepared scenarios and illustrative location photography and restaurant data in one zone. A paid Pass will unlock the complete Paris NOW decision system across available Paris zones.</p></section>
 
     <section className="careNow" id="guardian"><div className="careIntro"><p className="kicker">PARIS NOW · COMPLETE TRAVEL CARE</p><h2>Built around the journey.<br/><em>And the person living it.</em></h2><p>Plans change because cities change—and because people do. NOW can create a food break, find water or a restroom, reduce effort, protect a medication reminder and pause the journey when help matters more than sightseeing.</p></div><div className="careConsole"><div className="careConsoleTop"><span>NOW CARE</span><b>What do you need right now?</b></div><div className="careUnified"><small>ONE DEMO · EVERY REAL-LIFE OPTION</small><b>Food, water, restroom, rest, blocked streets and Guardian now live together in the demonstrator above.</b><a href="#demo">OPEN THE COMPLETE DEMO ↑</a></div><a href="#demo" onClick={()=>selectScenario("guardian")} className="guardianPreview"><span>✚</span><div><small>NOW GUARDIAN</small><b>I NEED HELP</b><p>Pause the journey · prepare my location · show help options</p></div><em>→</em></a><p className="careSafety">Guardian supports access to help; it does not replace emergency services or medical advice.</p></div></section>
 
