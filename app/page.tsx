@@ -140,7 +140,7 @@ export default function Home(){
   const [demoPhase,setDemoPhase]=useState<"ready"|"building"|"result"|"problem"|"recovered">("result");
   const selected=scenarios[scenario];
   const selectScenario=(key:keyof typeof scenarios)=>{setScenario(key);setDemoPhase("ready")};
-  const runDemo=(recovery=false)=>{if(recovery){setDemoPhase("problem");setTimeout(()=>{setDemoPhase("building");setTimeout(()=>setDemoPhase("recovered"),650)},1100);return}setDemoPhase("building");setTimeout(()=>setDemoPhase("result"),650)};
+  const runDemo=(recovery=false)=>{if(recovery){setDemoPhase("problem");setTimeout(()=>{setDemoPhase("building");setTimeout(()=>setDemoPhase("recovered"),1600)},2800);return}setDemoPhase("building");setTimeout(()=>setDemoPhase("result"),1400)};
   const activeStops:readonly DemoStop[]=demoPhase==="recovered"?selected.recovery:selected.stops;
   const buy=()=>{setCheckout(true);setTimeout(()=>document.querySelector("#checkout")?.scrollIntoView({behavior:"smooth",block:"center"}),20)};
   const faqs=[
