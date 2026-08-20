@@ -131,7 +131,16 @@ export default function ParisNowApp() {
   const [active, setActive] = useState<Need>("route");
   const [progress, setProgress] = useState(7);
   const [rebuilding, setRebuilding] = useState(false);
-  const route = routes[active];
+  const [serverRoute, setServerRoute] = useState<(typeof routes)[Need] | null>(null);
+  const [ticket, setTicket] = useState<TicketState>({
+    venue: "Musée du Louvre",
+    time: "16:30",
+    entrance: "Carrousel du Louvre",
+    marginMinutes: 24,
+    protected: true,
+  });
+  const [ticketOpen, setTicketOpen] = useState(false);
+  const route = serverRoute ?? routes[active];
 
   useEffect(() => {
     setProgress(7);
