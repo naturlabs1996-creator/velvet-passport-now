@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 
-type Need = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "guardian";
+type Need = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
 
 type TicketState = {
   venue: string;
@@ -12,6 +12,21 @@ type TicketState = {
   entrance: string;
   marginMinutes: number;
   protected: boolean;
+};
+
+type GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
+
+type GuardianAssessment = {
+  level: GuardianLevel;
+  priority: "standard" | "urgent";
+  officialServices: { label: string; number: string; purpose: string }[];
+  hotelContact: {
+    status: "consent_required" | "preview_only";
+    consent: boolean;
+    messagePreview: string | null;
+    deliveryAvailable: boolean;
+  };
+  disclaimer: string;
 };
 
 type Stop = {
@@ -103,6 +118,61 @@ const routes: Record<Need, { eyebrow: string; title: string; meta: string; note:
       { time: "+37", duration: "12 min", title: "Carrousel entrance", detail: "Shortest protected approach", state: "destination" },
     ],
   },
+  pharmacy: {
+    eyebrow: "NOW CARE · PHARMACY",
+    title: "A pharmacy on the way—not across the city.",
+    meta: "9 min detour · ticket margin 19 min",
+    note: "A prepared pharmacy stop is added in the direction of the Louvre.",
+    stops: [
+      { time: "NOW", duration: "4 min", title: "Walk to nearby pharmacy", detail: "Prepared location · along your route", state: "current" },
+      { time: "+04", duration: "5 min", title: "Pharmacy stop", detail: "Ask the pharmacist for professional advice", state: "next" },
+      { time: "+09", duration: "12 min", title: "Resume protected route", detail: "Louvre ticket preserved", state: "destination" },
+    ],
+  },
+  sitdown: {
+    eyebrow: "NOW CARE · SEATED PAUSE",
+    title: "Sit down first. Paris will still be here.",
+    meta: "11 min pause · nearby bench",
+    note: "NOW adds a short seated stop and preserves the protected route.",
+    stops: [
+      { time: "NOW", duration: "3 min", title: "Palais-Royal garden bench", detail: "Prepared location · level access", state: "current" },
+      { time: "+03", duration: "8 min", title: "Quiet seated pause", detail: "Shade and low walking effort", state: "next" },
+      { time: "+11", duration: "12 min", title: "Resume gently", detail: "Original destination preserved", state: "destination" },
+    ],
+  },
+  battery: {
+    eyebrow: "NOW CARE · PHONE BATTERY",
+    title: "A charging stop before your phone becomes the problem.",
+    meta: "14 min pause · café charging point",
+    note: "A practical charging pause is inserted without losing your ticket margin.",
+    stops: [
+      { time: "NOW", duration: "4 min", title: "Walk to a quiet café", detail: "Prepared venue · charging possible", state: "current" },
+      { time: "+04", duration: "10 min", title: "Short phone recharge", detail: "Ask staff before using an outlet", state: "next" },
+      { time: "+14", duration: "12 min", title: "Resume protected route", detail: "18 min ticket margin remains", state: "destination" },
+    ],
+  },
+  medication: {
+    eyebrow: "NOW CARE · MEDICATION REMINDER",
+    title: "Take the pause you planned. We will protect the rest.",
+    meta: "8 min pause · private reminder",
+    note: "A user-created reminder only. NOW does not provide medication instructions.",
+    stops: [
+      { time: "NOW", duration: "3 min", title: "Move to a calm seated place", detail: "Privacy and water nearby", state: "current" },
+      { time: "+03", duration: "5 min", title: "Personal reminder pause", detail: "Follow your own prescribed instructions", state: "next" },
+      { time: "+08", duration: "12 min", title: "Resume protected route", detail: "Destination preserved", state: "destination" },
+    ],
+  },
+  glucose: {
+    eyebrow: "NOW CARE · PERSONAL HEALTH REMINDER",
+    title: "A calm moment for the check you scheduled.",
+    meta: "10 min pause · seated setting",
+    note: "A private reminder only. NOW does not interpret glucose readings or replace medical care.",
+    stops: [
+      { time: "NOW", duration: "3 min", title: "Find a calm seated place", detail: "Quiet café or prepared bench", state: "current" },
+      { time: "+03", duration: "7 min", title: "Personal health check", detail: "Follow your own clinician-approved routine", state: "next" },
+      { time: "+10", duration: "12 min", title: "Resume when ready", detail: "Route recalculated around your pause", state: "destination" },
+    ],
+  },
   guardian: {
     eyebrow: "NOW GUARDIAN",
     title: "Your route is paused. Help comes first.",
@@ -124,6 +194,11 @@ const needs: { id: Need; label: string; icon: string }[] = [
   { id: "water", label: "I need water", icon: "◉" },
   { id: "restroom", label: "I need a restroom", icon: "WC" },
   { id: "energy", label: "Low energy", icon: "◌" },
+  { id: "pharmacy", label: "Find a pharmacy", icon: "✚" },
+  { id: "sitdown", label: "I need to sit down", icon: "◡" },
+  { id: "battery", label: "Phone battery", icon: "▥" },
+  { id: "medication", label: "Medication reminder", icon: "◷" },
+  { id: "glucose", label: "Glucose check", icon: "◉" },
   { id: "guardian", label: "I need help", icon: "✚" },
 ];
 
@@ -140,6 +215,9 @@ export default function ParisNowApp() {
     protected: true,
   });
   const [ticketOpen, setTicketOpen] = useState(false);
+  const [guardianLevel, setGuardianLevel] = useState<GuardianLevel>("checkin");
+  const [hotelConsent, setHotelConsent] = useState(false);
+  const [guardianAssessment, setGuardianAssessment] = useState<GuardianAssessment | null>(null);
   const route = serverRoute ?? routes[active];
 
   useEffect(() => {
@@ -177,6 +255,30 @@ export default function ParisNowApp() {
       window.clearInterval(timer);
     };
   }, [active]);
+
+  useEffect(() => {
+    if (active !== "guardian") return;
+    const controller = new AbortController();
+
+    fetch("/api/now/guardian", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level: guardianLevel, hotelConsent }),
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Guardian assessment failed");
+        return response.json();
+      })
+      .then((assessment: GuardianAssessment) => setGuardianAssessment(assessment))
+      .catch((error) => {
+        if (!(error instanceof Error && error.name === "AbortError")) {
+          setGuardianAssessment(null);
+        }
+      });
+
+    return () => controller.abort();
+  }, [active, guardianLevel, hotelConsent]);
 
   const status = useMemo(() => active === "blocked" ? "Reroute active" : active === "guardian" ? "Route paused" : "Live route", [active]);
 
@@ -250,6 +352,61 @@ export default function ParisNowApp() {
           ))}
         </div>
       </section>
+
+      {active === "guardian" && (
+        <section className={styles.guardianPanel} aria-live="polite">
+          <div className={styles.guardianHeading}>
+            <span>NOW GUARDIAN · HOW CAN WE HELP?</span>
+            <h2>You are not on your own.</h2>
+            <p>Choose the situation. Your route stays paused while you decide.</p>
+          </div>
+
+          <div className={styles.guardianLevels}>
+            {([
+              ["checkin", "Just checking in", "No urgent problem"],
+              ["assistance", "I need assistance", "Lost, tired or need a safe return"],
+              ["medical", "I feel unwell", "Medical attention may be needed"],
+              ["emergency", "Immediate danger", "Call official emergency services"],
+            ] as const).map(([level, label, detail]) => (
+              <button
+                key={level}
+                className={guardianLevel === level ? styles.guardianSelected : ""}
+                onClick={() => setGuardianLevel(level)}
+              >
+                <strong>{label}</strong>
+                <span>{detail}</span>
+              </button>
+            ))}
+          </div>
+
+          {(guardianLevel === "medical" || guardianLevel === "emergency") && (
+            <div className={styles.emergencyServices}>
+              <span>OFFICIAL EMERGENCY SERVICES</span>
+              {(guardianAssessment?.officialServices ?? []).map((service) => (
+                <a key={service.number} href={`tel:${service.number}`}>
+                  <strong>{service.label}</strong>
+                  <span>{service.purpose}</span>
+                  <b>{service.number}</b>
+                </a>
+              ))}
+            </div>
+          )}
+
+          <div className={styles.hotelContact}>
+            <span>HOTEL CONTACT · EXPLICIT PERMISSION REQUIRED</span>
+            <label>
+              <input type="checkbox" checked={hotelConsent} onChange={(event) => setHotelConsent(event.target.checked)} />
+              I authorize NOW to prepare a message for my hotel.
+            </label>
+            {hotelConsent && guardianAssessment?.hotelContact.messagePreview && (
+              <blockquote>{guardianAssessment.hotelContact.messagePreview}</blockquote>
+            )}
+            <p>{hotelConsent ? "Preview only. Hotel delivery is not connected yet." : "No hotel is contacted and no location is shared without permission."}</p>
+          </div>
+
+          <small>Guardian does not replace emergency services, medical advice or professional care.</small>
+        </section>
+      )}
 
       <section className={styles.routeCard} aria-live="polite">
         <div className={styles.routeIntro}>
