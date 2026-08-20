@@ -1,4 +1,4 @@
-export type NowScenario = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "guardian";
+export type NowScenario = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
 
 export type NowStop = {
   time: string;
@@ -28,7 +28,7 @@ export type RoutePlan = {
   };
 };
 
-const validScenarios: NowScenario[] = ["route", "rain", "blocked", "food", "water", "restroom", "energy", "guardian"];
+const validScenarios: NowScenario[] = ["route", "rain", "blocked", "food", "water", "restroom", "energy", "pharmacy", "sitdown", "battery", "medication", "glucose", "guardian"];
 
 const definitions: Record<NowScenario, Omit<RoutePlan, "ticket" | "calculation"> & { totalMinutes: number; marginMinutes: number }> = {
   route: {
@@ -116,6 +116,66 @@ const definitions: Record<NowScenario, Omit<RoutePlan, "ticket" | "calculation">
       { time: "NOW", duration: "6 min", title: "Quiet seated pause", detail: "Warm café · low noise", state: "current" },
       { time: "+18", duration: "12 min", title: "Short Palais-Royal loop", detail: "Benches · level access", state: "next" },
       { time: "+37", duration: "12 min", title: "Carrousel entrance", detail: "Shortest protected approach", state: "destination" },
+    ],
+  },
+  pharmacy: {
+    eyebrow: "NOW CARE · PHARMACY",
+    title: "A pharmacy on the way—not across the city.",
+    meta: "9 min detour · route preserved · ticket margin 19 min",
+    note: "NOW adds a prepared pharmacy stop in the direction of the Louvre and preserves your arrival margin.",
+    totalMinutes: 9, marginMinutes: 19,
+    stops: [
+      { time: "NOW", duration: "4 min", title: "Walk to nearby pharmacy", detail: "Prepared location · along your route", state: "current" },
+      { time: "+04", duration: "5 min", title: "Pharmacy stop", detail: "Ask the pharmacist for professional advice", state: "next" },
+      { time: "+09", duration: "12 min", title: "Resume protected route", detail: "Louvre ticket margin remains safe", state: "destination" },
+    ],
+  },
+  sitdown: {
+    eyebrow: "NOW CARE · SEATED PAUSE",
+    title: "Sit down first. Paris will still be here.",
+    meta: "11 min pause · nearby bench · route preserved",
+    note: "NOW chooses a short seated stop before rebuilding the rest of the route around your energy.",
+    totalMinutes: 11, marginMinutes: 20,
+    stops: [
+      { time: "NOW", duration: "3 min", title: "Palais-Royal garden bench", detail: "Prepared location · level access", state: "current" },
+      { time: "+03", duration: "8 min", title: "Quiet seated pause", detail: "Shade and low walking effort", state: "next" },
+      { time: "+11", duration: "12 min", title: "Resume gently", detail: "Original destination preserved", state: "destination" },
+    ],
+  },
+  battery: {
+    eyebrow: "NOW CARE · PHONE BATTERY",
+    title: "A charging stop before your phone becomes the problem.",
+    meta: "14 min pause · café charging point · route protected",
+    note: "NOW adds a practical charging pause without losing the protected Louvre arrival window.",
+    totalMinutes: 14, marginMinutes: 18,
+    stops: [
+      { time: "NOW", duration: "4 min", title: "Walk to a quiet café", detail: "Prepared venue · charging possible", state: "current" },
+      { time: "+04", duration: "10 min", title: "Short phone recharge", detail: "Ask staff before using an outlet", state: "next" },
+      { time: "+14", duration: "12 min", title: "Resume protected route", detail: "18 min ticket margin remains", state: "destination" },
+    ],
+  },
+  medication: {
+    eyebrow: "NOW CARE · MEDICATION REMINDER",
+    title: "Take the pause you planned. We will protect the rest.",
+    meta: "8 min pause · private reminder · route preserved",
+    note: "NOW makes space for a user-created reminder. It does not provide medication instructions or medical advice.",
+    totalMinutes: 8, marginMinutes: 22,
+    stops: [
+      { time: "NOW", duration: "3 min", title: "Move to a calm seated place", detail: "Privacy and water nearby", state: "current" },
+      { time: "+03", duration: "5 min", title: "Personal reminder pause", detail: "Follow your own prescribed instructions", state: "next" },
+      { time: "+08", duration: "12 min", title: "Resume protected route", detail: "Destination and ticket preserved", state: "destination" },
+    ],
+  },
+  glucose: {
+    eyebrow: "NOW CARE · PERSONAL HEALTH REMINDER",
+    title: "A calm moment for the check you scheduled.",
+    meta: "10 min pause · seated setting · route preserved",
+    note: "NOW only provides a private reminder and time to pause. It does not interpret glucose readings or replace medical care.",
+    totalMinutes: 10, marginMinutes: 20,
+    stops: [
+      { time: "NOW", duration: "3 min", title: "Find a calm seated place", detail: "Quiet café or prepared bench", state: "current" },
+      { time: "+03", duration: "7 min", title: "Personal health check", detail: "Follow your own clinician-approved routine", state: "next" },
+      { time: "+10", duration: "12 min", title: "Resume when ready", detail: "Route recalculated around your pause", state: "destination" },
     ],
   },
   guardian: {
