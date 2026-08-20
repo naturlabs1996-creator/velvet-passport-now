@@ -6,6 +6,14 @@ import styles from "./page.module.css";
 
 type Need = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "guardian";
 
+type TicketState = {
+  venue: string;
+  time: string;
+  entrance: string;
+  marginMinutes: number;
+  protected: boolean;
+};
+
 type Stop = {
   time: string;
   duration: string;
@@ -128,11 +136,34 @@ export default function ParisNowApp() {
   useEffect(() => {
     setProgress(7);
     setRebuilding(true);
+    const controller = new AbortController();
     const rebuild = window.setTimeout(() => setRebuilding(false), 850);
     const timer = window.setInterval(() => {
       setProgress((value) => (value >= 88 ? value : value + 1));
     }, 1400);
+
+    fetch("/api/now/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scenario: active, ticketTime: "16:30" }),
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Route calculation failed");
+        return response.json();
+      })
+      .then((plan) => {
+        setServerRoute(plan);
+        setTicket(plan.ticket);
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name !== "AbortError") {
+          setServerRoute(routes[active]);
+        }
+      });
+
     return () => {
+      controller.abort();
       window.clearTimeout(rebuild);
       window.clearInterval(timer);
     };
@@ -176,6 +207,25 @@ export default function ParisNowApp() {
           <span>Galerie Vivienne</span>
           <span>Louvre 16:30</span>
         </div>
+      </section>
+
+      <section className={styles.ticketProtection}>
+        <button className={styles.ticketSummary} onClick={() => setTicketOpen((open) => !open)} aria-expanded={ticketOpen}>
+          <span>
+            <i className={ticket.protected ? styles.liveDot : styles.alertDot} />
+            TICKET PROTECTION
+          </span>
+          <strong>{ticket.venue} · {ticket.time}</strong>
+          <b>{ticketOpen ? "−" : "+"}</b>
+        </button>
+        {ticketOpen && (
+          <div className={styles.ticketDetails}>
+            <div><span>Correct entrance</span><strong>{ticket.entrance}</strong></div>
+            <div><span>Arrival margin</span><strong>{ticket.marginMinutes} min</strong></div>
+            <p>{ticket.protected ? "Protected. NOW will remove optional stops before risking this entry." : "The itinerary is paused while Guardian is active."}</p>
+            <small>Prepared calculation · live providers not connected yet</small>
+          </div>
+        )}
       </section>
 
       <section className={styles.needs}>
@@ -228,10 +278,10 @@ export default function ParisNowApp() {
       </section>
 
       <nav className={styles.bottomNav} aria-label="Paris NOW app navigation">
-        <button className={styles.navActive}><span>◆</span>NOW</button>
-        <button><span>⌁</span>My day</button>
-        <button><span>◇</span>Tickets</button>
-        <button><span>✚</span>Guardian</button>
+        <button className={active !== "guardian" ? styles.navActive : ""} onClick={() => setActive("route")}><span>◆</span>NOW</button>
+        <button onClick={() => setActive("route")}><span>⌁</span>My day</button>
+        <button className={ticketOpen ? styles.navActive : ""} onClick={() => setTicketOpen((open) => !open)}><span>◇</span>Tickets</button>
+        <button className={active === "guardian" ? styles.navActive : ""} onClick={() => setActive("guardian")}><span>✚</span>Guardian</button>
       </nav>
     </main>
   );
