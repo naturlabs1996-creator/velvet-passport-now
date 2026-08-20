@@ -89,7 +89,8 @@ export default function ParisNowApp() {
     marginMinutes: 24,
     protected: true,
   });
-  const [ticketOpen, setTicketOpen] = useState(false);\n  const [passStatus, setPassStatus] = useState<PassStatus>({ state: "loading", allowed: false, plan: null, expiresAt: null });
+  const [ticketOpen, setTicketOpen] = useState(false);
+  const [passStatus, setPassStatus] = useState<PassStatus>({ state: "loading", allowed: false, plan: null, expiresAt: null });
   const [guardianLevel, setGuardianLevel] = useState<GuardianLevel>("checkin");
   const [hotelConsent, setHotelConsent] = useState(false);
   const [guardianAssessment, setGuardianAssessment] = useState<GuardianAssessment | null>(null);
