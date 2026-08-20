@@ -1,0 +1,53 @@
+:global(*){box-sizing:border-box}
+:global(body){margin:0;background:#ebe7dd;color:#161513}
+:global(button),:global(a){font:inherit}
+.shell{min-height:100vh;background:#f6f3ec;padding-bottom:92px;font-family:Arial,Helvetica,sans-serif}
+.header{height:76px;background:#0b0b0d;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:20;border-bottom:1px solid #28262a}
+.brand{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none;font-family:Georgia,serif;font-size:21px}
+.brand b{color:#d4b04f;font-family:Arial,sans-serif;font-size:23px;letter-spacing:.08em}
+.rings{display:flex;width:38px;height:25px;position:relative}
+.rings i{position:absolute;width:25px;height:25px;border:1.5px solid #d4b04f;border-radius:50%;left:0}
+.rings i+ i{left:13px;border-color:#f5f2e9}
+.pass{display:flex;flex-direction:column;align-items:flex-end;font-size:9px;letter-spacing:.18em;color:#999}
+.pass strong{color:#79a58e;font-size:11px;margin-top:3px}
+.context{background:linear-gradient(145deg,#151416,#26231d);color:#fff;padding:28px 22px 30px;display:flex;justify-content:space-between;gap:18px}
+.kicker,.routeIntro>span,.sectionTitle>span,.why>span{font-size:10px;letter-spacing:.22em;color:#c7a84e;font-weight:700}
+.context h1{font:38px/1.02 Georgia,serif;margin:12px 0 8px}
+.context p{margin:0;color:#bdb9b0;font-size:15px;line-height:1.45}
+.weather{min-width:68px;height:70px;border-left:1px solid #5a5140;padding-left:16px;display:flex;flex-direction:column;justify-content:center}
+.weather b{font-size:27px}.weather span{font-size:10px;color:#aaa;margin-top:4px}
+.liveCard{margin:-12px 16px 0;background:#fff;border:1px solid #ded6c6;box-shadow:0 12px 30px #19140b16;padding:17px 18px;position:relative;z-index:2}
+.liveTop,.progressLabels,.sectionTitle{display:flex;justify-content:space-between;align-items:center}
+.liveTop{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.liveTop span{display:flex;align-items:center;gap:8px}.liveTop span+span{color:#8a8378}
+.liveDot,.alertDot{width:8px;height:8px;background:#397f65;border-radius:50%;display:inline-block;box-shadow:0 0 0 5px #397f6517}
+.alertDot{background:#a7483f;box-shadow:0 0 0 5px #a7483f18}
+.progressTrack{height:3px;background:#e1d9c8;margin:16px 0 9px;overflow:hidden}
+.progressTrack span{display:block;height:100%;background:#caa946;transition:width 1.3s linear}.progressTrack .redProgress{background:#a7483f}
+.progressLabels{font:12px Georgia,serif;color:#615d55}
+.needs{padding:28px 16px 20px}
+.sectionTitle button{border:0;background:none;color:#756a54;font-size:11px;text-decoration:underline}
+.needRail{display:grid;grid-template-columns:repeat(4,minmax(96px,1fr));gap:9px;overflow-x:auto;padding:14px 0 4px}
+.needRail button{min-height:66px;border:1px solid #d9d1c1;background:#fff;color:#3f3b35;padding:9px 8px;font-size:11px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left}
+.needRail button span{color:#ae8b2e;font-weight:700;font-size:15px}.needRail .activeNeed{background:#1a191a;color:#fff;border-color:#c7a84e}
+.routeCard{margin:0 16px;background:#fff;border:1px solid #ddd4c2;box-shadow:0 18px 45px #251d0d10}
+.routeIntro{padding:28px 22px 20px}.routeIntro h2{font:37px/1.02 Georgia,serif;margin:12px 0 12px;max-width:620px}.routeIntro p{margin:0;color:#746f67;line-height:1.5}
+.routeImages{display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:0 22px 25px}
+.routeImages>span{text-align:center;color:#b19036}
+.routeImages figure{height:145px;margin:0;position:relative;overflow:hidden;background:#111}
+.routeImages img{object-fit:cover;filter:brightness(.72)}
+.routeImages figcaption{position:absolute;left:14px;right:10px;bottom:13px;color:#fff;font:17px/1.05 Georgia,serif;text-shadow:0 1px 5px #000}
+.routeImages figcaption span{display:block;color:#e0c465;font:8px Arial,sans-serif;letter-spacing:.18em;margin-bottom:5px}
+.timeline{border-top:1px solid #e0d9cc;padding:18px 22px}
+.timeline article{display:grid;grid-template-columns:52px 30px 1fr;min-height:105px}
+.when{padding-top:3px}.when b{display:block;color:#9c7c28;font-size:13px}.when span{display:block;color:#999;font-size:10px;margin-top:5px}
+.marker{position:relative}.marker:after{content:"";position:absolute;width:1.5px;background:#d5bd72;top:19px;bottom:-8px;left:9px}.timeline article:last-child .marker:after{display:none}
+.marker i{position:absolute;top:3px;left:0;width:19px;height:19px;border-radius:50%;border:5px solid #eee4c8;background:#c8a442;z-index:1}
+.marker .currentMarker{box-shadow:0 0 0 7px #c8a4421c}.marker .destinationMarker{background:#367b61;border-color:#dfeee7}
+.stopText h3{font:25px/1.05 Georgia,serif;margin:0 0 9px}.stopText p{color:#7a756d;margin:0;font-size:13px;line-height:1.45}
+.warningStop .marker i{background:#a7483f;border-color:#f0deda}.warningStop .marker:after{background:#a7483f}.warningStop .when b{color:#a7483f}
+.why{margin:0 22px 28px;background:#f2eee5;border-left:4px solid #caa946;padding:20px}.why p{margin:12px 0 0;color:#5f5b54;line-height:1.55;font-size:14px}
+.bottomNav{position:fixed;left:0;right:0;bottom:0;height:74px;background:#0c0c0e;display:grid;grid-template-columns:repeat(4,1fr);z-index:30;border-top:1px solid #2e2b25}
+.bottomNav button{border:0;background:none;color:#817e78;font-size:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}.bottomNav button span{font-size:17px}.bottomNav .navActive{color:#d5b353}
+@media(min-width:760px){.shell{max-width:820px;margin:0 auto;box-shadow:0 0 80px #0002}.bottomNav{max-width:820px;margin:auto}.needRail{grid-template-columns:repeat(7,1fr)}}
+@media(max-width:520px){.header{padding:0 15px}.context{padding:25px 17px 29px}.context h1{font-size:34px}.context p{font-size:14px}.liveCard,.routeCard{margin-left:12px;margin-right:12px}.needs{padding-left:12px;padding-right:12px}.needRail{grid-template-columns:repeat(4,112px)}.routeIntro h2{font-size:34px}.routeImages{padding-left:16px;padding-right:16px}.routeImages figure{height:126px}.routeImages figcaption{font-size:15px}.timeline{padding-left:17px;padding-right:17px}.stopText h3{font-size:23px}}
