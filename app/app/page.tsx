@@ -16,6 +16,13 @@ type TicketState = {
 
 type GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
 
+type PassStatus = {
+  state: "loading" | "active" | "preview" | "inactive";
+  allowed: boolean;
+  plan: string | null;
+  expiresAt: string | null;
+};
+
 type GuardianAssessment = {
   level: GuardianLevel;
   priority: "standard" | "urgent";
@@ -37,154 +44,22 @@ type Stop = {
   state?: "current" | "next" | "done" | "warning" | "destination";
 };
 
-const routes: Record<Need, { eyebrow: string; title: string; meta: string; note: string; stops: Stop[] }> = {
-  route: {
-    eyebrow: "VELVET ROUTE · LOUVRE & OPÉRA",
-    title: "A quieter Paris before your Louvre entry.",
-    meta: "62 min · 1.1 km · arrival margin 24 min",
-    note: "NOW works backward from your 16:30 Louvre ticket and keeps the last 24 minutes protected.",
-    stops: [
-      { time: "NOW", duration: "14 min", title: "Galerie Vivienne", detail: "Enter by rue Vivienne · covered", state: "current" },
-      { time: "+18", duration: "16 min", title: "Palais-Royal courtyard", detail: "Quiet crossing · Velvet Pick", state: "next" },
-      { time: "+42", duration: "12 min", title: "Carrousel entrance", detail: "Correct entrance · crowd-aware", state: "next" },
-      { time: "16:06", duration: "24 min", title: "Protected arrival window", detail: "Louvre ticket 16:30 · no rush", state: "destination" },
-    ],
-  },
-  rain: {
-    eyebrow: "WEATHER ADAPTATION",
-    title: "Rain changed the route—not the day.",
-    meta: "58 min · 82% sheltered · arrival margin 27 min",
-    note: "Covered passages replace exposed crossings. Your Louvre obligation remains protected.",
-    stops: [
-      { time: "NOW", duration: "17 min", title: "Passage des Panoramas", detail: "Covered · warm reset", state: "current" },
-      { time: "+21", duration: "15 min", title: "Galerie Vivienne", detail: "Indoor route · 3 min exposed", state: "next" },
-      { time: "+44", duration: "11 min", title: "Carrousel entrance", detail: "Underground approach", state: "next" },
-      { time: "16:03", duration: "27 min", title: "Protected arrival window", detail: "Ticket remains safe", state: "destination" },
-    ],
-  },
-  blocked: {
-    eyebrow: "LIVE ROUTE PROTECTION",
-    title: "Rue Saint-Honoré is blocked. Rebuilding calmly.",
-    meta: "66 min · +6 min · arrival margin 18 min",
-    note: "The unsafe segment is removed. NOW reroutes through Palais-Royal without sacrificing the ticket.",
-    stops: [
-      { time: "NOW", duration: "2 min", title: "Pause at the safe corner", detail: "Route issue confirmed", state: "warning" },
-      { time: "+02", duration: "19 min", title: "Reroute via rue de Valois", detail: "Clear pedestrian access", state: "current" },
-      { time: "+29", duration: "14 min", title: "Palais-Royal arcades", detail: "Protected alternative", state: "next" },
-      { time: "16:12", duration: "18 min", title: "Protected arrival window", detail: "Louvre ticket 16:30", state: "destination" },
-    ],
-  },
-  food: {
-    eyebrow: "HUMAN NEED · FOOD",
-    title: "A proper meal that still fits the day.",
-    meta: "77 min total · Chez Vong · arrival margin 17 min",
-    note: "Selected for rating confidence, walking time and compatibility with your next obligation.",
-    stops: [
-      { time: "NOW", duration: "11 min", title: "Walk to Chez Vong", detail: "Cantonese · €€€ · 9.1/10", state: "current" },
-      { time: "+11", duration: "48 min", title: "Seated meal", detail: "10 rue de la Grande Truanderie", state: "next" },
-      { time: "+63", duration: "14 min", title: "Resume protected route", detail: "17 min margin remains", state: "destination" },
-    ],
-  },
-  water: {
-    eyebrow: "HUMAN NEED · WATER",
-    title: "Water now. No unnecessary detour.",
-    meta: "7 min pause · free · route preserved",
-    note: "A verified public drinking-water point is inserted in the natural direction of travel.",
-    stops: [
-      { time: "NOW", duration: "3 min", title: "Walk to drinking-water point", detail: "Verified · public access", state: "current" },
-      { time: "+03", duration: "4 min", title: "Refill and reset", detail: "Free · on your route", state: "next" },
-      { time: "+07", duration: "12 min", title: "Resume current route", detail: "Destination preserved", state: "destination" },
-    ],
-  },
-  restroom: {
-    eyebrow: "HUMAN NEED · RESTROOM",
-    title: "The nearest practical restroom—not merely a pin.",
-    meta: "13 min stop · indoor · route preserved",
-    note: "NOW checks access, opening status and walking direction before adding the stop.",
-    stops: [
-      { time: "NOW", duration: "5 min", title: "Carrousel du Louvre facilities", detail: "Access route verified", state: "current" },
-      { time: "+05", duration: "8 min", title: "Restroom stop", detail: "Indoor · accessible facilities", state: "next" },
-      { time: "+13", duration: "12 min", title: "Resume from Carrousel exit", detail: "Original destination preserved", state: "destination" },
-    ],
-  },
-  energy: {
-    eyebrow: "NOW CARE · LOW ENERGY",
-    title: "Less walking. More of the Paris worth keeping.",
-    meta: "49 min · 620 m · seated pause included",
-    note: "The route contracts around your energy instead of asking you to push through it.",
-    stops: [
-      { time: "NOW", duration: "6 min", title: "Quiet seated pause", detail: "Warm café · low noise", state: "current" },
-      { time: "+18", duration: "12 min", title: "Short Palais-Royal loop", detail: "Benches · level access", state: "next" },
-      { time: "+37", duration: "12 min", title: "Carrousel entrance", detail: "Shortest protected approach", state: "destination" },
-    ],
-  },
-  pharmacy: {
-    eyebrow: "NOW CARE · PHARMACY",
-    title: "A pharmacy on the way—not across the city.",
-    meta: "9 min detour · ticket margin 19 min",
-    note: "A prepared pharmacy stop is added in the direction of the Louvre.",
-    stops: [
-      { time: "NOW", duration: "4 min", title: "Walk to nearby pharmacy", detail: "Prepared location · along your route", state: "current" },
-      { time: "+04", duration: "5 min", title: "Pharmacy stop", detail: "Ask the pharmacist for professional advice", state: "next" },
-      { time: "+09", duration: "12 min", title: "Resume protected route", detail: "Louvre ticket preserved", state: "destination" },
-    ],
-  },
-  sitdown: {
-    eyebrow: "NOW CARE · SEATED PAUSE",
-    title: "Sit down first. Paris will still be here.",
-    meta: "11 min pause · nearby bench",
-    note: "NOW adds a short seated stop and preserves the protected route.",
-    stops: [
-      { time: "NOW", duration: "3 min", title: "Palais-Royal garden bench", detail: "Prepared location · level access", state: "current" },
-      { time: "+03", duration: "8 min", title: "Quiet seated pause", detail: "Shade and low walking effort", state: "next" },
-      { time: "+11", duration: "12 min", title: "Resume gently", detail: "Original destination preserved", state: "destination" },
-    ],
-  },
-  battery: {
-    eyebrow: "NOW CARE · PHONE BATTERY",
-    title: "A charging stop before your phone becomes the problem.",
-    meta: "14 min pause · café charging point",
-    note: "A practical charging pause is inserted without losing your ticket margin.",
-    stops: [
-      { time: "NOW", duration: "4 min", title: "Walk to a quiet café", detail: "Prepared venue · charging possible", state: "current" },
-      { time: "+04", duration: "10 min", title: "Short phone recharge", detail: "Ask staff before using an outlet", state: "next" },
-      { time: "+14", duration: "12 min", title: "Resume protected route", detail: "18 min ticket margin remains", state: "destination" },
-    ],
-  },
-  medication: {
-    eyebrow: "NOW CARE · MEDICATION REMINDER",
-    title: "Take the pause you planned. We will protect the rest.",
-    meta: "8 min pause · private reminder",
-    note: "A user-created reminder only. NOW does not provide medication instructions.",
-    stops: [
-      { time: "NOW", duration: "3 min", title: "Move to a calm seated place", detail: "Privacy and water nearby", state: "current" },
-      { time: "+03", duration: "5 min", title: "Personal reminder pause", detail: "Follow your own prescribed instructions", state: "next" },
-      { time: "+08", duration: "12 min", title: "Resume protected route", detail: "Destination preserved", state: "destination" },
-    ],
-  },
-  glucose: {
-    eyebrow: "NOW CARE · PERSONAL HEALTH REMINDER",
-    title: "A calm moment for the check you scheduled.",
-    meta: "10 min pause · seated setting",
-    note: "A private reminder only. NOW does not interpret glucose readings or replace medical care.",
-    stops: [
-      { time: "NOW", duration: "3 min", title: "Find a calm seated place", detail: "Quiet café or prepared bench", state: "current" },
-      { time: "+03", duration: "7 min", title: "Personal health check", detail: "Follow your own clinician-approved routine", state: "next" },
-      { time: "+10", duration: "12 min", title: "Resume when ready", detail: "Route recalculated around your pause", state: "destination" },
-    ],
-  },
-  guardian: {
-    eyebrow: "NOW GUARDIAN",
-    title: "Your route is paused. Help comes first.",
-    meta: "Location ready · official help identified",
-    note: "Guardian separates a travel disruption from a true emergency and keeps official services understandable.",
-    stops: [
-      { time: "NOW", duration: "Paused", title: "Stay where you feel safe", detail: "Paris NOW stops the itinerary", state: "warning" },
-      { time: "01", duration: "Ready", title: "Medical emergency — SAMU", detail: "Call 15 · urgent medical help", state: "current" },
-      { time: "02", duration: "Ready", title: "European emergency", detail: "Call 112 · police, fire or medical", state: "next" },
-      { time: "03", duration: "Optional", title: "Contact your hotel", detail: "Only with your permission", state: "destination" },
-    ],
-  },
+type RouteView = {
+  eyebrow: string;
+  title: string;
+  meta: string;
+  note: string;
+  stops: Stop[];
+};
+
+const emptyRoute: RouteView = {
+  eyebrow: "NOW ENGINE",
+  title: "Preparing your protected route…",
+  meta: "Checking time, access and your next obligation.",
+  note: "The route is calculated securely on the server.",
+  stops: [
+    { time: "NOW", duration: "—", title: "Calculating route", detail: "Please keep this screen open", state: "current" },
+  ],
 };
 
 const needs: { id: Need; label: string; icon: string }[] = [
@@ -206,7 +81,7 @@ export default function ParisNowApp() {
   const [active, setActive] = useState<Need>("route");
   const [progress, setProgress] = useState(7);
   const [rebuilding, setRebuilding] = useState(false);
-  const [serverRoute, setServerRoute] = useState<(typeof routes)[Need] | null>(null);
+  const [serverRoute, setServerRoute] = useState<RouteView | null>(null);
   const [ticket, setTicket] = useState<TicketState>({
     venue: "Musée du Louvre",
     time: "16:30",
@@ -214,11 +89,20 @@ export default function ParisNowApp() {
     marginMinutes: 24,
     protected: true,
   });
-  const [ticketOpen, setTicketOpen] = useState(false);
+  const [ticketOpen, setTicketOpen] = useState(false);\n  const [passStatus, setPassStatus] = useState<PassStatus>({ state: "loading", allowed: false, plan: null, expiresAt: null });
   const [guardianLevel, setGuardianLevel] = useState<GuardianLevel>("checkin");
   const [hotelConsent, setHotelConsent] = useState(false);
   const [guardianAssessment, setGuardianAssessment] = useState<GuardianAssessment | null>(null);
-  const route = serverRoute ?? routes[active];
+  const route = serverRoute ?? emptyRoute;
+
+  useEffect(() => {
+    fetch("/api/now/pass", { cache: "no-store" })
+      .then(async (response) => {
+        const status = await response.json();
+        setPassStatus(status);
+      })
+      .catch(() => setPassStatus({ state: "inactive", allowed: false, plan: null, expiresAt: null }));
+  }, []);
 
   useEffect(() => {
     setProgress(7);
@@ -245,7 +129,7 @@ export default function ParisNowApp() {
       })
       .catch((error) => {
         if (error instanceof Error && error.name !== "AbortError") {
-          setServerRoute(routes[active]);
+          setServerRoute(null);
         }
       });
 
@@ -290,8 +174,8 @@ export default function ParisNowApp() {
           <span>Paris <b>NOW</b></span>
         </a>
         <div className={styles.pass}>
-          <span>72H PASS</span>
-          <strong>ACTIVE</strong>
+          <span>{passStatus.state === "preview" ? "DEVELOPMENT" : passStatus.plan === "7d" ? "7-DAY PASS" : "72H PASS"}</span>
+          <strong>{passStatus.state === "active" ? "ACTIVE" : passStatus.state === "preview" ? "PREVIEW MODE" : passStatus.state === "loading" ? "CHECKING" : "INACTIVE"}</strong>
         </div>
       </header>
 
@@ -305,6 +189,13 @@ export default function ParisNowApp() {
           <b>18°</b><span>Light rain</span>
         </div>
       </section>
+
+      {passStatus.state === "preview" && (
+        <div className={styles.previewBanner}>PRIVATE PREVIEW · NO CUSTOMER PASS HAS BEEN ACTIVATED</div>
+      )}
+      {passStatus.state === "inactive" && (
+        <div className={styles.inactiveBanner}>A valid Paris NOW Pass is required to calculate routes.</div>
+      )}
 
       <section className={styles.liveCard}>
         <div className={styles.liveTop}>
