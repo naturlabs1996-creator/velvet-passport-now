@@ -1,8 +1,8 @@
-type GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
+import { getPassAccess } from "../../../../lib/pass-access";\n\nexport const runtime = "nodejs";\n\ntype GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
 
 const allowedLevels: GuardianLevel[] = ["checkin", "assistance", "medical", "emergency"];
 
-export async function POST(request: Request) {
+export async function POST(request: Request) {\n  const access = await getPassAccess();\n  if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
   let body: unknown;
 
   try {
