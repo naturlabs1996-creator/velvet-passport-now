@@ -1,6 +1,6 @@
-import { buildRoutePlan, isNowScenario } from "../../../../lib/now-engine";
+import { buildRoutePlan, isNowScenario } from "../../../../lib/now-engine";\nimport { getPassAccess } from "../../../../lib/pass-access";
 
-export async function POST(request: Request) {
+export const runtime = "nodejs";\n\nexport async function POST(request: Request) {\n  const access = await getPassAccess();\n  if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
   let body: unknown;
 
   try {
