@@ -92,6 +92,7 @@ export default function ParisNowApp() {
   const [ticketOpen, setTicketOpen] = useState(false);
   const [passStatus, setPassStatus] = useState<PassStatus>({ state: "loading", allowed: false, plan: null, expiresAt: null });
   const [guardianLevel, setGuardianLevel] = useState<GuardianLevel>("checkin");
+  const [availableMinutes, setAvailableMinutes] = useState(90);
   const [hotelConsent, setHotelConsent] = useState(false);
   const [guardianAssessment, setGuardianAssessment] = useState<GuardianAssessment | null>(null);
   const route = serverRoute ?? emptyRoute;
@@ -181,13 +182,17 @@ export default function ParisNowApp() {
       </header>
 
       <section className={styles.context}>
-        <div>
+        <div className={styles.contextImage} aria-hidden="true">
+          <Image src="/images/paris-covered-passage.webp" alt="" fill sizes="(max-width: 820px) 100vw, 820px" priority />
+        </div>
+        <div className={styles.contextContent}>
           <span className={styles.kicker}>PARIS · LOUVRE & OPÉRA</span>
-          <h1>Good afternoon, Alan.</h1>
-          <p>We’re protecting your Louvre entry at 16:30.</p>
+          <span className={styles.conciergeLabel}>YOUR PRIVATE PARIS CONCIERGE</span>
+          <h1>Your afternoon,<br /><em>beautifully protected.</em></h1>
+          <p>A quieter Paris, with your Louvre entry safely protected.</p>
         </div>
         <div className={styles.weather}>
-          <b>18°</b><span>Light rain</span>
+          <span className={styles.weatherIcon} aria-hidden="true">☂</span><b>18°</b><span>Light rain</span>
         </div>
       </section>
 
@@ -197,6 +202,12 @@ export default function ParisNowApp() {
       {passStatus.state === "inactive" && (
         <div className={styles.inactiveBanner}>A valid Paris NOW Pass is required to calculate routes.</div>
       )}
+
+      <section className={styles.journeyContext} aria-label="Your current travel context">
+        <div><span>YOUR NEIGHBOURHOOD</span><strong>Louvre & Opéra</strong></div>
+        <div><span>TIME AVAILABLE</span><strong>{availableMinutes} min</strong></div>
+        <button onClick={() => setAvailableMinutes((minutes) => minutes === 90 ? 60 : minutes === 60 ? 120 : 90)} aria-label="Change available time">Adjust</button>
+      </section>
 
       <section className={styles.liveCard}>
         <div className={styles.liveTop}>
@@ -231,9 +242,19 @@ export default function ParisNowApp() {
         )}
       </section>
 
+      <section className={styles.quickAccess} aria-label="Immediate travel needs">
+        <div className={styles.quickHeading}><span>YOUR CONCIERGE, RIGHT NOW</span><h2>What do you need?</h2></div>
+        <div className={styles.quickGrid}>
+          <button onClick={() => setActive("food")}><span>◈</span><strong>Find a table</strong><small>Places worth your time</small></button>
+          <button onClick={() => setActive("water")}><span>◉</span><strong>Water nearby</strong><small>A stop on your way</small></button>
+          <button onClick={() => setActive("restroom")}><span>◇</span><strong>Restroom</strong><small>Practical, close access</small></button>
+          <button onClick={() => setActive("guardian")}><span>✚</span><strong>Need help?</strong><small>Guardian is here</small></button>
+        </div>
+      </section>
+
       <section className={styles.needs}>
         <div className={styles.sectionTitle}>
-          <span>WHAT CHANGED?</span>
+          <span>ADAPT YOUR DAY</span>
           <button onClick={() => setActive("route")}>Reset route</button>
         </div>
         <div className={styles.needRail}>
@@ -299,6 +320,8 @@ export default function ParisNowApp() {
           <small>Guardian does not replace emergency services, medical advice or professional care.</small>
         </section>
       )}
+
+      <div className={styles.routeHeading}><span>CURATED FOR THIS MOMENT</span><h2>Your protected route</h2></div>
 
       <section className={styles.routeCard} aria-live="polite">
         <div className={styles.routeIntro}>
