@@ -254,3 +254,61 @@ export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30"
     calculation: { mode: "prepared", generatedAt: new Date().toISOString(), factors: ["confidential neighbourhood", "available time", "walking time", "weather", "opening hours", "alternative access", "ticket margin"] },
   };
 }
+
+
+export function buildIntegratedRoutePlan(routeId: string, scenario: NowScenario, ticketTime = "16:30", availableMinutes = 90, blockedStop?: string): RoutePlan | null {
+  if (scenario === "guardian") return buildRoutePlan("guardian", ticketTime);
+  if (scenario === "route" || scenario === "blocked" || scenario === "rain") {
+    return buildConfidentialRoutePlan(routeId, ticketTime, scenario === "blocked" ? blockedStop || "__next__" : undefined, availableMinutes, scenario === "rain" ? "rain" : undefined);
+  }
+
+  const base = buildConfidentialRoutePlan(routeId, ticketTime, undefined, availableMinutes);
+  if (!base || base.stops.length < 2) return base;
+  const need = definitions[scenario];
+  const needStop = need.stops.find((stop) => stop.state === "current" || stop.state === "next") ?? need.stops[0];
+  const pauseMinutes = Math.max(3, Math.min(need.totalMinutes, scenario === "food" ? 45 : 20));
+  const travelBudget = Math.max(15, availableMinutes - 15);
+  const parsedDuration = Number.parseInt(base.meta, 10) || 30;
+  const first = base.stops[0];
+  const destination = base.stops[base.stops.length - 1];
+  const optional = base.stops.slice(1, -1);
+  const minutesPerStop = Math.max(5, Math.round(parsedDuration / base.stops.length));
+  while (optional.length > 0 && (optional.length + 2) * minutesPerStop + pauseMinutes > travelBudget) optional.pop();
+
+  const merged = [
+    { ...first, state: "current" as const },
+    {
+      time: "+" + String(minutesPerStop).padStart(2, "0"),
+      duration: pauseMinutes + " min",
+      title: needStop.title,
+      detail: needStop.detail + " · added to your selected route",
+      state: "next" as const,
+    },
+    ...optional.map((stop, index) => ({
+      ...stop,
+      time: "+" + String(minutesPerStop * (index + 2) + pauseMinutes).padStart(2, "0"),
+      state: "next" as const,
+    })),
+    {
+      ...destination,
+      time: "+" + String(minutesPerStop * (optional.length + 2) + pauseMinutes).padStart(2, "0"),
+      state: "destination" as const,
+    },
+  ];
+  const totalMinutes = Math.min(travelBudget, minutesPerStop * (optional.length + 2) + pauseMinutes);
+  const marginMinutes = Math.max(15, availableMinutes - totalMinutes);
+
+  return {
+    ...base,
+    title: need.title,
+    meta: totalMinutes + " min · " + pauseMinutes + " min personal stop · protected arrival",
+    note: need.note + " Your confidential route continues afterwards; optional stops are removed before your reservation is put at risk.",
+    stops: merged,
+    ticket: { ...base.ticket, marginMinutes, protected: true },
+    calculation: {
+      ...base.calculation,
+      generatedAt: new Date().toISOString(),
+      factors: [...base.calculation.factors, "personal need", "pause duration", "protected route continuation"],
+    },
+  };
+}
