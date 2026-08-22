@@ -1,4 +1,4 @@
-import { buildRoutePlan, buildConfidentialRoutePlan, isNowScenario } from "../../../../lib/now-engine";
+import { buildRoutePlan, buildIntegratedRoutePlan, isNowScenario } from "../../../../lib/now-engine";
 import { getConfidentialRoutes } from "../../../../lib/confidential-routes";
 import { getPassAccess } from "../../../../lib/pass-access";
 
@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     : "16:30";
 
   const availableMinutes = typeof input.availableMinutes === "number" && Number.isFinite(input.availableMinutes) ? input.availableMinutes : 90;
-  const selectedRoute = typeof input.routeId === "string" && (input.scenario === "route" || input.scenario === "blocked" || input.scenario === "rain")
-    ? buildConfidentialRoutePlan(input.routeId, ticketTime, input.scenario === "blocked" ? typeof input.blockedStop === "string" ? input.blockedStop : "__next__" : undefined, availableMinutes, input.scenario === "rain" ? "rain" : undefined)
+  const selectedRoute = typeof input.routeId === "string"
+    ? buildIntegratedRoutePlan(input.routeId, input.scenario, ticketTime, availableMinutes, typeof input.blockedStop === "string" ? input.blockedStop : undefined)
     : null;
   return Response.json(selectedRoute ?? buildRoutePlan(input.scenario, ticketTime), {
     headers: {
