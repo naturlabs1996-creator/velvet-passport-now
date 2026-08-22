@@ -1,3 +1,5 @@
+import { getConfidentialRoutes, isUncoveredExclusive } from "./confidential-routes";
+
 export type NowScenario = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
 
 export type NowStop = {
@@ -222,5 +224,29 @@ export function buildRoutePlan(scenario: NowScenario, ticketTime = "16:30"): Rou
       generatedAt: new Date().toISOString(),
       factors: ["walking time", "weather", "human need", "ticket margin", "entrance"],
     },
+  };
+}
+
+export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30", blockedStop?: string): RoutePlan | null {
+  const route = getConfidentialRoutes().find((item) => item.id === routeId);
+  if (!route) return null;
+  const stops = route.stops.filter((stop) => !isUncoveredExclusive(stop.name)).map((stop, index) => {
+    const impacted = Boolean(blockedStop && (stop.name === blockedStop || index === 1 && blockedStop === "__next__"));
+    return {
+      time: index === 0 ? "NOW" : "+" + String(Math.round(route.durationMinutes * index / route.stops.length)).padStart(2, "0"),
+      duration: Math.round(route.durationMinutes / route.stops.length) + " min",
+      title: impacted ? stop.alternative : stop.name,
+      detail: impacted ? "Alternative selected · original stop unavailable" : stop.access === "opening-hours" ? "Check opening hours · alternative prepared" : "Confidential local address · public access",
+      state: (index === route.stops.length - 1 ? "destination" : impacted ? "warning" : index === 0 ? "current" : "next") as "current" | "next" | "warning" | "destination",
+    };
+  });
+  return {
+    eyebrow: "CONFIDENTIAL ROUTE · " + route.zone.toUpperCase(),
+    title: route.title,
+    meta: route.durationMinutes + " min · " + stops.length + " confidential stops · protected arrival",
+    note: blockedStop ? "An unavailable stop was replaced while preserving your protected arrival." : "A discreet, carefully prepared route with alternatives for closures and blocked streets.",
+    stops,
+    ticket: { venue: "Musée du Louvre", time: ticketTime, entrance: "Carrousel du Louvre", marginMinutes: 20, protected: true },
+    calculation: { mode: "prepared", generatedAt: new Date().toISOString(), factors: ["confidential neighbourhood", "walking time", "opening hours", "alternative access", "ticket margin"] },
   };
 }
