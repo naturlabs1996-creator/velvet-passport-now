@@ -6,6 +6,8 @@ import styles from "./page.module.css";
 
 type Need = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
 
+type ConfidentialRouteSummary = { id: string; zone: string; title: string; durationMinutes: number; stopCount: number; ticketProtection: boolean };
+
 type TicketState = {
   venue: string;
   time: string;
@@ -80,6 +82,9 @@ const needs: { id: Need; label: string; icon: string }[] = [
 export default function ParisNowApp() {
   const [active, setActive] = useState<Need>("route");
   const [progress, setProgress] = useState(7);
+  const [catalogRoutes, setCatalogRoutes] = useState<ConfidentialRouteSummary[]>([]);
+  const [selectedZone, setSelectedZone] = useState("Louvre & Opéra");
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
   const [serverRoute, setServerRoute] = useState<RouteView | null>(null);
   const [ticket, setTicket] = useState<TicketState>({
@@ -107,6 +112,14 @@ export default function ParisNowApp() {
   }, []);
 
   useEffect(() => {
+    if (!passStatus.allowed) return;
+    fetch("/api/now/route", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalogue unavailable")))
+      .then((data: { routes: ConfidentialRouteSummary[] }) => setCatalogRoutes(data.routes))
+      .catch(() => setCatalogRoutes([]));
+  }, [passStatus.allowed]);
+
+  useEffect(() => {
     setProgress(7);
     setRebuilding(true);
     const controller = new AbortController();
@@ -118,7 +131,7 @@ export default function ParisNowApp() {
     fetch("/api/now/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scenario: active, ticketTime: "16:30" }),
+      body: JSON.stringify({ scenario: active, ticketTime: "16:30", routeId: selectedRouteId }),
       signal: controller.signal,
     })
       .then((response) => {
@@ -140,7 +153,7 @@ export default function ParisNowApp() {
       window.clearTimeout(rebuild);
       window.clearInterval(timer);
     };
-  }, [active]);
+  }, [active, selectedRouteId]);
 
   useEffect(() => {
     if (active !== "guardian") return;
@@ -186,7 +199,7 @@ export default function ParisNowApp() {
           <Image src="/images/paris-covered-passage.webp" alt="" fill sizes="(max-width: 820px) 100vw, 820px" priority />
         </div>
         <div className={styles.contextContent}>
-          <span className={styles.kicker}>PARIS · LOUVRE & OPÉRA</span>
+          <span className={styles.kicker}>PARIS · {selectedZone.toUpperCase()}</span>
           <span className={styles.conciergeLabel}>YOUR PRIVATE PARIS CONCIERGE</span>
           <h1>Your afternoon,<br /><em>beautifully protected.</em></h1>
           <p>A quieter Paris, with your Louvre entry safely protected.</p>
@@ -204,7 +217,7 @@ export default function ParisNowApp() {
       )}
 
       <section className={styles.journeyContext} aria-label="Your current travel context">
-        <div><span>YOUR NEIGHBOURHOOD</span><strong>Louvre & Opéra</strong></div>
+        <div><span>YOUR NEIGHBOURHOOD</span><strong>{selectedZone}</strong></div>
         <div><span>TIME AVAILABLE</span><strong>{availableMinutes} min</strong></div>
         <button onClick={() => setAvailableMinutes((minutes) => minutes === 90 ? 60 : minutes === 60 ? 120 : 90)} aria-label="Change available time">Adjust</button>
       </section>
@@ -218,8 +231,8 @@ export default function ParisNowApp() {
           <span className={active === "blocked" || active === "guardian" ? styles.redProgress : ""} style={{ width: `${progress}%` }} />
         </div>
         <div className={styles.progressLabels}>
-          <span>Galerie Vivienne</span>
-          <span>Louvre 16:30</span>
+          <span>{route.stops[0]?.title ?? "Your starting point"}</span>
+          <span>{route.stops[route.stops.length - 1]?.title ?? "Protected arrival"}</span>
         </div>
       </section>
 
@@ -241,6 +254,24 @@ export default function ParisNowApp() {
           </div>
         )}
       </section>
+
+      {catalogRoutes.length > 0 && (
+        <section className={styles.confidentialCatalog} aria-label="Your confidential Paris routes">
+          <div className={styles.catalogHeading}><span>YOUR CONFIDENTIAL PARIS</span><h2>Choose your neighbourhood.</h2><p>Thirty discreet routes, each with a protected alternative.</p></div>
+          <div className={styles.zoneRail}>
+            {Array.from(new Set(catalogRoutes.map((item) => item.zone))).map((zone) => (
+              <button key={zone} className={selectedZone === zone ? styles.selectedZone : ""} onClick={() => { setSelectedZone(zone); setSelectedRouteId(null); setActive("route"); }}>{zone}</button>
+            ))}
+          </div>
+          <div className={styles.routeList}>
+            {catalogRoutes.filter((item) => item.zone === selectedZone).map((item) => (
+              <button key={item.id} className={selectedRouteId === item.id ? styles.selectedRoute : ""} onClick={() => { setSelectedRouteId(item.id); setActive("route"); }}>
+                <strong>{item.title}</strong><span>{item.durationMinutes} min · {item.stopCount} confidential stops</span><b>{selectedRouteId === item.id ? "SELECTED ✓" : "EXPLORE →"}</b>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className={styles.quickAccess} aria-label="Immediate travel needs">
         <div className={styles.quickHeading}><span>YOUR CONCIERGE, RIGHT NOW</span><h2>What do you need?</h2></div>
