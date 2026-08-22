@@ -1,6 +1,6 @@
 import { getConfidentialRoutes, isUncoveredExclusive } from "./confidential-routes";
 
-export type NowScenario = "route" | "rain" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
+export type NowScenario = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
 
 export type NowStop = {
   time: string;
@@ -30,7 +30,7 @@ export type RoutePlan = {
   };
 };
 
-const validScenarios: NowScenario[] = ["route", "rain", "blocked", "food", "water", "restroom", "energy", "pharmacy", "sitdown", "battery", "medication", "glucose", "guardian"];
+const validScenarios: NowScenario[] = ["route", "rain", "heat", "cold", "snow", "blocked", "food", "water", "restroom", "energy", "pharmacy", "sitdown", "battery", "medication", "glucose", "guardian"];
 
 const definitions: Record<NowScenario, Omit<RoutePlan, "ticket" | "calculation"> & { totalMinutes: number; marginMinutes: number }> = {
   route: {
@@ -57,6 +57,45 @@ const definitions: Record<NowScenario, Omit<RoutePlan, "ticket" | "calculation">
       { time: "+21", duration: "15 min", title: "Galerie Vivienne", detail: "Indoor route · 3 min exposed", state: "next" },
       { time: "+44", duration: "11 min", title: "Carrousel entrance", detail: "Underground approach", state: "next" },
       { time: "16:03", duration: "27 min", title: "Protected arrival window", detail: "Ticket remains safe", state: "destination" },
+    ],
+  },
+  heat: {
+    eyebrow: "WEATHER ADAPTATION · HIGH TEMPERATURE",
+    title: "A cooler Paris, with shade and water built in.",
+    meta: "48 min · shaded route · hydration break · arrival protected",
+    note: "NOW favours shaded streets, cool interiors and a water stop while preserving your reservation.",
+    totalMinutes: 48, marginMinutes: 28,
+    stops: [
+      { time: "NOW", duration: "12 min", title: "Move into a shaded passage", detail: "Lower exposure · calmer walking pace", state: "current" },
+      { time: "+12", duration: "8 min", title: "Water and cool-down stop", detail: "Hydration nearby · seated pause available", state: "next" },
+      { time: "+26", duration: "14 min", title: "Continue through cooler interiors", detail: "Covered or shaded alternative", state: "next" },
+      { time: "+48", duration: "28 min", title: "Protected arrival window", detail: "Reservation preserved · no rushed walking", state: "destination" },
+    ],
+  },
+  cold: {
+    eyebrow: "WEATHER ADAPTATION · COLD CONDITIONS",
+    title: "Warm interiors, short crossings and time to recover.",
+    meta: "51 min · warm indoor stops · arrival protected",
+    note: "NOW shortens exposed walking, adds a warm indoor pause and keeps your reservation protected.",
+    totalMinutes: 51, marginMinutes: 25,
+    stops: [
+      { time: "NOW", duration: "13 min", title: "Enter a sheltered gallery", detail: "Warm indoor access · minimal exposure", state: "current" },
+      { time: "+13", duration: "10 min", title: "Warm café or indoor pause", detail: "Comfortable seated recovery", state: "next" },
+      { time: "+30", duration: "13 min", title: "Short protected crossing", detail: "Shortest practical outdoor segment", state: "next" },
+      { time: "+51", duration: "25 min", title: "Protected arrival window", detail: "Reservation remains safe", state: "destination" },
+    ],
+  },
+  snow: {
+    eyebrow: "WEATHER ADAPTATION · SNOW AND SLIPPERY STREETS",
+    title: "A steadier route when Paris turns slippery.",
+    meta: "46 min · safer surfaces · sheltered alternative",
+    note: "NOW reduces outdoor exposure, avoids potentially slippery sections and preserves a calm arrival margin.",
+    totalMinutes: 46, marginMinutes: 29,
+    stops: [
+      { time: "NOW", duration: "12 min", title: "Choose the safest nearby access", detail: "Slower pace · avoid exposed shortcuts", state: "current" },
+      { time: "+12", duration: "14 min", title: "Continue through covered passages", detail: "Shelter preferred · surfaces checked locally", state: "next" },
+      { time: "+31", duration: "10 min", title: "Protected final approach", detail: "Shortest sensible outdoor crossing", state: "next" },
+      { time: "+46", duration: "29 min", title: "Protected arrival window", detail: "Extra safety margin preserved", state: "destination" },
     ],
   },
   blocked: {
