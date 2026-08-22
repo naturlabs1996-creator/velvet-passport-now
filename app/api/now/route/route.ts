@@ -1,7 +1,15 @@
-import { buildRoutePlan, isNowScenario } from "../../../../lib/now-engine";
+import { buildRoutePlan, buildConfidentialRoutePlan, isNowScenario } from "../../../../lib/now-engine";
+import { getConfidentialRoutes } from "../../../../lib/confidential-routes";
 import { getPassAccess } from "../../../../lib/pass-access";
 
 export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  const access = await getPassAccess();
+  if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
+  const zone = new URL(request.url).searchParams.get("zone") ?? undefined;
+  return Response.json({ routes: getConfidentialRoutes(zone).map(({ id, zone, title, durationMinutes, stops, ticketProtection }) => ({ id, zone, title, durationMinutes, stopCount: stops.length, ticketProtection })) }, { headers: { "Cache-Control": "no-store" } });
+}
 
 export async function POST(request: Request) {
   const access = await getPassAccess();
@@ -27,7 +35,10 @@ export async function POST(request: Request) {
     ? input.ticketTime
     : "16:30";
 
-  return Response.json(buildRoutePlan(input.scenario, ticketTime), {
+  const selectedRoute = typeof input.routeId === "string" && (input.scenario === "route" || input.scenario === "blocked")
+    ? buildConfidentialRoutePlan(input.routeId, ticketTime, input.scenario === "blocked" ? typeof input.blockedStop === "string" ? input.blockedStop : "__next__" : undefined)
+    : null;
+  return Response.json(selectedRoute ?? buildRoutePlan(input.scenario, ticketTime), {
     headers: {
       "Cache-Control": "no-store",
       "X-NOW-Data-Mode": "prepared",
