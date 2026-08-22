@@ -272,3 +272,19 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
  .button,.uncoveredCta,.demoCta,.careUnified a{min-height:48px;font-size:11px!important;letter-spacing:1px!important}
  footer{grid-template-columns:1fr!important;padding:35px 20px!important}footer nav{display:flex!important;justify-content:center;flex-wrap:wrap;gap:16px!important}footer nav a{font-size:13px!important}footer>small{font-size:11px!important;line-height:1.6!important;text-align:center}
 }
+
+
+/* The demo is a primary conversion action and must be visible before its controls. */
+.demoLaunchTop{display:flex;align-items:center;justify-content:center;min-height:56px;margin:0 auto 24px;padding:0 30px;border:0;background:var(--gold);color:#17130c;font-size:13px;font-weight:700;letter-spacing:1.5px;cursor:pointer}
+.demoLaunchTop:hover,.demoLaunchTop:focus-visible{background:var(--gold2);outline:2px solid #8e753b;outline-offset:3px}
+#demo-result{scroll-margin-top:86px}
+@media(max-width:760px){
+ .demoLaunchTop{width:100%;min-height:58px;margin:0 0 18px;font-size:13px}
+ .demoDecision{min-height:0!important;padding-top:22px!important;padding-bottom:104px!important}
+ .demoDecision .decisionTop{margin-bottom:24px!important}
+ .demoReady{min-height:0!important;padding-top:25px!important;padding-bottom:20px!important;justify-content:flex-start!important}
+ .demoReady .demoIcon{margin-bottom:15px!important}
+ .demoReady h3{margin-top:12px!important;margin-bottom:12px!important}
+ .demoBuild{width:100%!important;min-height:54px!important;font-size:12px!important}
+ .demoResultHead{margin-top:22px!important}
+}
