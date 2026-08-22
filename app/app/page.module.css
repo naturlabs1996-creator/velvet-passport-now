@@ -125,3 +125,15 @@
 .routeList strong{font-family:Georgia,serif;font-size:16px;color:#201e1a}
 .routeList button>span{font-size:12px;color:#756f65}
 .routeList b{font-size:10px;letter-spacing:.11em;color:#987d3c;margin-top:3px}
+
+.myDayPanel{margin:20px 15px 0;padding:23px 19px;background:#fffdf8;border:1px solid #e5dbc8}
+.myDayKicker{font-size:10px;letter-spacing:.16em;color:#a08037;font-weight:700}
+.myDayPanel h2{font:29px/1.13 Georgia,serif;margin:12px 0 7px;color:#201e1b}
+.myDayPanel>p{margin:0 0 18px;font-size:13px;line-height:1.55;color:#706a61}
+.myDayStats{display:grid;gap:0;border-top:1px solid #ebe5d8}
+.myDayStats article{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #ebe5d8}
+.myDayStats article>span{font-size:9px;letter-spacing:.09em;color:#817967}
+.myDayStats article>strong{font-size:13px;text-align:right;color:#24211d}
+.myDayPanel>button{margin-top:17px;width:100%;min-height:46px;background:#161513;color:#e0c27c;border:0;font-size:10px;letter-spacing:.11em}
+.bottomNav .navActive{color:#e3c66f;font-weight:700}
+@media(max-width:520px){.myDayPanel{margin-left:12px;margin-right:12px;padding:20px 15px}.myDayStats article>strong{font-size:12px}}
