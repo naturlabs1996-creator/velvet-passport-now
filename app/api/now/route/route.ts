@@ -35,8 +35,9 @@ export async function POST(request: Request) {
     ? input.ticketTime
     : "16:30";
 
-  const selectedRoute = typeof input.routeId === "string" && (input.scenario === "route" || input.scenario === "blocked")
-    ? buildConfidentialRoutePlan(input.routeId, ticketTime, input.scenario === "blocked" ? typeof input.blockedStop === "string" ? input.blockedStop : "__next__" : undefined)
+  const availableMinutes = typeof input.availableMinutes === "number" && Number.isFinite(input.availableMinutes) ? input.availableMinutes : 90;
+  const selectedRoute = typeof input.routeId === "string" && (input.scenario === "route" || input.scenario === "blocked" || input.scenario === "rain")
+    ? buildConfidentialRoutePlan(input.routeId, ticketTime, input.scenario === "blocked" ? typeof input.blockedStop === "string" ? input.blockedStop : "__next__" : undefined, availableMinutes, input.scenario === "rain" ? "rain" : undefined)
     : null;
   return Response.json(selectedRoute ?? buildRoutePlan(input.scenario, ticketTime), {
     headers: {
