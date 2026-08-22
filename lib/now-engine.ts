@@ -227,26 +227,30 @@ export function buildRoutePlan(scenario: NowScenario, ticketTime = "16:30"): Rou
   };
 }
 
-export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30", blockedStop?: string): RoutePlan | null {
+export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30", blockedStop?: string, availableMinutes = 90, weather?: string): RoutePlan | null {
   const route = getConfidentialRoutes().find((item) => item.id === routeId);
   if (!route) return null;
-  const stops = route.stops.filter((stop) => !isUncoveredExclusive(stop.name)).map((stop, index) => {
+  const safeMinutes = Math.max(20, Math.min(240, availableMinutes));
+  const maxStops = Math.max(2, Math.min(route.stops.length, Math.floor(safeMinutes / Math.max(8, Math.ceil(route.durationMinutes / route.stops.length)))));
+  const plannedStops = route.stops.filter((stop) => !isUncoveredExclusive(stop.name)).slice(0, maxStops);
+  const effectiveDuration = Math.min(route.durationMinutes, Math.max(15, safeMinutes - 15));
+  const stops = plannedStops.map((stop, index) => {
     const impacted = Boolean(blockedStop && (stop.name === blockedStop || index === 1 && blockedStop === "__next__"));
     return {
-      time: index === 0 ? "NOW" : "+" + String(Math.round(route.durationMinutes * index / route.stops.length)).padStart(2, "0"),
-      duration: Math.round(route.durationMinutes / route.stops.length) + " min",
+      time: index === 0 ? "NOW" : "+" + String(Math.round(effectiveDuration * index / plannedStops.length)).padStart(2, "0"),
+      duration: Math.round(effectiveDuration / plannedStops.length) + " min",
       title: impacted ? stop.alternative : stop.name,
       detail: impacted ? "Alternative selected · original stop unavailable" : stop.access === "opening-hours" ? "Check opening hours · alternative prepared" : "Confidential local address · public access",
-      state: (index === route.stops.length - 1 ? "destination" : impacted ? "warning" : index === 0 ? "current" : "next") as "current" | "next" | "warning" | "destination",
+      state: (index === plannedStops.length - 1 ? "destination" : impacted ? "warning" : index === 0 ? "current" : "next") as "current" | "next" | "warning" | "destination",
     };
   });
   return {
     eyebrow: "CONFIDENTIAL ROUTE · " + route.zone.toUpperCase(),
     title: route.title,
-    meta: route.durationMinutes + " min · " + stops.length + " confidential stops · protected arrival",
-    note: blockedStop ? "An unavailable stop was replaced while preserving your protected arrival." : "A discreet, carefully prepared route with alternatives for closures and blocked streets.",
+    meta: effectiveDuration + " min · " + stops.length + " confidential stops" + (weather === "rain" ? " · sheltered options prepared" : "") + " · protected arrival",
+    note: blockedStop ? "An unavailable stop was replaced while preserving your protected arrival." : safeMinutes < route.durationMinutes ? "Your route was shortened to fit your available time and preserve your arrival margin." : weather === "rain" ? "Rain-aware route: covered alternatives and practical shelter are prepared." : "A discreet, carefully prepared route with alternatives for closures and blocked streets.",
     stops,
-    ticket: { venue: "Musée du Louvre", time: ticketTime, entrance: "Carrousel du Louvre", marginMinutes: 20, protected: true },
-    calculation: { mode: "prepared", generatedAt: new Date().toISOString(), factors: ["confidential neighbourhood", "walking time", "opening hours", "alternative access", "ticket margin"] },
+    ticket: { venue: "Musée du Louvre", time: ticketTime, entrance: "Carrousel du Louvre", marginMinutes: Math.max(15, safeMinutes - effectiveDuration), protected: true },
+    calculation: { mode: "prepared", generatedAt: new Date().toISOString(), factors: ["confidential neighbourhood", "available time", "walking time", "weather", "opening hours", "alternative access", "ticket margin"] },
   };
 }
