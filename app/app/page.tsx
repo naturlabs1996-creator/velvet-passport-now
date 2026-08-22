@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 
-type Need = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
+type Need = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "transport" | "guardian";
 
 type ConfidentialRouteSummary = { id: string; zone: string; title: string; durationMinutes: number; stopCount: number; ticketProtection: boolean };
 
@@ -80,6 +80,7 @@ const needs: { id: Need; label: string; icon: string }[] = [
   { id: "battery", label: "Phone battery", icon: "▥" },
   { id: "medication", label: "Medication reminder", icon: "◷" },
   { id: "glucose", label: "Glucose check", icon: "◉" },
+  { id: "transport", label: "Find transport", icon: "▰" },
   { id: "guardian", label: "I need help", icon: "✚" },
 ];
 
