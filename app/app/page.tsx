@@ -17,6 +17,7 @@ type TicketState = {
 };
 
 type GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
+type AppSection = "now" | "day" | "tickets" | "guardian";
 
 type PassStatus = {
   state: "loading" | "active" | "preview" | "inactive";
@@ -81,6 +82,7 @@ const needs: { id: Need; label: string; icon: string }[] = [
 
 export default function ParisNowApp() {
   const [active, setActive] = useState<Need>("route");
+  const [activeSection, setActiveSection] = useState<AppSection>("now");
   const [progress, setProgress] = useState(7);
   const [catalogRoutes, setCatalogRoutes] = useState<ConfidentialRouteSummary[]>([]);
   const [selectedZone, setSelectedZone] = useState("Louvre & Opéra");
@@ -101,6 +103,20 @@ export default function ParisNowApp() {
   const [hotelConsent, setHotelConsent] = useState(false);
   const [guardianAssessment, setGuardianAssessment] = useState<GuardianAssessment | null>(null);
   const route = serverRoute ?? emptyRoute;
+  const selectedCatalogRoute = catalogRoutes.find((item) => item.id === selectedRouteId) ?? null;
+
+  function openSection(section: AppSection) {
+    setActiveSection(section);
+    if (section === "guardian") {
+      setTicketOpen(false);
+      setActive("guardian");
+      return;
+    }
+    if (active === "guardian") setActive("route");
+    setTicketOpen(section === "tickets");
+    const target = section === "day" ? "my-day-section" : section === "tickets" ? "ticket-protection-section" : "now-route-section";
+    window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }
 
   useEffect(() => {
     fetch("/api/now/pass", { cache: "no-store" })
@@ -222,7 +238,7 @@ export default function ParisNowApp() {
         <button onClick={() => setAvailableMinutes((minutes) => minutes === 90 ? 60 : minutes === 60 ? 120 : 90)} aria-label="Change available time">Adjust</button>
       </section>
 
-      <section className={styles.liveCard}>
+      <section id="now-route-section" className={styles.liveCard}>
         <div className={styles.liveTop}>
           <span><i className={active === "blocked" || active === "guardian" ? styles.alertDot : styles.liveDot} />{status}</span>
           <span>15:04</span>
@@ -236,7 +252,7 @@ export default function ParisNowApp() {
         </div>
       </section>
 
-      <section className={styles.ticketProtection}>
+      <section id="ticket-protection-section" className={styles.ticketProtection}>
         <button className={styles.ticketSummary} onClick={() => setTicketOpen((open) => !open)} aria-expanded={ticketOpen}>
           <span>
             <i className={ticket.protected ? styles.liveDot : styles.alertDot} />
@@ -248,12 +264,26 @@ export default function ParisNowApp() {
         {ticketOpen && (
           <div className={styles.ticketDetails}>
             <div><span>Correct entrance</span><strong>{ticket.entrance}</strong></div>
-            <div><span>Arrival margin</span><strong>{ticket.marginMinutes} min</strong></div>
+            <div><span>{active === "guardian" ? "Journey status" : "Arrival margin"}</span><strong>{active === "guardian" ? "Journey paused" : `${ticket.marginMinutes} min`}</strong></div>
             <p>{ticket.protected ? "Protected. NOW will remove optional stops before risking this entry." : "The itinerary is paused while Guardian is active."}</p>
             <small>Prepared calculation · live providers not connected yet</small>
           </div>
         )}
       </section>
+
+      {activeSection === "day" && (
+        <section id="my-day-section" className={styles.myDayPanel} aria-label="Your personal day plan">
+          <span className={styles.myDayKicker}>YOUR DAY · PROTECTED BY NOW</span>
+          <h2>{selectedCatalogRoute ? selectedCatalogRoute.title : "Your day, beautifully organised."}</h2>
+          <p>{selectedCatalogRoute ? `${selectedZone} · ${selectedCatalogRoute.stopCount} confidential stops` : "Choose a neighbourhood and a confidential route below to begin planning your day."}</p>
+          <div className={styles.myDayStats}>
+            <article><span>TIME AVAILABLE</span><strong>{availableMinutes} min</strong></article>
+            <article><span>NEXT RESERVATION</span><strong>{ticket.venue} · {ticket.time}</strong></article>
+            <article><span>JOURNEY STATUS</span><strong>{ticket.protected ? "Protected" : "Paused"}</strong></article>
+          </div>
+          {selectedCatalogRoute && <button onClick={() => openSection("now")}>VIEW MY PROTECTED ROUTE →</button>}
+        </section>
+      )}
 
       {catalogRoutes.length > 0 && (
         <section className={styles.confidentialCatalog} aria-label="Your confidential Paris routes">
@@ -279,7 +309,7 @@ export default function ParisNowApp() {
           <button onClick={() => setActive("food")}><span>◈</span><strong>Find a table</strong><small>Places worth your time</small></button>
           <button onClick={() => setActive("water")}><span>◉</span><strong>Water nearby</strong><small>A stop on your way</small></button>
           <button onClick={() => setActive("restroom")}><span>◇</span><strong>Restroom</strong><small>Practical, close access</small></button>
-          <button onClick={() => setActive("guardian")}><span>✚</span><strong>Need help?</strong><small>Guardian is here</small></button>
+          <button onClick={() => openSection("guardian")}><span>✚</span><strong>Need help?</strong><small>Guardian is here</small></button>
         </div>
       </section>
 
@@ -390,10 +420,10 @@ export default function ParisNowApp() {
       </section>
 
       <nav className={styles.bottomNav} aria-label="Paris NOW app navigation">
-        <button className={active !== "guardian" ? styles.navActive : ""} onClick={() => setActive("route")}><span>◆</span>NOW</button>
-        <button onClick={() => setActive("route")}><span>⌁</span>My day</button>
-        <button className={ticketOpen ? styles.navActive : ""} onClick={() => setTicketOpen((open) => !open)}><span>◇</span>Tickets</button>
-        <button className={active === "guardian" ? styles.navActive : ""} onClick={() => setActive("guardian")}><span>✚</span>Guardian</button>
+        <button className={activeSection === "now" ? styles.navActive : ""} onClick={() => openSection("now")}><span>◆</span>NOW</button>
+        <button className={activeSection === "day" ? styles.navActive : ""} onClick={() => openSection("day")}><span>⌁</span>My day</button>
+        <button className={activeSection === "tickets" ? styles.navActive : ""} onClick={() => openSection("tickets")}><span>◇</span>Tickets</button>
+        <button className={activeSection === "guardian" ? styles.navActive : ""} onClick={() => openSection("guardian")}><span>✚</span>Guardian</button>
       </nav>
     </main>
   );
