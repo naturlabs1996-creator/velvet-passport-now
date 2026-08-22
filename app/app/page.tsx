@@ -131,7 +131,7 @@ export default function ParisNowApp() {
     fetch("/api/now/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scenario: active, ticketTime: "16:30", routeId: selectedRouteId }),
+      body: JSON.stringify({ scenario: active, ticketTime: "16:30", routeId: selectedRouteId, availableMinutes }),
       signal: controller.signal,
     })
       .then((response) => {
@@ -153,7 +153,7 @@ export default function ParisNowApp() {
       window.clearTimeout(rebuild);
       window.clearInterval(timer);
     };
-  }, [active, selectedRouteId]);
+  }, [active, selectedRouteId, availableMinutes]);
 
   useEffect(() => {
     if (active !== "guardian") return;
