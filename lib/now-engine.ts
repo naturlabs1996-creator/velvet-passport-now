@@ -1,6 +1,6 @@
 import { getConfidentialRoutes, isUncoveredExclusive } from "./confidential-routes";
 
-export type NowScenario = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "guardian";
+export type NowScenario = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "transport" | "guardian";
 
 export type NowStop = {
   time: string;
@@ -30,7 +30,7 @@ export type RoutePlan = {
   };
 };
 
-const validScenarios: NowScenario[] = ["route", "rain", "heat", "cold", "snow", "blocked", "food", "water", "restroom", "energy", "pharmacy", "sitdown", "battery", "medication", "glucose", "guardian"];
+const validScenarios: NowScenario[] = ["route", "rain", "heat", "cold", "snow", "blocked", "food", "water", "restroom", "energy", "pharmacy", "sitdown", "battery", "medication", "glucose", "transport", "guardian"];
 
 const definitions: Record<NowScenario, Omit<RoutePlan, "ticket" | "calculation"> & { totalMinutes: number; marginMinutes: number }> = {
   route: {
@@ -217,6 +217,19 @@ const definitions: Record<NowScenario, Omit<RoutePlan, "ticket" | "calculation">
       { time: "NOW", duration: "3 min", title: "Find a calm seated place", detail: "Quiet café or prepared bench", state: "current" },
       { time: "+03", duration: "7 min", title: "Personal health check", detail: "Follow your own clinician-approved routine", state: "next" },
       { time: "+10", duration: "12 min", title: "Resume when ready", detail: "Route recalculated around your pause", state: "destination" },
+    ],
+  },
+  transport: {
+    eyebrow: "NOW CONNECTION · TRANSPORT",
+    title: "Reach your Paris route without wasting the day.",
+    meta: "Metro · RER · bus · tramway · taxi · protected arrival",
+    note: "NOW prepares the connection between your real starting point and the confidential route. Live departures and disruption data are not connected yet.",
+    totalMinutes: 24, marginMinutes: 20,
+    stops: [
+      { time: "NOW", duration: "Choose", title: "Confirm your starting point", detail: "Hotel, current location, station or address", state: "current" },
+      { time: "+02", duration: "Compare", title: "Choose the best transport", detail: "Metro · RER · bus · tramway · taxi", state: "next" },
+      { time: "+18", duration: "6 min", title: "Walk to the confidential route", detail: "Final connection calculated around your arrival", state: "next" },
+      { time: "+24", duration: "20 min", title: "Begin the protected route", detail: "Your selected Paris NOW experience starts here", state: "destination" },
     ],
   },
   guardian: {
