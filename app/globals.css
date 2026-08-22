@@ -247,3 +247,28 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
  .restaurantChoices button>strong{font-size:8px}
  .demoResultHead>p{font-size:12px}
 }
+
+
+/* Mobile-first commercial experience: legibility takes priority over desktop grids. */
+@media(max-width:760px){
+ html,body{max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+ .nav{height:72px;padding:0 16px}.nav nav{display:none!important}.navCta{font-size:10px;padding:12px 13px}
+ .hero,.problem,.howNow,.demo,.features,.activation,.pricing,.productCompare,.uncovered,.faq,.careNow,.final{padding-left:20px!important;padding-right:20px!important}
+ .hero{grid-template-columns:1fr!important;min-height:auto;padding-top:75px!important;padding-bottom:45px!important}
+ .heroCopy{text-align:center;margin:0 auto;width:100%}.hero h1{font-size:clamp(43px,11vw,62px)!important;line-height:1.03!important}.lead{font-size:17px!important;line-height:1.65!important}
+ .product{max-width:100%;margin-top:25px}.proof{padding:20px 16px;flex-direction:column;gap:8px;text-align:center}.proof span,.proof strong{font-size:12px!important}
+ .problem,.activation,.uncovered,.faq,.careNow{display:grid;grid-template-columns:1fr!important;gap:34px!important}
+ .problemGrid,.featureGrid,.priceGrid,.compareGrid,.demoExperience,.demoGrid,.howSteps{grid-template-columns:1fr!important}
+ .problemGrid article,.featureGrid article,.howSteps article{min-height:auto;padding:23px 18px!important}
+ .problemGrid h3,.featureGrid h3,.howSteps h3{font-size:22px!important;line-height:1.2!important}
+ .problemGrid p,.featureGrid p,.howSteps p,.priceGrid li,.compareGrid li,.uncovered p,.faq p{font-size:14px!important;line-height:1.65!important}
+ .kicker,.featureKicker,.priceGrid>article>small,.controlLabel,.controlGroup>small,.careConsoleTop span,.final>.kicker{font-size:11px!important;line-height:1.5!important;letter-spacing:1.7px!important}
+ .heading h2,.problem h2,.activation h2,.uncovered h2,.faq h2,.final h2{font-size:clamp(36px,9vw,52px)!important;line-height:1.06!important;letter-spacing:-1.5px!important}
+ .heading>p:last-child,.pricing .heading>p:last-child{font-size:15px!important;line-height:1.55!important}
+ .priceGrid{gap:18px!important}.priceGrid>article{padding:30px 23px!important}.priceGrid .micro,.priceGrid article p,.priceGrid article small{font-size:12px!important;line-height:1.55!important}
+ .compareGrid>article{padding:24px 20px!important}.compareGrid h3{font-size:31px!important}.compareGrid li{font-size:13px!important}
+ .controls{padding:21px 16px!important}.controlGroup button{font-size:12px!important;min-height:58px!important}.demoDecision{padding:22px 17px!important}
+ .uncoveredSide,.uncovered aside{width:100%;max-width:none}.uncovered aside{padding:24px 20px!important}.uncovered aside>small,.uncovered aside p{font-size:12px!important;line-height:1.55!important}
+ .button,.uncoveredCta,.demoCta,.careUnified a{min-height:48px;font-size:11px!important;letter-spacing:1px!important}
+ footer{grid-template-columns:1fr!important;padding:35px 20px!important}footer nav{display:flex!important;justify-content:center;flex-wrap:wrap;gap:16px!important}footer nav a{font-size:13px!important}footer>small{font-size:11px!important;line-height:1.6!important;text-align:center}
+}
