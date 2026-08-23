@@ -1,4 +1,5 @@
 import { getNearbyPlaces, type NearbyPlace } from "./nearby-places";
+import { getInternalPois, type InternalPoiCategory } from "./internal-catalog";
 
 export type LiveNeedScenario = "food" | "pharmacy" | "water" | "restroom" | "sitdown";
 export type LiveNeedChoice = { name: string; detail: string; distanceMeters: number; lat: number; lon: number; source: string };
@@ -6,7 +7,7 @@ export type LiveNeedChoice = { name: string; detail: string; distanceMeters: num
 const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
   "Louvre & Opéra": { lat: 48.8662, lon: 2.3371 },
   "Le Marais": { lat: 48.8590, lon: 2.3622 },
-  "Saint-Germain": { lat: 48.8534, lon: 2.3333 },
+  "Saint-Germain-des-Prés": { lat: 48.8534, lon: 2.3333 },
   "Montmartre": { lat: 48.8867, lon: 2.3431 },
   "Quartier latin": { lat: 48.8463, lon: 2.3470 },
   "Bords de Seine": { lat: 48.8550, lon: 2.3480 },
@@ -14,6 +15,11 @@ const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
 
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
 type ParisRecord = Record<string, unknown>;
+
+type GeocodeFeature = {
+  geometry?: { coordinates?: [number, number] };
+  properties?: { label?: string };
+};
 
 function centreForZone(zone: string) {
   return ZONE_CENTRES[zone] ?? ZONE_CENTRES["Louvre & Opéra"];
@@ -46,6 +52,45 @@ function label(record: ParisRecord, fallback: string) {
   return fallback;
 }
 
+async function geocodeInternalAddress(address: string): Promise<{ lat: number; lon: number; label: string } | null> {
+  try {
+    const url = new URL("https://api-adresse.data.gouv.fr/search/");
+    url.searchParams.set("q", address);
+    url.searchParams.set("limit", "1");
+    const response = await fetch(url, {
+      next: { revalidate: 604800 },
+      signal: AbortSignal.timeout(4500),
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return null;
+    const payload = await response.json() as { features?: GeocodeFeature[] };
+    const feature = payload.features?.[0];
+    const coordinates = feature?.geometry?.coordinates;
+    if (!coordinates || !Number.isFinite(coordinates[0]) || !Number.isFinite(coordinates[1])) return null;
+    return { lon: coordinates[0], lat: coordinates[1], label: feature?.properties?.label || address };
+  } catch {
+    return null;
+  }
+}
+
+async function internalChoices(routeId: string | null | undefined, zone: string, category: InternalPoiCategory, centre: { lat: number; lon: number }): Promise<LiveNeedChoice[]> {
+  const catalog = getInternalPois(routeId, zone, category);
+  const resolved = await Promise.all(catalog.map(async (poi) => {
+    const location = await geocodeInternalAddress(poi.address);
+    if (!location) return null;
+    const distanceMeters = Math.round(haversineMeters(centre, location));
+    return {
+      name: poi.name,
+      detail: `${poi.address} · ${poi.note} · ${distanceMeters} m away`,
+      distanceMeters,
+      lat: location.lat,
+      lon: location.lon,
+      source: "Velvet Passport internal catalog",
+    } satisfies LiveNeedChoice;
+  }));
+  return resolved.filter((item): item is LiveNeedChoice => Boolean(item)).sort((a, b) => a.distanceMeters - b.distanceMeters);
+}
+
 async function parisPublicPlaces(dataset: string, centre: { lat: number; lon: number }, radiusMeters: number): Promise<LiveNeedChoice[]> {
   const where = encodeURIComponent(`distance(geo_point_2d, geom'POINT(${centre.lon} ${centre.lat})') < ${radiusMeters}`);
   const urls = [
@@ -54,7 +99,7 @@ async function parisPublicPlaces(dataset: string, centre: { lat: number; lon: nu
   ];
   for (const url of urls) {
     try {
-      const response = await fetch(url, { next: { revalidate: 900 }, signal: AbortSignal.timeout(5000) });
+      const response = await fetch(url, { next: { revalidate: 1800 }, signal: AbortSignal.timeout(5000) });
       if (!response.ok) continue;
       const payload = await response.json() as { results?: ParisRecord[] };
       const choices: LiveNeedChoice[] = [];
@@ -82,13 +127,27 @@ function commercialChoices(items: NearbyPlace[]): LiveNeedChoice[] {
   }));
 }
 
-export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenario, exactLocation?: { lat: number; lon: number }) {
+function dedupe(choices: LiveNeedChoice[]) {
+  const seen = new Set<string>();
+  return choices.filter((item) => {
+    const key = item.name.toLocaleLowerCase("fr-FR").replace(/[^a-z0-9à-ÿ]/g, "");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenario, exactLocation?: { lat: number; lon: number }, routeId?: string | null) {
   const centre = exactLocation ?? centreForZone(zone);
   if (scenario === "water") return parisPublicPlaces("fontaines-a-boire", centre, 900);
   if (scenario === "restroom") return parisPublicPlaces("sanisettesparis", centre, 900);
   if (scenario === "sitdown") return parisPublicPlaces("espaces_verts", centre, 800);
 
+  const category: InternalPoiCategory = scenario === "pharmacy" ? "pharmacy" : "restaurant";
+  const curated = await internalChoices(routeId, zone, category, centre);
+  if (curated.length >= 3) return curated.slice(0, 5);
+
   const places = await getNearbyPlaces(centre, 900);
-  if (scenario === "pharmacy") return commercialChoices(places.pharmacies);
-  return commercialChoices(places.restaurants);
+  const external = scenario === "pharmacy" ? commercialChoices(places.pharmacies) : commercialChoices(places.restaurants);
+  return dedupe([...curated, ...external]).slice(0, 5);
 }
