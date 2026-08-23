@@ -18,6 +18,9 @@ type TicketState = {
 
 type GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
 type AppSection = "now" | "day" | "tickets" | "guardian";
+type TransportMode = "metro" | "rer" | "bus" | "tram" | "taxi" | "walk";
+type TransportOption = { id: TransportMode; label: string; minutes: number; detail: string; source: "official" | "estimated"; transfers: number | null };
+type TransportResult = { origin: string; destination: string; options: TransportOption[]; provider: { connected: boolean; live: boolean; issue: boolean }; disclaimer: string };
 
 type PassStatus = {
   state: "loading" | "active" | "preview" | "inactive";
@@ -106,8 +109,66 @@ export default function ParisNowApp() {
   const [availableMinutes, setAvailableMinutes] = useState(90);
   const [hotelConsent, setHotelConsent] = useState(false);
   const [guardianAssessment, setGuardianAssessment] = useState<GuardianAssessment | null>(null);
+  const [transportOrigin, setTransportOrigin] = useState("");
+  const [transportMode, setTransportMode] = useState<TransportMode>("metro");
+  const [transportResult, setTransportResult] = useState<TransportResult | null>(null);
+  const [transportLoading, setTransportLoading] = useState(false);
+  const [transportError, setTransportError] = useState("");
+  const [transportApplied, setTransportApplied] = useState<TransportMode | null>(null);
   const route = serverRoute ?? emptyRoute;
   const selectedCatalogRoute = catalogRoutes.find((item) => item.id === selectedRouteId) ?? null;
+
+  async function findTransport(mode: TransportMode = transportMode) {
+    if (transportOrigin.trim().length < 3) { setTransportError("Enter your hotel, address or starting station."); return; }
+    setTransportLoading(true);
+    setTransportError("");
+    setTransportApplied(null);
+    try {
+      const response = await fetch("/api/now/transport", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ origin: transportOrigin, destination: selectedCatalogRoute ? selectedCatalogRoute.zone : selectedZone, mode }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Transport options unavailable");
+      setTransportResult(data as TransportResult);
+    } catch (error) {
+      setTransportError(error instanceof Error ? error.message : "Unable to prepare transport options.");
+    } finally { setTransportLoading(false); }
+  }
+
+  function applyTransport(option: TransportOption) {
+    const existing = serverRoute ?? emptyRoute;
+    const target = selectedCatalogRoute?.title ?? selectedZone;
+    const shiftedStops: Stop[] = existing.stops.map((stop, index) => ({
+      ...stop,
+      time: "+" + String(option.minutes + index * 12).padStart(2, "0"),
+      state: index === existing.stops.length - 1 ? "destination" : "next",
+    }));
+    setServerRoute({
+      eyebrow: "NOW CONNECTION · " + option.label.toUpperCase(),
+      title: "From " + transportOrigin + " to your protected Paris.",
+      meta: option.minutes + " min by " + option.label + " · " + (option.source === "official" ? "official journey" : "estimated connection") + " · " + target,
+      note: option.source === "official" ? "The transport connection uses official Île-de-France Mobilités data and joins your selected route." : "Indicative connection prepared around your selected route. Live transport data will appear once PRIM is connected.",
+      stops: [
+        { time: "NOW", duration: option.minutes + " min", title: transportOrigin, detail: option.label + " · " + option.detail, state: "current" },
+        ...shiftedStops,
+      ],
+    });
+    setTicket((current) => ({ ...current, marginMinutes: Math.max(0, current.marginMinutes - Math.max(0, option.minutes - 12)), protected: current.marginMinutes - Math.max(0, option.minutes - 12) >= 15 }));
+    setTransportApplied(option.id);
+    window.setTimeout(() => document.getElementById("protected-route-heading")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) { setTransportError("Location is not available on this device."); return; }
+    setTransportLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => { setTransportOrigin(position.coords.latitude.toFixed(5) + ", " + position.coords.longitude.toFixed(5)); setTransportLoading(false); setTransportError(""); },
+      () => { setTransportError("Location permission was not granted. Enter an address instead."); setTransportLoading(false); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   function openSection(section: AppSection) {
     setActiveSection(section);
@@ -331,6 +392,44 @@ export default function ParisNowApp() {
         </div>
       </section>
 
+      {active === "transport" && (
+        <section className={styles.transportPanel} aria-live="polite">
+          <div className={styles.transportHeading}>
+            <span>NOW CONNECTION · YOUR WAY THERE</span>
+            <h2>Start where you actually are.</h2>
+            <p>Your hotel, current location or any Paris address — connected to {selectedCatalogRoute?.title ?? selectedZone}.</p>
+          </div>
+          <label className={styles.transportLabel} htmlFor="transport-origin">YOUR STARTING POINT</label>
+          <div className={styles.transportOrigin}>
+            <input id="transport-origin" value={transportOrigin} onChange={(event) => { setTransportOrigin(event.target.value); setTransportError(""); }} placeholder="Hotel, address or station" autoComplete="street-address" />
+            <button type="button" onClick={useCurrentLocation} aria-label="Use my current location">⌖</button>
+          </div>
+          <span className={styles.transportLabel}>PREFERRED CONNECTION</span>
+          <div className={styles.transportModes}>
+            {([["metro", "Métro"], ["rer", "RER"], ["bus", "Bus"], ["tram", "Tram"], ["taxi", "Taxi"], ["walk", "Walk"]] as const).map(([id, label]) => (
+              <button key={id} type="button" className={transportMode === id ? styles.transportModeActive : ""} onClick={() => { setTransportMode(id); setTransportApplied(null); }}>{label}</button>
+            ))}
+          </div>
+          <button className={styles.transportSearch} type="button" onClick={() => findTransport()} disabled={transportLoading}>
+            {transportLoading ? "CHECKING YOUR CONNECTION…" : "FIND MY BEST CONNECTION →"}
+          </button>
+          {transportError && <p className={styles.transportError}>{transportError}</p>}
+          {transportResult && (
+            <div className={styles.transportResults}>
+              <div className={styles.transportResultHeading}><strong>{transportResult.destination}</strong><span>{transportResult.provider.live ? "OFFICIAL DATA" : "ESTIMATED TIMES"}</span></div>
+              {transportResult.options.map((option) => (
+                <button key={option.id} type="button" className={transportApplied === option.id ? styles.transportOptionApplied : transportMode === option.id ? styles.transportOptionPreferred : ""} onClick={() => applyTransport(option)}>
+                  <span><strong>{option.label}</strong><small>{option.detail}</small></span>
+                  <b>{option.minutes} min</b>
+                  <em>{transportApplied === option.id ? "ADDED ✓" : "ADD TO ROUTE →"}</em>
+                </button>
+              ))}
+              <small className={styles.transportDisclaimer}>{transportResult.disclaimer}</small>
+            </div>
+          )}
+        </section>
+      )}
+
       {active === "guardian" && (
         <section className={styles.guardianPanel} aria-live="polite">
           <div className={styles.guardianHeading}>
@@ -386,7 +485,7 @@ export default function ParisNowApp() {
         </section>
       )}
 
-      <div className={styles.routeHeading}><span>CURATED FOR THIS MOMENT</span><h2>Your protected route</h2></div>
+      <div id="protected-route-heading" className={styles.routeHeading}><span>CURATED FOR THIS MOMENT</span><h2>Your protected route</h2></div>
 
       <section className={styles.routeCard} aria-live="polite">
         <div className={styles.routeIntro}>
