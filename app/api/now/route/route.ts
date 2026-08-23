@@ -1,6 +1,7 @@
 import { buildRoutePlan, buildIntegratedRoutePlan, isNowScenario, type RoutePlan } from "../../../../lib/now-engine";
 import { getConfidentialRoutes } from "../../../../lib/confidential-routes";
 import { getPassAccess } from "../../../../lib/pass-access";
+import { getLiveNeedChoices, type LiveNeedScenario } from "../../../../lib/live-needs";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,8 @@ type TransportConnection = {
   detail?: string;
   source?: "official" | "estimated";
 };
+
+const LIVE_NEEDS = new Set<LiveNeedScenario>(["food", "pharmacy", "water", "restroom", "sitdown"]);
 
 function integrateTransport(plan: RoutePlan, connection: TransportConnection, availableMinutes: number): RoutePlan {
   const connectionMinutes = Math.max(1, Math.min(120, Math.round(connection.minutes)));
@@ -49,6 +52,44 @@ function integrateTransport(plan: RoutePlan, connection: TransportConnection, av
   };
 }
 
+function locationFromInput(value: unknown): { lat: number; lon: number } | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const raw = value as Record<string, unknown>;
+  const lat = Number(raw.lat);
+  const lon = Number(raw.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return undefined;
+  if (lat < 48.80 || lat > 48.92 || lon < 2.20 || lon > 2.50) return undefined;
+  return { lat, lon };
+}
+
+async function enrichLiveNeed(plan: RoutePlan, scenario: LiveNeedScenario, zone: string, selectedRoute: boolean, exactLocation?: { lat: number; lon: number }) {
+  const choices = await getLiveNeedChoices(zone, scenario, exactLocation);
+  if (choices.length === 0) return { plan, choices: [] };
+
+  const primary = choices[0];
+  const alternatives = choices.slice(1, 3).map((choice) => choice.name);
+  const targetIndex = selectedRoute && plan.stops.length > 1 ? 1 : Math.max(0, plan.stops.findIndex((stop) => stop.state === "current"));
+  const updatedStops = plan.stops.map((stop, index) => index === targetIndex ? {
+    ...stop,
+    title: primary.name,
+    detail: `${primary.detail} · live source: ${primary.source}${alternatives.length ? ` · alternatives: ${alternatives.join(" / ")}` : ""}`,
+  } : stop);
+
+  return {
+    plan: {
+      ...plan,
+      note: `${plan.note} Live nearby data selected ${primary.name}; alternatives are retained so NOW can switch without another broad search.`,
+      stops: updatedStops,
+      calculation: {
+        ...plan.calculation,
+        generatedAt: new Date().toISOString(),
+        factors: [...plan.calculation.factors, "live nearby place", "cached provider cascade", "distance from active Paris zone"],
+      },
+    },
+    choices,
+  };
+}
+
 export async function GET(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
@@ -61,25 +102,15 @@ export async function POST(request: Request) {
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
   let body: unknown;
 
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  try { body = await request.json(); }
+  catch { return Response.json({ error: "Invalid JSON body" }, { status: 400 }); }
 
-  if (!body || typeof body !== "object") {
-    return Response.json({ error: "Request body is required" }, { status: 400 });
-  }
+  if (!body || typeof body !== "object") return Response.json({ error: "Request body is required" }, { status: 400 });
 
   const input = body as Record<string, unknown>;
-  if (!isNowScenario(input.scenario)) {
-    return Response.json({ error: "Unknown NOW scenario" }, { status: 400 });
-  }
+  if (!isNowScenario(input.scenario)) return Response.json({ error: "Unknown NOW scenario" }, { status: 400 });
 
-  const ticketTime = typeof input.ticketTime === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.ticketTime)
-    ? input.ticketTime
-    : "16:30";
-
+  const ticketTime = typeof input.ticketTime === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.ticketTime) ? input.ticketTime : "16:30";
   const availableMinutes = typeof input.availableMinutes === "number" && Number.isFinite(input.availableMinutes)
     ? Math.max(15, Math.min(480, input.availableMinutes))
     : 90;
@@ -98,16 +129,40 @@ export async function POST(request: Request) {
     : null;
 
   const routeBudget = transport ? Math.max(15, availableMinutes - Math.max(1, Math.round(transport.minutes))) : availableMinutes;
-  const selectedRoute = typeof input.routeId === "string"
-    ? buildIntegratedRoutePlan(input.routeId, input.scenario, ticketTime, routeBudget, typeof input.blockedStop === "string" ? input.blockedStop : undefined)
+  const routeId = typeof input.routeId === "string" ? input.routeId : null;
+  const confidential = routeId ? getConfidentialRoutes().find((route) => route.id === routeId) : undefined;
+  const selectedRoute = routeId
+    ? buildIntegratedRoutePlan(routeId, input.scenario, ticketTime, routeBudget, typeof input.blockedStop === "string" ? input.blockedStop : undefined)
     : null;
-  const basePlan = selectedRoute ?? buildRoutePlan(input.scenario, ticketTime);
-  const plan = transport ? integrateTransport(basePlan, transport, availableMinutes) : basePlan;
+  let plan = selectedRoute ?? buildRoutePlan(input.scenario, ticketTime);
+  let liveNeedChoices: Awaited<ReturnType<typeof getLiveNeedChoices>> = [];
 
-  return Response.json(plan, {
+  if (LIVE_NEEDS.has(input.scenario as LiveNeedScenario)) {
+    const live = await enrichLiveNeed(
+      plan,
+      input.scenario as LiveNeedScenario,
+      confidential?.zone ?? "Louvre & Opéra",
+      Boolean(selectedRoute),
+      locationFromInput(input.location),
+    );
+    plan = live.plan;
+    liveNeedChoices = live.choices;
+  }
+
+  if (transport) plan = integrateTransport(plan, transport, availableMinutes);
+
+  return Response.json({
+    ...plan,
+    liveNeed: liveNeedChoices.length ? {
+      scenario: input.scenario,
+      choices: liveNeedChoices,
+      selected: liveNeedChoices[0],
+      cacheStrategy: "30-minute zone cache with provider fallback only when needed",
+    } : null,
+  }, {
     headers: {
       "Cache-Control": "no-store",
-      "X-NOW-Data-Mode": transport ? "transport-integrated" : "prepared",
+      "X-NOW-Data-Mode": liveNeedChoices.length ? "live-nearby" : transport ? "transport-integrated" : "prepared",
     },
   });
 }
