@@ -1,4 +1,5 @@
 import { getPassAccess } from "../../../../lib/pass-access";
+import { getNearbyPlaces } from "../../../../lib/nearby-places";
 
 export const runtime = "nodejs";
 
@@ -12,13 +13,6 @@ type WeatherResult = {
   precipitation?: number;
   symbol?: string;
   scenario: "route" | "rain" | "snow" | "heat" | "cold";
-  source: string;
-};
-type AmenityResult = {
-  pharmacies: NearbyItem[];
-  restaurants: NearbyItem[];
-  cafes: NearbyItem[];
-  available: boolean;
   source: string;
 };
 
@@ -73,7 +67,7 @@ async function parisDataset(dataset: string, centre: Coordinates, radiusMeters: 
 
   for (const url of urls) {
     try {
-      const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5500) });
+      const response = await fetch(url, { next: { revalidate: 900 }, signal: AbortSignal.timeout(5500) });
       if (!response.ok) continue;
       const payload = await response.json() as { results?: ParisRecord[] };
       const nearby: NearbyItem[] = [];
@@ -86,9 +80,7 @@ async function parisDataset(dataset: string, centre: Coordinates, radiusMeters: 
       }
       nearby.sort((a, b) => a.distanceMeters - b.distanceMeters);
       return nearby.slice(0, 12);
-    } catch {
-      continue;
-    }
+    } catch { continue; }
   }
   return [];
 }
@@ -97,11 +89,8 @@ async function getWeather(centre: Coordinates): Promise<WeatherResult> {
   try {
     const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${centre.lat.toFixed(4)}&lon=${centre.lon.toFixed(4)}`;
     const response = await fetch(url, {
-      headers: {
-        "User-Agent": "VelvetPassportNOW/1.0 https://github.com/naturlabs1996-creator/velvet-passport-now",
-        Accept: "application/json",
-      },
-      cache: "no-store",
+      headers: { "User-Agent": "VelvetPassportNOW/1.0 https://github.com/naturlabs1996-creator/velvet-passport-now", Accept: "application/json" },
+      next: { revalidate: 1800 },
       signal: AbortSignal.timeout(6000),
     });
     if (!response.ok) throw new Error("Weather provider unavailable");
@@ -130,57 +119,13 @@ async function getWeather(centre: Coordinates): Promise<WeatherResult> {
   }
 }
 
-async function getAmenities(centre: Coordinates, radiusMeters: number): Promise<AmenityResult> {
-  const query = `[out:json][timeout:8];(node[amenity=pharmacy](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=restaurant](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=cafe](around:${radiusMeters},${centre.lat},${centre.lon}););out tags;`;
-  try {
-    const response = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "VelvetPassportNOW/1.0" },
-      body: new URLSearchParams({ data: query }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(8500),
-    });
-    if (!response.ok) throw new Error("Amenities unavailable");
-    const payload = await response.json() as {
-      elements?: Array<{ lat?: number; lon?: number; tags?: Record<string, string> }>;
-    };
-    const result: AmenityResult = { pharmacies: [], restaurants: [], cafes: [], available: true, source: "OpenStreetMap contributors" };
-    for (const element of payload.elements ?? []) {
-      if (typeof element.lat !== "number" || typeof element.lon !== "number") continue;
-      const point = { lat: element.lat, lon: element.lon };
-      const item: NearbyItem = {
-        name: element.tags?.name || "Nearby place",
-        lat: point.lat,
-        lon: point.lon,
-        distanceMeters: Math.round(haversineMeters(centre, point)),
-        detail: [element.tags?.cuisine, element.tags?.opening_hours].filter(Boolean).join(" · ") || undefined,
-      };
-      if (element.tags?.amenity === "pharmacy") result.pharmacies.push(item);
-      else if (element.tags?.amenity === "restaurant") result.restaurants.push(item);
-      else if (element.tags?.amenity === "cafe") result.cafes.push(item);
-    }
-    result.pharmacies.sort((a, b) => a.distanceMeters - b.distanceMeters);
-    result.restaurants.sort((a, b) => a.distanceMeters - b.distanceMeters);
-    result.cafes.sort((a, b) => a.distanceMeters - b.distanceMeters);
-    result.pharmacies = result.pharmacies.slice(0, 8);
-    result.restaurants = result.restaurants.slice(0, 8);
-    result.cafes = result.cafes.slice(0, 8);
-    return result;
-  } catch {
-    return { pharmacies: [], restaurants: [], cafes: [], available: false, source: "OpenStreetMap contributors" };
-  }
-}
-
 export async function POST(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
 
   let body: { lat?: unknown; lon?: unknown; radiusMeters?: unknown };
-  try {
-    body = await request.json() as { lat?: unknown; lon?: unknown; radiusMeters?: unknown };
-  } catch {
-    return Response.json({ error: "Invalid request" }, { status: 400 });
-  }
+  try { body = await request.json() as { lat?: unknown; lon?: unknown; radiusMeters?: unknown }; }
+  catch { return Response.json({ error: "Invalid request" }, { status: 400 }); }
 
   const lat = Number(body.lat);
   const lon = Number(body.lon);
@@ -196,11 +141,10 @@ export async function POST(request: Request) {
     parisDataset("sanisettesparis", centre, radiusMeters),
     parisDataset("circulation_evenement", centre, radiusMeters),
     parisDataset("chantiers-a-paris", centre, radiusMeters),
-    getAmenities(centre, radiusMeters),
+    getNearbyPlaces(centre, radiusMeters),
   ]);
 
   const disruptions = [...closures, ...works].sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 12);
-
   return Response.json({
     location: centre,
     radiusMeters,
@@ -211,6 +155,7 @@ export async function POST(request: Request) {
     restaurants: amenities.restaurants,
     cafes: amenities.cafes,
     disruptions,
+    providers: { places: amenities.providersUsed, placesCacheHit: amenities.cacheHit },
     decision: {
       suggestedScenario: forecast.scenario,
       nearbyWater: fountains.length > 0,
@@ -222,9 +167,9 @@ export async function POST(request: Request) {
       "MET Norway · CC BY 4.0",
       "Ville de Paris / Eau de Paris · Paris Data",
       "OpenStreetMap contributors · ODbL",
+      ...(process.env.GEOAPIFY_API_KEY ? ["Geoapify · fallback provider"] : []),
+      ...(process.env.FOURSQUARE_API_KEY ? ["Foursquare · fallback provider"] : []),
     ],
     generatedAt: new Date().toISOString(),
-  }, {
-    headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=900" },
-  });
+  }, { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=900" } });
 }
