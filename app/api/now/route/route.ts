@@ -62,8 +62,15 @@ function locationFromInput(value: unknown): { lat: number; lon: number } | undef
   return { lat, lon };
 }
 
-async function enrichLiveNeed(plan: RoutePlan, scenario: LiveNeedScenario, zone: string, selectedRoute: boolean, exactLocation?: { lat: number; lon: number }) {
-  const choices = await getLiveNeedChoices(zone, scenario, exactLocation);
+async function enrichLiveNeed(
+  plan: RoutePlan,
+  scenario: LiveNeedScenario,
+  zone: string,
+  routeId: string | null,
+  selectedRoute: boolean,
+  exactLocation?: { lat: number; lon: number },
+) {
+  const choices = await getLiveNeedChoices(zone, scenario, exactLocation, routeId);
   if (choices.length === 0) return { plan, choices: [] };
 
   const primary = choices[0];
@@ -72,18 +79,18 @@ async function enrichLiveNeed(plan: RoutePlan, scenario: LiveNeedScenario, zone:
   const updatedStops = plan.stops.map((stop, index) => index === targetIndex ? {
     ...stop,
     title: primary.name,
-    detail: `${primary.detail} · live source: ${primary.source}${alternatives.length ? ` · alternatives: ${alternatives.join(" / ")}` : ""}`,
+    detail: `${primary.detail} · source: ${primary.source}${alternatives.length ? ` · alternatives: ${alternatives.join(" / ")}` : ""}`,
   } : stop);
 
   return {
     plan: {
       ...plan,
-      note: `${plan.note} Live nearby data selected ${primary.name}; alternatives are retained so NOW can switch without another broad search.`,
+      note: `${plan.note} NOW selected ${primary.name} from the internal-first nearby catalog; alternatives are retained so it can switch without another broad search.`,
       stops: updatedStops,
       calculation: {
         ...plan.calculation,
         generatedAt: new Date().toISOString(),
-        factors: [...plan.calculation.factors, "live nearby place", "cached provider cascade", "distance from active Paris zone"],
+        factors: [...plan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route"],
       },
     },
     choices,
@@ -142,6 +149,7 @@ export async function POST(request: Request) {
       plan,
       input.scenario as LiveNeedScenario,
       confidential?.zone ?? "Louvre & Opéra",
+      routeId,
       Boolean(selectedRoute),
       locationFromInput(input.location),
     );
@@ -157,12 +165,12 @@ export async function POST(request: Request) {
       scenario: input.scenario,
       choices: liveNeedChoices,
       selected: liveNeedChoices[0],
-      cacheStrategy: "30-minute zone cache with provider fallback only when needed",
+      cacheStrategy: "internal catalog first; address geocode cached 7 days; external POI zone cache 30 minutes; provider fallback only when needed",
     } : null,
   }, {
     headers: {
       "Cache-Control": "no-store",
-      "X-NOW-Data-Mode": liveNeedChoices.length ? "live-nearby" : transport ? "transport-integrated" : "prepared",
+      "X-NOW-Data-Mode": liveNeedChoices.length ? "internal-first-nearby" : transport ? "transport-integrated" : "prepared",
     },
   });
 }
