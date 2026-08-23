@@ -137,3 +137,29 @@
 .myDayPanel>button{margin-top:17px;width:100%;min-height:46px;background:#161513;color:#e0c27c;border:0;font-size:10px;letter-spacing:.11em}
 .bottomNav .navActive{color:#e3c66f;font-weight:700}
 @media(max-width:520px){.myDayPanel{margin-left:12px;margin-right:12px;padding:20px 15px}.myDayStats article>strong{font-size:12px}}
+
+/* NOW Connection: premium multimodal arrival planner */
+.transportPanel{margin:0 15px 23px;padding:25px 20px;background:#fffdf8;border:1px solid #ded5c1;box-shadow:0 14px 36px rgba(39,31,15,.045)}
+.transportHeading>span,.transportLabel{display:block;color:#987b38;font-size:10px;letter-spacing:.17em;font-weight:700}
+.transportHeading h2{font:31px/1.08 Georgia,serif;letter-spacing:-.025em;margin:11px 0 8px;color:#201d18}
+.transportHeading p{font-size:13px;line-height:1.58;color:#706a60;margin:0 0 23px}
+.transportLabel{margin:17px 0 9px;font-size:9px}
+.transportOrigin{display:grid;grid-template-columns:1fr 49px;gap:7px}
+.transportOrigin input{min-width:0;height:49px;border:1px solid #ded7c8;background:#fff;padding:0 12px;color:#29251e;font-size:13px}
+.transportOrigin input:focus{outline:1px solid #bd9b4c;border-color:#bd9b4c}
+.transportOrigin>button{border:1px solid #ded7c8;background:#f5f0e3;color:#947631;font-size:21px}
+.transportModes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.transportModes button{min-height:42px;border:1px solid #e2dbcd;background:#fff;color:#4c473e;font-size:12px}
+.transportModes .transportModeActive{background:#181715;color:#e0c16e;border-color:#b4964a}
+.transportSearch{width:100%;min-height:49px;margin-top:19px;border:0;background:#b99b51;color:#171513;font-size:11px;font-weight:700;letter-spacing:.105em}
+.transportSearch:disabled{opacity:.72}.transportError{margin:11px 0 0;color:#a04239;font-size:12px;line-height:1.5}
+.transportResults{margin-top:23px;border-top:1px solid #e9e2d5;padding-top:17px}
+.transportResultHeading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:11px}
+.transportResultHeading>strong{font:18px Georgia,serif;color:#221f1a}.transportResultHeading>span{font-size:8px;letter-spacing:.1em;color:#947b43}
+.transportResults>button{width:100%;display:grid;grid-template-columns:1fr auto;gap:4px 10px;text-align:left;padding:12px 10px;margin-top:7px;background:#fff;border:1px solid #e5ded1}
+.transportResults>button>span>strong,.transportResults>button>span>small{display:block}
+.transportResults>button>span>strong{color:#25221c;font-size:13px}.transportResults>button>span>small{color:#777166;font-size:10px;line-height:1.4;margin-top:4px}
+.transportResults>button>b{color:#342f26;font-size:14px}.transportResults>button>em{grid-column:1/-1;font-size:9px;font-style:normal;letter-spacing:.08em;color:#947838;margin-top:3px}
+.transportResults .transportOptionPreferred{border-color:#c4a45d;background:#fcf8ed}.transportResults .transportOptionApplied{border-color:#54806a;background:#f3f8f4}
+.transportDisclaimer{display:block;margin-top:13px;color:#777166;font-size:10px;line-height:1.5}
+@media(max-width:520px){.transportPanel{margin-left:12px;margin-right:12px;padding:21px 15px}.transportHeading h2{font-size:28px}.transportModes button{font-size:11px}.transportResults>button>span>small{font-size:9px}}
