@@ -131,33 +131,48 @@ export default function ParisNowApp() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Transport options unavailable");
-      setTransportResult(data as TransportResult);
+      const result = data as TransportResult;
+      setTransportResult(result);
+      setTransportOrigin(result.origin);
     } catch (error) {
       setTransportError(error instanceof Error ? error.message : "Unable to prepare transport options.");
     } finally { setTransportLoading(false); }
   }
 
-  function applyTransport(option: TransportOption) {
-    const existing = serverRoute ?? emptyRoute;
-    const target = selectedCatalogRoute?.title ?? selectedZone;
-    const shiftedStops: Stop[] = existing.stops.map((stop, index) => ({
-      ...stop,
-      time: "+" + String(option.minutes + index * 12).padStart(2, "0"),
-      state: index === existing.stops.length - 1 ? "destination" : "next",
-    }));
-    setServerRoute({
-      eyebrow: "NOW CONNECTION · " + option.label.toUpperCase(),
-      title: "From " + transportOrigin + " to your protected Paris.",
-      meta: option.minutes + " min by " + option.label + " · " + (option.source === "official" ? "official journey" : "estimated connection") + " · " + target,
-      note: option.source === "official" ? "The transport connection uses official Île-de-France Mobilités data and joins your selected route." : "Indicative connection prepared around your selected route. Live transport data will appear once PRIM is connected.",
-      stops: [
-        { time: "NOW", duration: option.minutes + " min", title: transportOrigin, detail: option.label + " · " + option.detail, state: "current" },
-        ...shiftedStops,
-      ],
-    });
-    setTicket((current) => ({ ...current, marginMinutes: Math.max(0, current.marginMinutes - Math.max(0, option.minutes - 12)), protected: current.marginMinutes - Math.max(0, option.minutes - 12) >= 15 }));
-    setTransportApplied(option.id);
-    window.setTimeout(() => document.getElementById("protected-route-heading")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+  async function applyTransport(option: TransportOption) {
+    if (!transportResult) return;
+    setTransportLoading(true);
+    setTransportError("");
+    try {
+      const response = await fetch("/api/now/route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario: "route",
+          ticketTime: ticket.time,
+          routeId: selectedRouteId,
+          availableMinutes,
+          transport: {
+            minutes: option.minutes,
+            mode: option.id,
+            label: option.label,
+            origin: transportResult.origin,
+            detail: option.detail,
+            source: option.source,
+          },
+        }),
+      });
+      const plan = await response.json();
+      if (!response.ok) throw new Error(plan.error || "Unable to add this connection to your route.");
+      setServerRoute(plan as RouteView);
+      if (plan.ticket) setTicket(plan.ticket as TicketState);
+      setTransportApplied(option.id);
+      window.setTimeout(() => document.getElementById("protected-route-heading")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    } catch (error) {
+      setTransportError(error instanceof Error ? error.message : "Unable to recalculate your protected route.");
+    } finally {
+      setTransportLoading(false);
+    }
   }
 
   function useCurrentLocation() {
@@ -416,7 +431,7 @@ export default function ParisNowApp() {
           {transportError && <p className={styles.transportError}>{transportError}</p>}
           {transportResult && (
             <div className={styles.transportResults}>
-              <div className={styles.transportResultHeading}><strong>{transportResult.destination}</strong><span>{transportResult.provider.live ? "OFFICIAL DATA" : "ESTIMATED TIMES"}</span></div>
+              <div className={styles.transportResultHeading}><strong>{transportResult.origin} → {transportResult.destination}</strong><span>{transportResult.provider.live ? "OFFICIAL DATA" : "ESTIMATED TIMES"}</span></div>
               {transportResult.options.map((option) => (
                 <button key={option.id} type="button" className={transportApplied === option.id ? styles.transportOptionApplied : transportMode === option.id ? styles.transportOptionPreferred : ""} onClick={() => applyTransport(option)}>
                   <span><strong>{option.label}</strong><small>{option.detail}</small></span>
