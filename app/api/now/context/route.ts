@@ -4,124 +4,168 @@ export const runtime = "nodejs";
 
 type Coordinates = { lat: number; lon: number };
 type NearbyItem = { name: string; lat: number; lon: number; distanceMeters: number; detail?: string };
+type ParisRecord = Record<string, unknown>;
+type WeatherResult = {
+  available: boolean;
+  temperature?: number;
+  wind?: number;
+  precipitation?: number;
+  symbol?: string;
+  scenario: "route" | "rain" | "snow" | "heat" | "cold";
+  source: string;
+};
+type AmenityResult = {
+  pharmacies: NearbyItem[];
+  restaurants: NearbyItem[];
+  cafes: NearbyItem[];
+  available: boolean;
+  source: string;
+};
 
 const PARIS_BOUNDS = { minLat: 48.815, maxLat: 48.905, minLon: 2.224, maxLon: 2.470 };
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
 
-function inParis({ lat, lon }: Coordinates) {
-  return lat >= PARIS_BOUNDS.minLat && lat <= PARIS_BOUNDS.maxLat && lon >= PARIS_BOUNDS.minLon && lon <= PARIS_BOUNDS.maxLon;
+function inParis(point: Coordinates) {
+  return point.lat >= PARIS_BOUNDS.minLat && point.lat <= PARIS_BOUNDS.maxLat && point.lon >= PARIS_BOUNDS.minLon && point.lon <= PARIS_BOUNDS.maxLon;
 }
 
 function haversineMeters(a: Coordinates, b: Coordinates) {
-  const rad = (n: number) => n * Math.PI / 180;
+  const rad = (value: number) => value * Math.PI / 180;
   const dLat = rad(b.lat - a.lat);
   const dLon = rad(b.lon - a.lon);
   const x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
   return 6371000 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-function findCoordinates(value: unknown): Coordinates | null {
+function pointFromUnknown(value: unknown): Coordinates | null {
   if (!value || typeof value !== "object") return null;
-  const obj = value as Record<string, unknown>;
-  if (typeof obj.lat === "number" && typeof obj.lon === "number") return { lat: obj.lat, lon: obj.lon };
-  if (typeof obj.lat === "number" && typeof obj.lng === "number") return { lat: obj.lat, lon: obj.lng };
-  if (Array.isArray(obj.coordinates) && obj.coordinates.length >= 2 && typeof obj.coordinates[0] === "number" && typeof obj.coordinates[1] === "number") {
-    return { lon: obj.coordinates[0], lat: obj.coordinates[1] };
-  }
-  for (const key of ["geo_point_2d", "geometry", "geom", "geo_shape", "coordonnees_geo", "coordinates"]) {
-    const found = findCoordinates(obj[key]);
-    if (found) return found;
+  const object = value as Record<string, unknown>;
+  if (typeof object.lat === "number" && typeof object.lon === "number") return { lat: object.lat, lon: object.lon };
+  const coordinates = object.coordinates;
+  if (Array.isArray(coordinates) && typeof coordinates[0] === "number" && typeof coordinates[1] === "number") {
+    return { lon: coordinates[0], lat: coordinates[1] };
   }
   return null;
 }
 
-function labelRecord(record: Record<string, unknown>, fallback: string) {
-  for (const key of ["nom", "name", "libelle", "voie", "adresse", "adresse_complete", "description", "type_objet", "type"] ) {
+function recordPoint(record: ParisRecord): Coordinates | null {
+  for (const key of ["geo_point_2d", "coordonnees_geo", "geometry", "geom", "geo_shape"]) {
+    const point = pointFromUnknown(record[key]);
+    if (point) return point;
+  }
+  return null;
+}
+
+function recordLabel(record: ParisRecord, fallback: string) {
+  for (const key of ["nom", "name", "libelle", "voie", "adresse", "adresse_complete", "description", "type_objet", "type"]) {
     const value = record[key];
     if (typeof value === "string" && value.trim()) return value.trim().slice(0, 180);
   }
   return fallback;
 }
 
-async function parisDataset(dataset: string, centre: Coordinates, radiusMeters: number, limit = 60): Promise<NearbyItem[]> {
+async function parisDataset(dataset: string, centre: Coordinates, radiusMeters: number): Promise<NearbyItem[]> {
+  const where = encodeURIComponent(`distance(geo_point_2d, geom'POINT(${centre.lon} ${centre.lat})') < ${radiusMeters}`);
   const urls = [
-    `${PARIS_DATA}/${dataset}/records?where=${encodeURIComponent(`distance(geo_point_2d, geom'POINT(${centre.lon} ${centre.lat})') < ${radiusMeters}`)}&limit=${limit}`,
-    `${PARIS_DATA}/${dataset}/records?limit=${limit}`,
+    `${PARIS_DATA}/${dataset}/records?where=${where}&limit=80`,
+    `${PARIS_DATA}/${dataset}/records?limit=80`,
   ];
+
   for (const url of urls) {
     try {
-      const response = await fetch(url, { next: { revalidate: 900 }, signal: AbortSignal.timeout(5500) });
+      const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5500) });
       if (!response.ok) continue;
-      const data = await response.json() as { results?: Record<string, unknown>[] };
-      const items = (data.results ?? []).map((record) => {
-        const coords = findCoordinates(record);
-        if (!coords) return null;
-        const distanceMeters = Math.round(haversineMeters(centre, coords));
-        if (distanceMeters > radiusMeters) return null;
-        return { name: labelRecord(record, dataset), lat: coords.lat, lon: coords.lon, distanceMeters };
-      }).filter(Boolean) as NearbyItem[];
-      return items.sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 12);
-    } catch { /* use fallback */ }
+      const payload = await response.json() as { results?: ParisRecord[] };
+      const nearby: NearbyItem[] = [];
+      for (const record of payload.results ?? []) {
+        const point = recordPoint(record);
+        if (!point) continue;
+        const distanceMeters = Math.round(haversineMeters(centre, point));
+        if (distanceMeters > radiusMeters) continue;
+        nearby.push({ name: recordLabel(record, dataset), lat: point.lat, lon: point.lon, distanceMeters });
+      }
+      nearby.sort((a, b) => a.distanceMeters - b.distanceMeters);
+      return nearby.slice(0, 12);
+    } catch {
+      continue;
+    }
   }
   return [];
 }
 
-async function weather(centre: Coordinates) {
+async function getWeather(centre: Coordinates): Promise<WeatherResult> {
   try {
     const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${centre.lat.toFixed(4)}&lon=${centre.lon.toFixed(4)}`;
     const response = await fetch(url, {
-      headers: { "User-Agent": "VelvetPassportNOW/1.0 https://github.com/naturlabs1996-creator/velvet-passport-now", Accept: "application/json" },
-      next: { revalidate: 1800 },
+      headers: {
+        "User-Agent": "VelvetPassportNOW/1.0 https://github.com/naturlabs1996-creator/velvet-passport-now",
+        Accept: "application/json",
+      },
+      cache: "no-store",
       signal: AbortSignal.timeout(6000),
     });
-    if (!response.ok) throw new Error("weather unavailable");
-    const data = await response.json() as any;
-    const first = data?.properties?.timeseries?.[0];
-    const details = first?.data?.instant?.details ?? {};
-    const nextHour = first?.data?.next_1_hours ?? first?.data?.next_6_hours ?? {};
-    const symbol = nextHour?.summary?.symbol_code ?? "unknown";
-    const precipitation = Number(nextHour?.details?.precipitation_amount ?? 0);
-    const temperature = Number(details.air_temperature ?? NaN);
-    const wind = Number(details.wind_speed ?? NaN);
-    const scenario = precipitation > 0.2 || /rain|sleet|showers/.test(symbol) ? "rain"
-      : /snow/.test(symbol) ? "snow"
-      : Number.isFinite(temperature) && temperature >= 28 ? "heat"
-      : Number.isFinite(temperature) && temperature <= 4 ? "cold"
-      : "route";
+    if (!response.ok) throw new Error("Weather provider unavailable");
+    const payload = await response.json() as {
+      properties?: { timeseries?: Array<{ data?: {
+        instant?: { details?: { air_temperature?: number; wind_speed?: number } };
+        next_1_hours?: { summary?: { symbol_code?: string }; details?: { precipitation_amount?: number } };
+        next_6_hours?: { summary?: { symbol_code?: string }; details?: { precipitation_amount?: number } };
+      } }> };
+    };
+    const first = payload.properties?.timeseries?.[0]?.data;
+    const details = first?.instant?.details;
+    const period = first?.next_1_hours ?? first?.next_6_hours;
+    const symbol = period?.summary?.symbol_code ?? "unknown";
+    const precipitation = Number(period?.details?.precipitation_amount ?? 0);
+    const temperature = Number(details?.air_temperature ?? NaN);
+    const wind = Number(details?.wind_speed ?? NaN);
+    let scenario: WeatherResult["scenario"] = "route";
+    if (/snow/.test(symbol)) scenario = "snow";
+    else if (precipitation > 0.2 || /rain|sleet|showers/.test(symbol)) scenario = "rain";
+    else if (Number.isFinite(temperature) && temperature >= 28) scenario = "heat";
+    else if (Number.isFinite(temperature) && temperature <= 4) scenario = "cold";
     return { available: true, temperature, wind, precipitation, symbol, scenario, source: "MET Norway" };
   } catch {
     return { available: false, scenario: "route", source: "MET Norway" };
   }
 }
 
-async function osmAmenities(centre: Coordinates, radiusMeters: number) {
-  const query = `[out:json][timeout:8];(node[amenity=pharmacy](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=restaurant](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=cafe](around:${radiusMeters},${centre.lat},${centre.lon}););out center tags 40;`;
+async function getAmenities(centre: Coordinates, radiusMeters: number): Promise<AmenityResult> {
+  const query = `[out:json][timeout:8];(node[amenity=pharmacy](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=restaurant](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=cafe](around:${radiusMeters},${centre.lat},${centre.lon}););out tags;`;
   try {
     const response = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "VelvetPassportNOW/1.0" },
       body: new URLSearchParams({ data: query }),
-      next: { revalidate: 1800 },
+      cache: "no-store",
       signal: AbortSignal.timeout(8500),
     });
-    if (!response.ok) throw new Error("amenities unavailable");
-    const data = await response.json() as { elements?: Array<{ lat?: number; lon?: number; tags?: Record<string, string> }> };
-    const groups: Record<string, NearbyItem[]> = { pharmacies: [], restaurants: [], cafes: [] };
-    for (const element of data.elements ?? []) {
+    if (!response.ok) throw new Error("Amenities unavailable");
+    const payload = await response.json() as {
+      elements?: Array<{ lat?: number; lon?: number; tags?: Record<string, string> }>;
+    };
+    const result: AmenityResult = { pharmacies: [], restaurants: [], cafes: [], available: true, source: "OpenStreetMap contributors" };
+    for (const element of payload.elements ?? []) {
       if (typeof element.lat !== "number" || typeof element.lon !== "number") continue;
-      const amenity = element.tags?.amenity;
-      const group = amenity === "pharmacy" ? "pharmacies" : amenity === "restaurant" ? "restaurants" : amenity === "cafe" ? "cafes" : null;
-      if (!group) continue;
-      const coords = { lat: element.lat, lon: element.lon };
-      groups[group].push({
-        name: element.tags?.name || (amenity === "pharmacy" ? "Pharmacy" : amenity === "restaurant" ? "Restaurant" : "Café"),
-        ...coords,
-        distanceMeters: Math.round(haversineMeters(centre, coords)),
+      const point = { lat: element.lat, lon: element.lon };
+      const item: NearbyItem = {
+        name: element.tags?.name || "Nearby place",
+        lat: point.lat,
+        lon: point.lon,
+        distanceMeters: Math.round(haversineMeters(centre, point)),
         detail: [element.tags?.cuisine, element.tags?.opening_hours].filter(Boolean).join(" · ") || undefined,
-      });
+      };
+      if (element.tags?.amenity === "pharmacy") result.pharmacies.push(item);
+      else if (element.tags?.amenity === "restaurant") result.restaurants.push(item);
+      else if (element.tags?.amenity === "cafe") result.cafes.push(item);
     }
-    for (const key of Object.keys(groups)) groups[key] = groups[key].sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 8);
-    return { ...groups, available: true, source: "OpenStreetMap contributors" };
+    result.pharmacies.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    result.restaurants.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    result.cafes.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    result.pharmacies = result.pharmacies.slice(0, 8);
+    result.restaurants = result.restaurants.slice(0, 8);
+    result.cafes = result.cafes.slice(0, 8);
+    return result;
   } catch {
     return { pharmacies: [], restaurants: [], cafes: [], available: false, source: "OpenStreetMap contributors" };
   }
@@ -131,26 +175,32 @@ export async function POST(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
 
-  let body: any;
-  try { body = await request.json(); } catch { return Response.json({ error: "Invalid request" }, { status: 400 }); }
-  const lat = Number(body?.lat);
-  const lon = Number(body?.lon);
+  let body: { lat?: unknown; lon?: unknown; radiusMeters?: unknown };
+  try {
+    body = await request.json() as { lat?: unknown; lon?: unknown; radiusMeters?: unknown };
+  } catch {
+    return Response.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  const lat = Number(body.lat);
+  const lon = Number(body.lon);
   const centre = { lat, lon };
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || !inParis(centre)) {
     return Response.json({ error: "Paris coordinates are required for live context." }, { status: 422 });
   }
-  const radiusMeters = Math.max(250, Math.min(1500, Number(body?.radiusMeters) || 800));
+  const radiusMeters = Math.max(250, Math.min(1500, Number(body.radiusMeters) || 800));
 
   const [forecast, fountains, restrooms, closures, works, amenities] = await Promise.all([
-    weather(centre),
+    getWeather(centre),
     parisDataset("fontaines-a-boire", centre, radiusMeters),
     parisDataset("sanisettesparis", centre, radiusMeters),
     parisDataset("circulation_evenement", centre, radiusMeters),
     parisDataset("chantiers-a-paris", centre, radiusMeters),
-    osmAmenities(centre, radiusMeters),
+    getAmenities(centre, radiusMeters),
   ]);
 
   const disruptions = [...closures, ...works].sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 12);
+
   return Response.json({
     location: centre,
     radiusMeters,
@@ -174,5 +224,7 @@ export async function POST(request: Request) {
       "OpenStreetMap contributors · ODbL",
     ],
     generatedAt: new Date().toISOString(),
-  }, { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=900" } });
+  }, {
+    headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=900" },
+  });
 }
