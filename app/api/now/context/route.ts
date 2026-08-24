@@ -1,20 +1,11 @@
 import { getPassAccess } from "../../../../lib/pass-access";
 import { getNearbyPlaces } from "../../../../lib/nearby-places";
+import { getWeatherIntelligence, type Coordinates } from "../../../../lib/weather-intelligence";
 
 export const runtime = "nodejs";
 
-type Coordinates = { lat: number; lon: number };
 type NearbyItem = { name: string; lat: number; lon: number; distanceMeters: number; detail?: string };
 type ParisRecord = Record<string, unknown>;
-type WeatherResult = {
-  available: boolean;
-  temperature?: number;
-  wind?: number;
-  precipitation?: number;
-  symbol?: string;
-  scenario: "route" | "rain" | "snow" | "heat" | "cold";
-  source: string;
-};
 
 const PARIS_BOUNDS = { minLat: 48.815, maxLat: 48.905, minLon: 2.224, maxLon: 2.470 };
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
@@ -85,40 +76,6 @@ async function parisDataset(dataset: string, centre: Coordinates, radiusMeters: 
   return [];
 }
 
-async function getWeather(centre: Coordinates): Promise<WeatherResult> {
-  try {
-    const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${centre.lat.toFixed(4)}&lon=${centre.lon.toFixed(4)}`;
-    const response = await fetch(url, {
-      headers: { "User-Agent": "VelvetPassportNOW/1.0 https://github.com/naturlabs1996-creator/velvet-passport-now", Accept: "application/json" },
-      next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!response.ok) throw new Error("Weather provider unavailable");
-    const payload = await response.json() as {
-      properties?: { timeseries?: Array<{ data?: {
-        instant?: { details?: { air_temperature?: number; wind_speed?: number } };
-        next_1_hours?: { summary?: { symbol_code?: string }; details?: { precipitation_amount?: number } };
-        next_6_hours?: { summary?: { symbol_code?: string }; details?: { precipitation_amount?: number } };
-      } }> };
-    };
-    const first = payload.properties?.timeseries?.[0]?.data;
-    const details = first?.instant?.details;
-    const period = first?.next_1_hours ?? first?.next_6_hours;
-    const symbol = period?.summary?.symbol_code ?? "unknown";
-    const precipitation = Number(period?.details?.precipitation_amount ?? 0);
-    const temperature = Number(details?.air_temperature ?? NaN);
-    const wind = Number(details?.wind_speed ?? NaN);
-    let scenario: WeatherResult["scenario"] = "route";
-    if (/snow/.test(symbol)) scenario = "snow";
-    else if (precipitation > 0.2 || /rain|sleet|showers/.test(symbol)) scenario = "rain";
-    else if (Number.isFinite(temperature) && temperature >= 28) scenario = "heat";
-    else if (Number.isFinite(temperature) && temperature <= 4) scenario = "cold";
-    return { available: true, temperature, wind, precipitation, symbol, scenario, source: "MET Norway" };
-  } catch {
-    return { available: false, scenario: "route", source: "MET Norway" };
-  }
-}
-
 export async function POST(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
@@ -136,7 +93,7 @@ export async function POST(request: Request) {
   const radiusMeters = Math.max(250, Math.min(1500, Number(body.radiusMeters) || 800));
 
   const [forecast, fountains, restrooms, closures, works, amenities] = await Promise.all([
-    getWeather(centre),
+    getWeatherIntelligence(centre),
     parisDataset("fontaines-a-boire", centre, radiusMeters),
     parisDataset("sanisettesparis", centre, radiusMeters),
     parisDataset("circulation_evenement", centre, radiusMeters),
@@ -164,7 +121,8 @@ export async function POST(request: Request) {
       streetIssueNearby: disruptions.some((item) => item.distanceMeters <= 250),
     },
     sources: [
-      "MET Norway · CC BY 4.0",
+      "NOW Weather Intelligence · regional multi-model strategy",
+      ...forecast.readings.filter((reading) => reading.available).map((reading) => reading.source),
       "Ville de Paris / Eau de Paris · Paris Data",
       "OpenStreetMap contributors · ODbL",
       ...(process.env.GEOAPIFY_API_KEY ? ["Geoapify · fallback provider"] : []),
