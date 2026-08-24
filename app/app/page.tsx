@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import LiveNeedChoices, { type LiveNeedChoice } from "./LiveNeedChoices";
 import styles from "./page.module.css";
 
 type Need = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "transport" | "guardian";
@@ -50,12 +51,23 @@ type Stop = {
   state?: "current" | "next" | "done" | "warning" | "destination";
 };
 
+type LiveNeedState = {
+  scenario: "food" | "pharmacy" | string;
+  choices: LiveNeedChoice[];
+  selected: LiveNeedChoice;
+  selectedStatus?: string;
+  manuallySelected?: boolean;
+  betterAlternativeSelected?: boolean;
+};
+
 type RouteView = {
   eyebrow: string;
   title: string;
   meta: string;
   note: string;
   stops: Stop[];
+  ticket?: TicketState;
+  liveNeed?: LiveNeedState | null;
 };
 
 const emptyRoute: RouteView = {
@@ -95,6 +107,7 @@ export default function ParisNowApp() {
   const [selectedZone, setSelectedZone] = useState("Louvre & Opéra");
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
+  const [choiceBusy, setChoiceBusy] = useState(false);
   const [serverRoute, setServerRoute] = useState<RouteView | null>(null);
   const [ticket, setTicket] = useState<TicketState>({
     venue: "Musée du Louvre",
@@ -175,6 +188,35 @@ export default function ParisNowApp() {
     }
   }
 
+  async function selectLiveNeedChoice(choice: LiveNeedChoice) {
+    if (active !== "food" && active !== "pharmacy") return;
+    setChoiceBusy(true);
+    setRebuilding(true);
+    try {
+      const response = await fetch("/api/now/route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario: active,
+          ticketTime: ticket.time,
+          routeId: selectedRouteId,
+          availableMinutes,
+          selectedPoi: { name: choice.name, lat: choice.lat, lon: choice.lon },
+        }),
+      });
+      const plan = await response.json();
+      if (!response.ok) throw new Error(plan.error || "Unable to use this stop.");
+      setServerRoute(plan as RouteView);
+      if (plan.ticket) setTicket(plan.ticket as TicketState);
+      window.setTimeout(() => document.getElementById("protected-route-heading")?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    } catch {
+      // Keep the current safe route if a selection cannot be revalidated.
+    } finally {
+      setChoiceBusy(false);
+      setRebuilding(false);
+    }
+  }
+
   function useCurrentLocation() {
     if (!navigator.geolocation) { setTransportError("Location is not available on this device."); return; }
     setTransportLoading(true);
@@ -235,8 +277,8 @@ export default function ParisNowApp() {
         return response.json();
       })
       .then((plan) => {
-        setServerRoute(plan);
-        setTicket(plan.ticket);
+        setServerRoute(plan as RouteView);
+        if (plan.ticket) setTicket(plan.ticket as TicketState);
       })
       .catch((error) => {
         if (error instanceof Error && error.name !== "AbortError") {
@@ -276,6 +318,7 @@ export default function ParisNowApp() {
   }, [active, guardianLevel, hotelConsent]);
 
   const status = useMemo(() => active === "blocked" ? "Reroute active" : active === "guardian" ? "Route paused" : "Live route", [active]);
+  const selectableLiveNeed = (active === "food" || active === "pharmacy") && route.liveNeed ? route.liveNeed : null;
 
   return (
     <main className={styles.shell}>
@@ -407,6 +450,16 @@ export default function ParisNowApp() {
         </div>
       </section>
 
+      {selectableLiveNeed && (
+        <LiveNeedChoices
+          kind={active as "food" | "pharmacy"}
+          choices={selectableLiveNeed.choices}
+          selected={selectableLiveNeed.selected}
+          busy={choiceBusy || rebuilding}
+          onSelect={selectLiveNeedChoice}
+        />
+      )}
+
       {active === "transport" && (
         <section className={styles.transportPanel} aria-live="polite">
           <div className={styles.transportHeading}>
@@ -512,7 +565,7 @@ export default function ParisNowApp() {
         <div className={styles.routeImages}>
           <figure>
             <Image src="/images/paris-covered-passage.webp" alt="Galerie Vivienne starting area" fill sizes="45vw" />
-            <figcaption><span>STARTING POINT</span>{route.stops[0].title}</figcaption>
+            <figcaption><span>STARTING POINT</span>{route.stops[0]?.title ?? "Starting point"}</figcaption>
           </figure>
           <span>→</span>
           <figure>
@@ -523,7 +576,7 @@ export default function ParisNowApp() {
 
         <div className={styles.timeline}>
           {route.stops.map((stop, index) => (
-            <article key={`${active}-${stop.title}`} className={stop.state === "warning" ? styles.warningStop : ""}>
+            <article key={`${active}-${stop.title}-${index}`} className={stop.state === "warning" ? styles.warningStop : ""}>
               <div className={styles.when}><b>{stop.time}</b><span>{stop.duration}</span></div>
               <div className={styles.marker}><i className={index === route.stops.length - 1 ? styles.destinationMarker : index === 0 ? styles.currentMarker : ""} /></div>
               <div className={styles.stopText}><h3>{stop.title}</h3><p>{stop.detail}</p></div>
