@@ -10,6 +10,10 @@ export type LiveNeedChoice = {
   openStatus?: "open" | "closing_soon" | "closed" | "unknown";
   openLabel?: string;
   closesInMinutes?: number;
+  travelMinutes?: number;
+  walkingSource?: "valhalla" | "estimated";
+  walkingLive?: boolean;
+  walkingCacheHit?: boolean;
 };
 
 type Props = {
@@ -51,6 +55,8 @@ export default function LiveNeedChoices({ kind, choices, selected, busy, onSelec
         {visible.map((choice) => {
           const isSelected = sameChoice(selected, choice);
           const unavailable = choice.openStatus === "closed";
+          const walkMinutes = choice.travelMinutes ?? Math.max(1, Math.round(choice.distanceMeters / 80));
+          const routingLabel = choice.walkingSource === "valhalla" ? "STREET ROUTED" : "WALK ESTIMATE";
           return (
             <button
               key={`${choice.name}-${choice.lat}-${choice.lon}`}
@@ -74,11 +80,12 @@ export default function LiveNeedChoices({ kind, choices, selected, busy, onSelec
               <b style={{ fontSize: 11, color: choice.openStatus === "closing_soon" ? "#9a5b21" : choice.openStatus === "open" ? "#397f65" : "#756f66" }}>
                 {statusText(choice)}
               </b>
-              <span style={{ gridColumn: "1", color: "#7a756d", fontSize: 11 }}>{Math.max(1, Math.round(choice.distanceMeters / 80))} min walk · {choice.distanceMeters} m</span>
-              <em style={{ gridColumn: "2", gridRow: "2 / 4", alignSelf: "end", fontStyle: "normal", fontSize: 9, letterSpacing: ".08em", color: "#8a6d24" }}>
+              <span style={{ gridColumn: "1", color: "#7a756d", fontSize: 11 }}>{walkMinutes} min walk · {choice.distanceMeters} m</span>
+              <em style={{ gridColumn: "2", gridRow: "2 / 5", alignSelf: "end", fontStyle: "normal", fontSize: 9, letterSpacing: ".08em", color: "#8a6d24" }}>
                 {isSelected ? "SELECTED ✓" : unavailable ? "CLOSED" : busy ? "RECALCULATING…" : "USE THIS STOP →"}
               </em>
               <small style={{ gridColumn: "1", color: "#9a948a", fontSize: 9 }}>{choice.source}</small>
+              <small style={{ gridColumn: "1", color: choice.walkingSource === "valhalla" ? "#397f65" : "#9a948a", fontSize: 8, letterSpacing: ".08em" }}>{routingLabel}{choice.walkingCacheHit ? " · CACHED" : ""}</small>
             </button>
           );
         })}
