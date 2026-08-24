@@ -104,7 +104,7 @@ async function internalChoices(
   providerCandidates: NearbyPlace[],
 ): Promise<LiveNeedChoice[]> {
   const catalog = getEffectiveInternalPois(routeId, zone, category);
-  const resolved = await Promise.all(catalog.map(async (poi) => {
+  const resolved = await Promise.all(catalog.map(async (poi): Promise<LiveNeedChoice | null> => {
     const location = await geocodeInternalAddress(poi.address);
     if (!location) return null;
     const distanceMeters = Math.round(haversineMeters(centre, location));
@@ -122,9 +122,10 @@ async function internalChoices(
       openLabel,
       openingHours: status?.openingHours,
       closesInMinutes: status?.closesInMinutes,
-    } satisfies LiveNeedChoice;
+    };
   }));
-  return sortByOpenStatus(resolved.filter((item): item is LiveNeedChoice => Boolean(item)));
+  const usable = resolved.filter((item): item is NonNullable<typeof item> => item !== null);
+  return sortByOpenStatus(usable);
 }
 
 async function parisPublicPlaces(dataset: string, centre: { lat: number; lon: number }, radiusMeters: number): Promise<LiveNeedChoice[]> {
