@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createPassToken } from "../../../../lib/pass-token";
-import { activateStripeNowSession } from "../../../../lib/stripe-now-activation";
+import { activateStripeNowSession } from "../../../../lib/stripe-entitlement";
 
 export const runtime = "nodejs";
 
