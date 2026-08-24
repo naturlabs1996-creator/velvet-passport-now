@@ -1,4 +1,5 @@
-import { recordRevenueEvent, verifyStripeWebhook } from "../../../../lib/stripe-now";
+import { verifyStripeWebhook } from "../../../../lib/stripe-now";
+import { markStripeEventState } from "../../../../lib/stripe-entitlement";
 
 export const runtime = "nodejs";
 
@@ -29,11 +30,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await recordRevenueEvent(event);
-    if (!result.recorded) {
-      console.error("NOW Stripe event could not be persisted", result.reason, event.id);
-      return Response.json({ error: "Payment state backend is not configured" }, { status: 503, headers: { "Cache-Control": "no-store" } });
-    }
+    await markStripeEventState(event);
     return Response.json({ received: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("NOW Stripe event persistence failed", error);
