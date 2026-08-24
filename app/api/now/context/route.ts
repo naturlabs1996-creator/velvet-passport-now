@@ -1,5 +1,6 @@
 import { getPassAccess } from "../../../../lib/pass-access";
 import { getNearbyPlaces } from "../../../../lib/nearby-places";
+import { getRainAhead } from "../../../../lib/rain-ahead";
 import { getWeatherIntelligence, type Coordinates } from "../../../../lib/weather-intelligence";
 
 export const runtime = "nodejs";
@@ -92,8 +93,9 @@ export async function POST(request: Request) {
   }
   const radiusMeters = Math.max(250, Math.min(1500, Number(body.radiusMeters) || 800));
 
-  const [forecast, fountains, restrooms, closures, works, amenities] = await Promise.all([
+  const [forecast, rainAhead, fountains, restrooms, closures, works, amenities] = await Promise.all([
     getWeatherIntelligence(centre),
+    getRainAhead(centre),
     parisDataset("fontaines-a-boire", centre, radiusMeters),
     parisDataset("sanisettesparis", centre, radiusMeters),
     parisDataset("circulation_evenement", centre, radiusMeters),
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
     location: centre,
     radiusMeters,
     weather: forecast,
+    rainAhead,
     water: fountains,
     restrooms,
     pharmacies: amenities.pharmacies,
@@ -119,10 +122,13 @@ export async function POST(request: Request) {
       nearbyRestroom: restrooms.length > 0,
       nearbyPharmacy: amenities.pharmacies.length > 0,
       streetIssueNearby: disruptions.some((item) => item.distanceMeters <= 250),
+      offerRainAdjustment: rainAhead.alert,
+      rainAdjustmentAction: rainAhead.alert ? "ask-traveler-before-adjusting" : null,
     },
     sources: [
       "NOW Weather Intelligence · regional multi-model strategy",
       ...forecast.readings.filter((reading) => reading.available).map((reading) => reading.source),
+      ...(rainAhead.available ? ["MET Norway · Rain Ahead"] : []),
       "Ville de Paris / Eau de Paris · Paris Data",
       "OpenStreetMap contributors · ODbL",
       ...(process.env.GEOAPIFY_API_KEY ? ["Geoapify · fallback provider"] : []),
