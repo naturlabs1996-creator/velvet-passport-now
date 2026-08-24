@@ -32,50 +32,84 @@ function estimatedRoute(origin: Coordinates, destination: Coordinates): WalkingR
   return { minutes, distanceMeters, source: "estimated", live: false, cacheHit: false };
 }
 
-export async function getWalkingRoute(origin: Coordinates, destination: Coordinates): Promise<WalkingRoute> {
-  const cacheKey = key(origin, destination);
-  const cached = cache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return { ...cached.value, cacheHit: true };
+function remember(origin: Coordinates, destination: Coordinates, value: WalkingRoute) {
+  cache.set(key(origin, destination), { expiresAt: Date.now() + TTL_MS, value });
+  while (cache.size > 300) cache.delete(cache.keys().next().value as string);
+}
 
-  let route = estimatedRoute(origin, destination);
-  try {
-    const response = await fetch("https://valhalla1.openstreetmap.de/route", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "X-Client-Id": "velvet-passport-now",
-      },
-      body: JSON.stringify({
-        locations: [origin, destination],
-        costing: "pedestrian",
-        units: "kilometers",
-        directions_type: "none",
-      }),
-      signal: AbortSignal.timeout(4500),
-    });
+export async function getWalkingRoutes(origin: Coordinates, destinations: Coordinates[]): Promise<WalkingRoute[]> {
+  if (!destinations.length) return [];
 
-    if (response.ok) {
-      const payload = await response.json() as {
-        trip?: { summary?: { time?: number; length?: number } };
-      };
-      const seconds = Number(payload.trip?.summary?.time);
-      const kilometres = Number(payload.trip?.summary?.length);
-      if (Number.isFinite(seconds) && seconds > 0 && Number.isFinite(kilometres) && kilometres > 0) {
-        route = {
-          minutes: Math.max(1, Math.ceil(seconds / 60)),
-          distanceMeters: Math.max(1, Math.round(kilometres * 1000)),
-          source: "valhalla",
-          live: true,
-          cacheHit: false,
+  const results: Array<WalkingRoute | null> = destinations.map((destination) => {
+    const cached = cache.get(key(origin, destination));
+    if (cached && cached.expiresAt > Date.now()) return { ...cached.value, cacheHit: true };
+    return null;
+  });
+
+  const missing = destinations
+    .map((destination, index) => ({ destination, index }))
+    .filter(({ index }) => results[index] === null);
+
+  if (missing.length) {
+    try {
+      const response = await fetch("https://valhalla1.openstreetmap.de/sources_to_targets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-Client-Id": "velvet-passport-now",
+        },
+        body: JSON.stringify({
+          sources: [origin],
+          targets: missing.map(({ destination }) => destination),
+          costing: "pedestrian",
+          units: "kilometers",
+          verbose: false,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (response.ok) {
+        const payload = await response.json() as {
+          sources_to_targets?: {
+            durations?: Array<Array<number | null>>;
+            distances?: Array<Array<number | null>>;
+          };
         };
+        const durations = payload.sources_to_targets?.durations?.[0] ?? [];
+        const distances = payload.sources_to_targets?.distances?.[0] ?? [];
+        missing.forEach(({ destination, index }, missingIndex) => {
+          const seconds = Number(durations[missingIndex]);
+          const kilometres = Number(distances[missingIndex]);
+          if (Number.isFinite(seconds) && seconds > 0 && Number.isFinite(kilometres) && kilometres > 0) {
+            const route: WalkingRoute = {
+              minutes: Math.max(1, Math.ceil(seconds / 60)),
+              distanceMeters: Math.max(1, Math.round(kilometres * 1000)),
+              source: "valhalla",
+              live: true,
+              cacheHit: false,
+            };
+            results[index] = route;
+            remember(origin, destination, route);
+          }
+        });
       }
+    } catch {
+      // Missing pairs receive the deterministic fallback below.
     }
-  } catch {
-    // Keep the deterministic local fallback when the fair-use public router is unavailable.
   }
 
-  cache.set(cacheKey, { expiresAt: Date.now() + TTL_MS, value: route });
-  if (cache.size > 300) cache.delete(cache.keys().next().value as string);
+  destinations.forEach((destination, index) => {
+    if (results[index]) return;
+    const route = estimatedRoute(origin, destination);
+    results[index] = route;
+    remember(origin, destination, route);
+  });
+
+  return results as WalkingRoute[];
+}
+
+export async function getWalkingRoute(origin: Coordinates, destination: Coordinates): Promise<WalkingRoute> {
+  const [route] = await getWalkingRoutes(origin, [destination]);
   return route;
 }
