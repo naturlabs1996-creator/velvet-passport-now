@@ -4,9 +4,10 @@ import { verifyPurchasedNowSession } from "../../../../lib/stripe-entitlement";
 
 export const runtime = "nodejs";
 
-function activationUrl(request: Request, state: "ready" | "pending" | "failed") {
+function activationUrl(request: Request, state: "ready" | "pending" | "failed", sessionId?: string) {
   const origin = process.env.NOW_PUBLIC_ORIGIN?.replace(/\/$/, "") || new URL(request.url).origin;
-  return `${origin}/activate?checkout=${state}`;
+  const retry = state === "pending" && sessionId ? `&session_id=${encodeURIComponent(sessionId)}` : "";
+  return `${origin}/activate?checkout=${state}${retry}`;
 }
 
 function hashesMatch(expected: string, actual: string) {
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   try {
     const purchase = await verifyPurchasedNowSession(sessionId);
     if (!purchase.valid) {
-      return Response.redirect(activationUrl(request, purchase.reason === "payment-not-complete" ? "pending" : "failed"), 303);
+      return Response.redirect(activationUrl(request, purchase.reason === "payment-not-complete" ? "pending" : "failed", sessionId), 303);
     }
 
     const sessionNonceHash = purchase.activationNonceHash ?? "";
@@ -49,6 +50,6 @@ export async function GET(request: Request) {
     return Response.redirect(activationUrl(request, "ready"), 303);
   } catch (error) {
     console.error("NOW checkout completion failed", error);
-    return Response.redirect(activationUrl(request, "pending"), 303);
+    return Response.redirect(activationUrl(request, "pending", sessionId), 303);
   }
 }
