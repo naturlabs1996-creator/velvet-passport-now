@@ -7,12 +7,7 @@ import json
 import math
 import tempfile
 
-from eccodes import (
-    codes_get,
-    codes_grib_find_nearest,
-    codes_grib_new_from_file,
-    codes_release,
-)
+from eccodes import codes_get, codes_grib_find_nearest, codes_grib_new_from_file, codes_release
 
 USER_AGENT = "VelvetPassportNOW/1.0"
 TIMEOUT = 9
@@ -33,6 +28,20 @@ def _download(url, headers=None):
         return response.read()
 
 
+def _nearest_value(gid, lat, lon):
+    points = codes_grib_find_nearest(gid, lat, lon)
+    if not points:
+        return None
+    point = points[0]
+    if hasattr(point, "value"):
+        return float(point.value)
+    if isinstance(point, dict) and "value" in point:
+        return float(point["value"])
+    if isinstance(point, (tuple, list)) and len(point) >= 3:
+        return float(point[2])
+    return None
+
+
 def _nearest_from_bytes(data, lat, lon, wanted=None):
     values = {}
     with tempfile.NamedTemporaryFile(suffix=".grib2") as tmp:
@@ -47,15 +56,9 @@ def _nearest_from_bytes(data, lat, lon, wanted=None):
                     short_name = str(codes_get(gid, "shortName"))
                     if wanted is not None and short_name not in wanted:
                         continue
-                    nearest = codes_grib_find_nearest(gid, lat, lon)
-                    if isinstance(nearest, list) and nearest:
-                        item = nearest[0]
-                        value = float(item["value"] if isinstance(item, dict) else item[2])
-                    elif isinstance(nearest, tuple) and len(nearest) >= 3:
-                        value = float(nearest[2])
-                    else:
-                        continue
-                    values[short_name] = value
+                    value = _nearest_value(gid, lat, lon)
+                    if value is not None:
+                        values[short_name] = value
                 finally:
                     codes_release(gid)
     return values
@@ -119,6 +122,8 @@ def _icon(model, lat, lon):
             u = _single_value(_dwd_field(model, run, "U_10M", 0), lat, lon)
             v = _single_value(_dwd_field(model, run, "V_10M", 0), lat, lon)
             prec = _single_value(_dwd_field(model, run, "TOT_PREC", 1), lat, lon)
+            if temp is None:
+                raise RuntimeError("temperature missing")
             return _payload(model, source, run, _temperature_c(temp), u, v, prec)
         except Exception as exc:
             last_error = exc
