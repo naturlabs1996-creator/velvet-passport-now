@@ -4,19 +4,9 @@ import { activateStripeNowSession } from "../../../../lib/stripe-entitlement";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
-  let body: unknown = {};
-  try {
-    const text = await request.text();
-    body = text ? JSON.parse(text) : {};
-  } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const input = body && typeof body === "object" ? body as Record<string, unknown> : {};
+export async function POST() {
   const jar = await cookies();
-  const purchaseCookie = jar.get("paris_now_purchase")?.value ?? "";
-  const sessionId = typeof input.sessionId === "string" && input.sessionId ? input.sessionId : purchaseCookie;
+  const sessionId = jar.get("paris_now_purchase")?.value ?? "";
   if (!sessionId) return Response.json({ error: "No purchased Paris NOW Pass was found" }, { status: 400 });
 
   const passSecret = process.env.PARIS_NOW_PASS_SECRET;
