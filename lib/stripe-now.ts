@@ -9,6 +9,7 @@ export type NowCheckoutInput = {
   partnerId?: string;
   commissionScheme?: string;
   origin: string;
+  activationNonceHash: string;
 };
 
 type StripeCheckoutSession = {
@@ -90,6 +91,7 @@ export async function createNowCheckoutSession(input: NowCheckoutInput) {
   const channelCommissionable = input.channel !== "direct";
   const partnerId = (input.partnerId || "").trim().slice(0, 120);
   const commissionScheme = (input.commissionScheme || (channelCommissionable ? "partner-default" : "none")).trim().slice(0, 120);
+  if (!/^[a-f0-9]{64}$/.test(input.activationNonceHash)) throw new Error("Invalid activation nonce hash");
 
   const params = new URLSearchParams();
   params.set("mode", "payment");
@@ -106,6 +108,7 @@ export async function createNowCheckoutSession(input: NowCheckoutInput) {
   params.set("metadata[commissionable_amount]", channelCommissionable ? String(config.amount) : "0");
   params.set("metadata[non_commissionable_amount]", channelCommissionable ? "0" : String(config.amount));
   params.set("metadata[currency]", "eur");
+  params.set("metadata[activation_nonce_hash]", input.activationNonceHash);
   params.set("payment_intent_data[metadata][product_family]", "velvet_passport");
   params.set("payment_intent_data[metadata][product]", "paris_now");
   params.set("payment_intent_data[metadata][pass_duration]", input.plan);
