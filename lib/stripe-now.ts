@@ -29,9 +29,9 @@ export type StripeEvent = {
   data?: { object?: Record<string, unknown> };
 };
 
-const PLAN_CONFIG: Record<NowPassPlan, { amount: number; durationMs: number; priceEnv: string; name: string }> = {
-  "72h": { amount: 1490, durationMs: 72 * 60 * 60 * 1000, priceEnv: "STRIPE_PRICE_PARIS_NOW_72H", name: "Paris NOW · 72-hour Pass" },
-  "7d": { amount: 2290, durationMs: 7 * 24 * 60 * 60 * 1000, priceEnv: "STRIPE_PRICE_PARIS_NOW_7D", name: "Paris NOW · 7-day Pass" },
+const PLAN_CONFIG: Record<NowPassPlan, { amount: number; durationMs: number; priceId: string; name: string }> = {
+  "72h": { amount: 1490, durationMs: 72 * 60 * 60 * 1000, priceId: "price_1U86ciRUWqXVM8F1mpkVc5lb", name: "Paris NOW · 72-hour Pass" },
+  "7d": { amount: 2290, durationMs: 7 * 24 * 60 * 60 * 1000, priceId: "price_1U86cyRUWqXVM8F1G6EybsqZ", name: "Paris NOW · 7-day Pass" },
 };
 
 function stripeSecret() {
@@ -72,17 +72,7 @@ export function planDurationMs(plan: NowPassPlan) {
 
 function addCheckoutPrice(params: URLSearchParams, plan: NowPassPlan) {
   const config = PLAN_CONFIG[plan];
-  const priceId = process.env[config.priceEnv]?.trim();
-  if (priceId) {
-    params.set("line_items[0][price]", priceId);
-  } else {
-    params.set("line_items[0][price_data][currency]", "eur");
-    params.set("line_items[0][price_data][unit_amount]", String(config.amount));
-    params.set("line_items[0][price_data][product_data][name]", config.name);
-    params.set("line_items[0][price_data][product_data][metadata][product_family]", "velvet_passport");
-    params.set("line_items[0][price_data][product_data][metadata][product]", "paris_now");
-    params.set("line_items[0][price_data][product_data][metadata][pass_duration]", plan);
-  }
+  params.set("line_items[0][price]", config.priceId);
   params.set("line_items[0][quantity]", "1");
 }
 
