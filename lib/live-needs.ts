@@ -1,5 +1,6 @@
 import { getNearbyPlaces, type NearbyPlace } from "./nearby-places";
-import { getInternalPois, type InternalPoiCategory } from "./internal-catalog";
+import { getEffectiveInternalPois } from "./internal-catalog-effective";
+import type { InternalPoiCategory } from "./internal-catalog";
 
 export type LiveNeedScenario = "food" | "pharmacy" | "water" | "restroom" | "sitdown";
 export type LiveNeedChoice = { name: string; detail: string; distanceMeters: number; lat: number; lon: number; source: string };
@@ -74,7 +75,7 @@ async function geocodeInternalAddress(address: string): Promise<{ lat: number; l
 }
 
 async function internalChoices(routeId: string | null | undefined, zone: string, category: InternalPoiCategory, centre: { lat: number; lon: number }): Promise<LiveNeedChoice[]> {
-  const catalog = getInternalPois(routeId, zone, category);
+  const catalog = getEffectiveInternalPois(routeId, zone, category);
   const resolved = await Promise.all(catalog.map(async (poi) => {
     const location = await geocodeInternalAddress(poi.address);
     if (!location) return null;
