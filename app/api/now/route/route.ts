@@ -57,6 +57,10 @@ function walkingMinutes(distanceMeters: number) {
   return Math.max(2, Math.ceil(Math.max(0, distanceMeters) / 78));
 }
 
+function effectiveWalkingMinutes(choice: LiveNeedChoice) {
+  return choice.travelMinutes ?? walkingMinutes(choice.distanceMeters);
+}
+
 function serviceMinutes(scenario: LiveNeedScenario) {
   if (scenario === "food") return 45;
   if (scenario === "pharmacy") return 10;
@@ -87,9 +91,9 @@ function recalculatePoiTiming(
   targetIndex: number,
   availableMinutes: number,
 ) {
-  if (scenario !== "food" && scenario !== "pharmacy") return plan;
+  if (!["food", "pharmacy", "water", "restroom"].includes(scenario)) return plan;
 
-  const walk = walkingMinutes(primary.distanceMeters);
+  const walk = effectiveWalkingMinutes(primary);
   const service = serviceMinutes(scenario);
   const actualPoiMinutes = walk + service;
   const originalTargetMinutes = durationMinutes(plan.stops[targetIndex]?.duration ?? "0");
@@ -99,7 +103,7 @@ function recalculatePoiTiming(
   let stops = plan.stops.map((stop, index) => index === targetIndex ? {
     ...stop,
     duration: `${actualPoiMinutes} min`,
-    detail: `${stop.detail} · ${walk} min walk · ${service} min ${scenario === "food" ? "meal window" : "pharmacy stop"}`,
+    detail: `${stop.detail} · ${walk} min ${primary.walkingSource === "valhalla" ? "street-routed walk" : "walk estimate"} · ${service} min ${scenario === "food" ? "meal window" : scenario === "pharmacy" ? "pharmacy stop" : scenario === "water" ? "water stop" : "restroom stop"}`,
   } : stop);
 
   const removed: string[] = [];
@@ -119,14 +123,14 @@ function recalculatePoiTiming(
 
   return {
     ...plan,
-    meta: `${totalMinutes} min · ${walk} min walk · ${service} min ${scenario === "food" ? "meal" : "pharmacy stop"} · ${marginMinutes} min ticket margin`,
+    meta: `${totalMinutes} min · ${walk} min walk · ${service} min stop · ${marginMinutes} min ticket margin`,
     note: `${plan.note}${removed.length ? ` NOW removed ${removed.join(" and ")} before allowing the ticket margin to fall below 15 minutes.` : ""}`,
     stops,
     ticket: { ...plan.ticket, marginMinutes, protected: protectedTicket },
     calculation: {
       ...plan.calculation,
       generatedAt: new Date().toISOString(),
-      factors: [...plan.calculation.factors, "selected POI walking ETA", "on-site duration", "stop order recalculation", "ticket margin recalculation", ...(removed.length ? ["optional stop removal"] : [])],
+      factors: [...plan.calculation.factors, primary.walkingSource === "valhalla" ? "street-routed pedestrian ETA" : "fallback walking ETA", "on-site duration", "stop order recalculation", "ticket margin recalculation", ...(removed.length ? ["optional stop removal"] : [])],
     },
   };
 }
@@ -300,12 +304,16 @@ export async function POST(request: Request) {
       selectedStatus: statusLine(selectedLiveChoice),
       manuallySelected,
       eta: {
-        walkingMinutes: walkingMinutes(selectedLiveChoice.distanceMeters),
+        walkingMinutes: effectiveWalkingMinutes(selectedLiveChoice),
+        walkingDistanceMeters: selectedLiveChoice.distanceMeters,
+        walkingSource: selectedLiveChoice.walkingSource ?? "estimated",
+        walkingLive: Boolean(selectedLiveChoice.walkingLive),
+        walkingCacheHit: Boolean(selectedLiveChoice.walkingCacheHit),
         serviceMinutes: serviceMinutes(input.scenario as LiveNeedScenario),
-        totalMinutes: walkingMinutes(selectedLiveChoice.distanceMeters) + serviceMinutes(input.scenario as LiveNeedScenario),
+        totalMinutes: effectiveWalkingMinutes(selectedLiveChoice) + serviceMinutes(input.scenario as LiveNeedScenario),
       },
       betterAlternativeSelected: manuallySelected ? false : betterAlternativeSelected(selectedLiveChoice, liveNeedChoices),
-      cacheStrategy: "internal catalog first; address geocode cached 7 days; external POI zone cache 30 minutes; provider fallback only when needed",
+      cacheStrategy: "internal catalog first; address geocode cached 7 days; external POI zone cache 30 minutes; pedestrian route matrix cached 30 minutes; provider fallback only when needed",
     } : null,
   }, {
     headers: {
