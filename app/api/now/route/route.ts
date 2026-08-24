@@ -48,6 +48,89 @@ function sameChoice(a: LiveNeedChoice, requested: Record<string, unknown>) {
   return Boolean(sameName && closeCoordinates);
 }
 
+function durationMinutes(value: string) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+}
+
+function walkingMinutes(distanceMeters: number) {
+  return Math.max(2, Math.ceil(Math.max(0, distanceMeters) / 78));
+}
+
+function serviceMinutes(scenario: LiveNeedScenario) {
+  if (scenario === "food") return 45;
+  if (scenario === "pharmacy") return 10;
+  return 8;
+}
+
+function retimeStops(stops: RoutePlan["stops"]) {
+  let elapsed = 0;
+  return stops.map((stop, index) => {
+    if (index === 0) {
+      elapsed += durationMinutes(stop.duration);
+      return { ...stop, time: "NOW", state: "current" as const };
+    }
+    const timed = {
+      ...stop,
+      time: `+${String(elapsed).padStart(2, "0")}`,
+      state: index === stops.length - 1 ? "destination" as const : stop.state === "warning" ? "warning" as const : "next" as const,
+    };
+    elapsed += durationMinutes(stop.duration);
+    return timed;
+  });
+}
+
+function recalculatePoiTiming(
+  plan: RoutePlan,
+  primary: LiveNeedChoice,
+  scenario: LiveNeedScenario,
+  targetIndex: number,
+  availableMinutes: number,
+) {
+  if (scenario !== "food" && scenario !== "pharmacy") return plan;
+
+  const walk = walkingMinutes(primary.distanceMeters);
+  const service = serviceMinutes(scenario);
+  const actualPoiMinutes = walk + service;
+  const originalTargetMinutes = durationMinutes(plan.stops[targetIndex]?.duration ?? "0");
+  const baseTotal = Number.parseInt(plan.meta, 10) || plan.stops.reduce((sum, stop) => sum + durationMinutes(stop.duration), 0);
+  let projectedTotal = Math.max(actualPoiMinutes + 1, baseTotal - originalTargetMinutes + actualPoiMinutes);
+
+  let stops = plan.stops.map((stop, index) => index === targetIndex ? {
+    ...stop,
+    duration: `${actualPoiMinutes} min`,
+    detail: `${stop.detail} · ${walk} min walk · ${service} min ${scenario === "food" ? "meal window" : "pharmacy stop"}`,
+  } : stop);
+
+  const removed: string[] = [];
+  const protectedBudget = Math.max(15, availableMinutes - 15);
+  while (projectedTotal > protectedBudget && stops.length > 3) {
+    const removableIndex = stops.length - 2;
+    if (removableIndex <= targetIndex) break;
+    const [removedStop] = stops.splice(removableIndex, 1);
+    projectedTotal = Math.max(actualPoiMinutes + 1, projectedTotal - durationMinutes(removedStop.duration));
+    removed.push(removedStop.title);
+  }
+
+  const totalMinutes = Math.max(1, projectedTotal);
+  const marginMinutes = Math.max(0, availableMinutes - totalMinutes);
+  const protectedTicket = marginMinutes >= 15;
+  stops = retimeStops(stops);
+
+  return {
+    ...plan,
+    meta: `${totalMinutes} min · ${walk} min walk · ${service} min ${scenario === "food" ? "meal" : "pharmacy stop"} · ${marginMinutes} min ticket margin`,
+    note: `${plan.note}${removed.length ? ` NOW removed ${removed.join(" and ")} before allowing the ticket margin to fall below 15 minutes.` : ""}`,
+    stops,
+    ticket: { ...plan.ticket, marginMinutes, protected: protectedTicket },
+    calculation: {
+      ...plan.calculation,
+      generatedAt: new Date().toISOString(),
+      factors: [...plan.calculation.factors, "selected POI walking ETA", "on-site duration", "stop order recalculation", "ticket margin recalculation", ...(removed.length ? ["optional stop removal"] : [])],
+    },
+  };
+}
+
 function integrateTransport(plan: RoutePlan, connection: TransportConnection, availableMinutes: number): RoutePlan {
   const connectionMinutes = Math.max(1, Math.min(120, Math.round(connection.minutes)));
   const remaining = Math.max(15, availableMinutes - connectionMinutes);
@@ -100,6 +183,7 @@ async function enrichLiveNeed(
   zone: string,
   routeId: string | null,
   selectedRoute: boolean,
+  availableMinutes: number,
   exactLocation?: { lat: number; lon: number },
   requestedChoice?: Record<string, unknown> | null,
 ) {
@@ -120,15 +204,16 @@ async function enrichLiveNeed(
     state: primary.openStatus === "closing_soon" || primary.openStatus === "closed" ? "warning" as const : stop.state,
   } : stop);
 
+  const selectedPlan = recalculatePoiTiming({ ...plan, stops: updatedStops }, primary, scenario, targetIndex, availableMinutes);
+
   return {
     plan: {
-      ...plan,
-      note: `${plan.note} ${manuallySelected ? `You selected ${primary.name}; NOW recalculated the route around that choice.` : alternativeSelected ? "NOW avoided a less suitable timing option and selected the stronger available alternative." : `NOW selected ${primary.name} from the internal-first nearby catalog.`} Alternatives remain available so it can switch without another broad search.`,
-      stops: updatedStops,
+      ...selectedPlan,
+      note: `${selectedPlan.note} ${manuallySelected ? `You selected ${primary.name}; NOW rebuilt timing, stop order and ticket margin around that choice.` : alternativeSelected ? "NOW avoided a less suitable timing option and selected the stronger available alternative." : `NOW selected ${primary.name} from the internal-first nearby catalog.`} Alternatives remain available so it can switch without another broad search.`,
       calculation: {
-        ...plan.calculation,
+        ...selectedPlan.calculation,
         generatedAt: new Date().toISOString(),
-        factors: [...plan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route", "open-now status", "contextual closing margin", ...(manuallySelected ? ["traveler-selected POI"] : [])],
+        factors: [...selectedPlan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route", "open-now status", "contextual closing margin", ...(manuallySelected ? ["traveler-selected POI"] : [])],
       },
     },
     choices,
@@ -194,6 +279,7 @@ export async function POST(request: Request) {
       confidential?.zone ?? "Louvre & Opéra",
       routeId,
       Boolean(selectedRoute),
+      routeBudget,
       locationFromInput(input.location),
       requestedChoice,
     );
@@ -213,6 +299,11 @@ export async function POST(request: Request) {
       selected: selectedLiveChoice,
       selectedStatus: statusLine(selectedLiveChoice),
       manuallySelected,
+      eta: {
+        walkingMinutes: walkingMinutes(selectedLiveChoice.distanceMeters),
+        serviceMinutes: serviceMinutes(input.scenario as LiveNeedScenario),
+        totalMinutes: walkingMinutes(selectedLiveChoice.distanceMeters) + serviceMinutes(input.scenario as LiveNeedScenario),
+      },
       betterAlternativeSelected: manuallySelected ? false : betterAlternativeSelected(selectedLiveChoice, liveNeedChoices),
       cacheStrategy: "internal catalog first; address geocode cached 7 days; external POI zone cache 30 minutes; provider fallback only when needed",
     } : null,
