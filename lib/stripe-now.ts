@@ -118,7 +118,7 @@ export async function createNowCheckoutSession(input: NowCheckoutInput) {
   const params = new URLSearchParams();
   params.set("mode", "payment");
   addCheckoutPrice(params, input.plan);
-  params.set("success_url", `${input.origin}/app?checkout=success&session_id={CHECKOUT_SESSION_ID}`);
+  params.set("success_url", `${input.origin}/api/now/complete-checkout?session_id={CHECKOUT_SESSION_ID}`);
   params.set("cancel_url", `${input.origin}/?checkout=cancelled`);
   params.set("client_reference_id", `paris-now-${input.plan}-${Date.now()}`);
   params.set("metadata[product_family]", "velvet_passport");
@@ -247,7 +247,6 @@ export async function recordRevenueEvent(event: StripeEvent) {
     },
     body: params,
   });
-  entitlementCache.delete(paymentIntentId);
   return { recorded: true, accessState } as const;
 }
 
