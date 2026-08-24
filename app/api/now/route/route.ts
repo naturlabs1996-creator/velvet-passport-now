@@ -37,6 +37,17 @@ function betterAlternativeSelected(primary: LiveNeedChoice, choices: LiveNeedCho
   return choices.slice(1).some((choice) => choice.openStatus === "closing_soon" || choice.openStatus === "closed");
 }
 
+function sameChoice(a: LiveNeedChoice, requested: Record<string, unknown>) {
+  const requestedName = typeof requested.name === "string" ? requested.name.trim().toLocaleLowerCase("fr-FR") : "";
+  const requestedLat = Number(requested.lat);
+  const requestedLon = Number(requested.lon);
+  const sameName = requestedName && a.name.trim().toLocaleLowerCase("fr-FR") === requestedName;
+  const closeCoordinates = Number.isFinite(requestedLat) && Number.isFinite(requestedLon)
+    && Math.abs(a.lat - requestedLat) < 0.00025
+    && Math.abs(a.lon - requestedLon) < 0.00035;
+  return Boolean(sameName && closeCoordinates);
+}
+
 function integrateTransport(plan: RoutePlan, connection: TransportConnection, availableMinutes: number): RoutePlan {
   const connectionMinutes = Math.max(1, Math.min(120, Math.round(connection.minutes)));
   const remaining = Math.max(15, availableMinutes - connectionMinutes);
@@ -90,34 +101,39 @@ async function enrichLiveNeed(
   routeId: string | null,
   selectedRoute: boolean,
   exactLocation?: { lat: number; lon: number },
+  requestedChoice?: Record<string, unknown> | null,
 ) {
   const choices = await getLiveNeedChoices(zone, scenario, exactLocation, routeId);
-  if (choices.length === 0) return { plan, choices: [] };
+  if (choices.length === 0) return { plan, choices: [], selected: null as LiveNeedChoice | null, manuallySelected: false };
 
-  const primary = choices[0];
-  const alternatives = choices.slice(1, 3).map((choice) => choice.name);
-  const alternativeSelected = betterAlternativeSelected(primary, choices);
+  const requestedMatch = requestedChoice ? choices.find((choice) => sameChoice(choice, requestedChoice)) ?? null : null;
+  const primary = requestedMatch ?? choices[0];
+  const manuallySelected = Boolean(requestedMatch);
+  const alternatives = choices.filter((choice) => choice !== primary).slice(0, 2).map((choice) => choice.name);
+  const alternativeSelected = manuallySelected ? false : betterAlternativeSelected(primary, choices);
   const targetIndex = selectedRoute && plan.stops.length > 1 ? 1 : Math.max(0, plan.stops.findIndex((stop) => stop.state === "current"));
   const status = statusLine(primary);
   const updatedStops = plan.stops.map((stop, index) => index === targetIndex ? {
     ...stop,
     title: primary.name,
-    detail: `${status}${alternativeSelected ? " · BETTER ALTERNATIVE SELECTED" : ""} · ${primary.detail} · source: ${primary.source}${alternatives.length ? ` · alternatives: ${alternatives.join(" / ")}` : ""}`,
+    detail: `${status}${manuallySelected ? " · YOUR SELECTION" : alternativeSelected ? " · BETTER ALTERNATIVE SELECTED" : ""} · ${primary.detail} · source: ${primary.source}${alternatives.length ? ` · alternatives: ${alternatives.join(" / ")}` : ""}`,
     state: primary.openStatus === "closing_soon" || primary.openStatus === "closed" ? "warning" as const : stop.state,
   } : stop);
 
   return {
     plan: {
       ...plan,
-      note: `${plan.note} ${alternativeSelected ? "NOW avoided a less suitable timing option and selected the stronger available alternative." : `NOW selected ${primary.name} from the internal-first nearby catalog.`} Alternatives remain available so it can switch without another broad search.`,
+      note: `${plan.note} ${manuallySelected ? `You selected ${primary.name}; NOW recalculated the route around that choice.` : alternativeSelected ? "NOW avoided a less suitable timing option and selected the stronger available alternative." : `NOW selected ${primary.name} from the internal-first nearby catalog.`} Alternatives remain available so it can switch without another broad search.`,
       stops: updatedStops,
       calculation: {
         ...plan.calculation,
         generatedAt: new Date().toISOString(),
-        factors: [...plan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route", "open-now status", "contextual closing margin"],
+        factors: [...plan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route", "open-now status", "contextual closing margin", ...(manuallySelected ? ["traveler-selected POI"] : [])],
       },
     },
     choices,
+    selected: primary,
+    manuallySelected,
   };
 }
 
@@ -167,8 +183,11 @@ export async function POST(request: Request) {
     : null;
   let plan = selectedRoute ?? buildRoutePlan(input.scenario, ticketTime);
   let liveNeedChoices: Awaited<ReturnType<typeof getLiveNeedChoices>> = [];
+  let selectedLiveChoice: LiveNeedChoice | null = null;
+  let manuallySelected = false;
 
   if (LIVE_NEEDS.has(input.scenario as LiveNeedScenario)) {
+    const requestedChoice = input.selectedPoi && typeof input.selectedPoi === "object" ? input.selectedPoi as Record<string, unknown> : null;
     const live = await enrichLiveNeed(
       plan,
       input.scenario as LiveNeedScenario,
@@ -176,21 +195,25 @@ export async function POST(request: Request) {
       routeId,
       Boolean(selectedRoute),
       locationFromInput(input.location),
+      requestedChoice,
     );
     plan = live.plan;
     liveNeedChoices = live.choices;
+    selectedLiveChoice = live.selected;
+    manuallySelected = live.manuallySelected;
   }
 
   if (transport) plan = integrateTransport(plan, transport, availableMinutes);
 
   return Response.json({
     ...plan,
-    liveNeed: liveNeedChoices.length ? {
+    liveNeed: liveNeedChoices.length && selectedLiveChoice ? {
       scenario: input.scenario,
       choices: liveNeedChoices,
-      selected: liveNeedChoices[0],
-      selectedStatus: statusLine(liveNeedChoices[0]),
-      betterAlternativeSelected: betterAlternativeSelected(liveNeedChoices[0], liveNeedChoices),
+      selected: selectedLiveChoice,
+      selectedStatus: statusLine(selectedLiveChoice),
+      manuallySelected,
+      betterAlternativeSelected: manuallySelected ? false : betterAlternativeSelected(selectedLiveChoice, liveNeedChoices),
       cacheStrategy: "internal catalog first; address geocode cached 7 days; external POI zone cache 30 minutes; provider fallback only when needed",
     } : null,
   }, {
