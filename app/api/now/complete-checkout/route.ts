@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { verifyPurchasedNowSession } from "../../../../lib/stripe-now-activation";
+import { verifyPurchasedNowSession } from "../../../../lib/stripe-entitlement";
 
 export const runtime = "nodejs";
 
