@@ -13,6 +13,7 @@ export type NearbyPlace = {
   openingHours?: string;
   openStatus?: OpenStatus;
   openLabel?: string;
+  closesInMinutes?: number;
 };
 
 export type NearbyPlaceGroups = {
@@ -88,6 +89,7 @@ async function fromOsm(centre: Coordinates, radiusMeters: number) {
           openingHours,
           openStatus: opening.status,
           openLabel: opening.label,
+          closesInMinutes: opening.closesInMinutes,
         });
       }
       result.pharmacies = sortByOpenStatus(result.pharmacies);
@@ -133,6 +135,7 @@ async function fromGeoapify(centre: Coordinates, radiusMeters: number) {
         openingHours,
         openStatus: opening.status,
         openLabel: opening.label,
+        closesInMinutes: opening.closesInMinutes,
         detail: opening.label,
       });
     }
