@@ -11,13 +11,7 @@ export type NowCheckoutInput = {
   origin: string;
 };
 
-export type StripePaymentIntent = {
-  id: string;
-  status?: string;
-  metadata?: Record<string, string> | null;
-};
-
-export type StripeCheckoutSession = {
+type StripeCheckoutSession = {
   id: string;
   url?: string | null;
   payment_status?: string;
@@ -25,7 +19,6 @@ export type StripeCheckoutSession = {
   amount_total?: number | null;
   currency?: string | null;
   metadata?: Record<string, string> | null;
-  payment_intent?: string | StripePaymentIntent | null;
 };
 
 export type StripeEvent = {
@@ -39,9 +32,6 @@ const PLAN_CONFIG: Record<NowPassPlan, { amount: number; durationMs: number; pri
   "72h": { amount: 1490, durationMs: 72 * 60 * 60 * 1000, priceEnv: "STRIPE_PRICE_PARIS_NOW_72H", name: "Paris NOW · 72-hour Pass" },
   "7d": { amount: 2290, durationMs: 7 * 24 * 60 * 60 * 1000, priceEnv: "STRIPE_PRICE_PARIS_NOW_7D", name: "Paris NOW · 7-day Pass" },
 };
-
-const entitlementCache = new Map<string, { active: boolean; checkedAt: number }>();
-const ENTITLEMENT_CACHE_MS = 2 * 60 * 1000;
 
 function stripeSecret() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -81,9 +71,9 @@ export function planDurationMs(plan: NowPassPlan) {
 
 function addCheckoutPrice(params: URLSearchParams, plan: NowPassPlan) {
   const config = PLAN_CONFIG[plan];
-  const reusablePrice = process.env[config.priceEnv]?.trim();
-  if (reusablePrice) {
-    params.set("line_items[0][price]", reusablePrice);
+  const priceId = process.env[config.priceEnv]?.trim();
+  if (priceId) {
+    params.set("line_items[0][price]", priceId);
   } else {
     params.set("line_items[0][price_data][currency]", "eur");
     params.set("line_items[0][price_data][unit_amount]", String(config.amount));
@@ -136,10 +126,9 @@ export async function createNowCheckoutSession(input: NowCheckoutInput) {
   return session;
 }
 
-export async function retrieveCheckoutSession(sessionId: string, expandPaymentIntent = false) {
+export async function retrieveCheckoutSession(sessionId: string) {
   if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) throw new Error("Invalid Stripe Checkout Session id");
-  const query = expandPaymentIntent ? "?expand[]=payment_intent" : "";
-  const payload = await stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}${query}`);
+  const payload = await stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
   return payload as unknown as StripeCheckoutSession;
 }
 
@@ -168,99 +157,4 @@ export function verifyStripeWebhook(rawBody: string, signatureHeader: string, to
   const event = JSON.parse(rawBody) as StripeEvent;
   if (!event.id || !event.type) throw new Error("Malformed Stripe webhook event");
   return event;
-}
-
-async function resolvePaymentIntentId(event: StripeEvent) {
-  const object = event.data?.object ?? {};
-  const direct = object.payment_intent;
-  if (typeof direct === "string" && direct.startsWith("pi_")) return direct;
-  if (direct && typeof direct === "object") {
-    const id = (direct as Record<string, unknown>).id;
-    if (typeof id === "string" && id.startsWith("pi_")) return id;
-  }
-
-  const objectId = object.id;
-  if (typeof objectId === "string" && objectId.startsWith("cs_")) {
-    const session = await retrieveCheckoutSession(objectId, true);
-    if (typeof session.payment_intent === "string") return session.payment_intent;
-    if (session.payment_intent && typeof session.payment_intent === "object") return session.payment_intent.id;
-  }
-
-  const charge = object.charge;
-  const chargeId = typeof charge === "string" ? charge : charge && typeof charge === "object" ? (charge as Record<string, unknown>).id : null;
-  if (typeof chargeId === "string" && chargeId.startsWith("ch_")) {
-    const payload = await stripeRequest(`/charges/${encodeURIComponent(chargeId)}`);
-    const paymentIntent = payload.payment_intent;
-    if (typeof paymentIntent === "string" && paymentIntent.startsWith("pi_")) return paymentIntent;
-  }
-  return null;
-}
-
-function desiredAccessState(event: StripeEvent) {
-  if (event.type === "checkout.session.completed") {
-    return event.data?.object?.payment_status === "paid" ? "active" : "pending";
-  }
-  if (event.type === "checkout.session.async_payment_succeeded") return "active";
-  if (["checkout.session.async_payment_failed", "checkout.session.expired", "charge.refunded", "charge.dispute.created"].includes(event.type)) return "revoked";
-  return "pending";
-}
-
-export async function recordRevenueEvent(event: StripeEvent) {
-  const paymentIntentId = await resolvePaymentIntentId(event);
-  if (!paymentIntentId) {
-    if (event.type === "checkout.session.expired") return { recorded: true, skipped: true } as const;
-    throw new Error(`Stripe event ${event.id} has no payment intent`);
-  }
-
-  const accessState = desiredAccessState(event);
-  const params = new URLSearchParams();
-  params.set("metadata[now_access_state]", accessState);
-  params.set("metadata[now_state_event_id]", event.id);
-  params.set("metadata[now_state_event_type]", event.type);
-  params.set("metadata[now_state_updated_at]", new Date().toISOString());
-
-  await stripeRequest(`/payment_intents/${encodeURIComponent(paymentIntentId)}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Idempotency-Key": `now-${event.id}`,
-    },
-    body: params,
-  });
-  return { recorded: true, accessState } as const;
-}
-
-function expandedPaymentIntent(session: StripeCheckoutSession) {
-  return session.payment_intent && typeof session.payment_intent === "object" ? session.payment_intent : null;
-}
-
-export async function paymentWasRecorded(sessionId: string) {
-  const session = await retrieveCheckoutSession(sessionId, true);
-  const paymentIntent = expandedPaymentIntent(session);
-  const metadata = paymentIntent?.metadata ?? {};
-  return Boolean(paymentIntent)
-    && metadata.product_family === "velvet_passport"
-    && metadata.product === "paris_now"
-    && metadata.now_access_state === "active";
-}
-
-export async function isStripePassEntitlementActive(sessionId: string) {
-  const cached = entitlementCache.get(sessionId);
-  if (cached && Date.now() - cached.checkedAt < ENTITLEMENT_CACHE_MS) return cached.active;
-
-  const session = await retrieveCheckoutSession(sessionId, true);
-  const paymentIntent = expandedPaymentIntent(session);
-  const sessionMetadata = session.metadata ?? {};
-  const intentMetadata = paymentIntent?.metadata ?? {};
-  const active = Boolean(paymentIntent)
-    && session.status === "complete"
-    && session.payment_status === "paid"
-    && sessionMetadata.product_family === "velvet_passport"
-    && sessionMetadata.product === "paris_now"
-    && intentMetadata.product_family === "velvet_passport"
-    && intentMetadata.product === "paris_now"
-    && intentMetadata.now_access_state === "active";
-
-  entitlementCache.set(sessionId, { active, checkedAt: Date.now() });
-  return active;
 }
