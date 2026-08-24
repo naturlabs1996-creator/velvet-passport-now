@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { createPassToken } from "../../../../../lib/pass-token";
-import { isNowPassPlan, paymentWasRecorded, planDurationMs, retrieveCheckoutSession } from "../../../../../lib/stripe-now";
+import { createPassToken } from "../../../../lib/pass-token";
+import { isNowPassPlan, paymentWasRecorded, planDurationMs, retrieveCheckoutSession } from "../../../../lib/stripe-now";
 
 export const runtime = "nodejs";
 
