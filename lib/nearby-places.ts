@@ -1,3 +1,5 @@
+import { evaluateOpeningHours, sortByOpenStatus, type OpenStatus } from "./opening-hours";
+
 type Coordinates = { lat: number; lon: number };
 
 export type NearbyPlace = {
@@ -8,6 +10,9 @@ export type NearbyPlace = {
   detail?: string;
   address?: string;
   source: "osm" | "geoapify" | "foursquare";
+  openingHours?: string;
+  openStatus?: OpenStatus;
+  openLabel?: string;
 };
 
 export type NearbyPlaceGroups = {
@@ -48,8 +53,7 @@ function mergePlaces(groups: NearbyPlaceGroups, key: "pharmacies" | "restaurants
     });
     if (!duplicate) existing.push(item);
   }
-  existing.sort((a, b) => a.distanceMeters - b.distanceMeters);
-  groups[key] = existing.slice(0, 10);
+  groups[key] = sortByOpenStatus(existing).slice(0, 10);
 }
 
 async function fromOsm(centre: Coordinates, radiusMeters: number) {
@@ -72,15 +76,23 @@ async function fromOsm(centre: Coordinates, radiusMeters: number) {
         const key = amenity === "pharmacy" ? "pharmacies" : amenity === "restaurant" ? "restaurants" : amenity === "cafe" ? "cafes" : null;
         if (!key) continue;
         const point = { lat: element.lat, lon: element.lon };
+        const openingHours = element.tags?.opening_hours;
+        const opening = evaluateOpeningHours(openingHours);
         result[key].push({
           name: element.tags?.name || (amenity === "pharmacy" ? "Pharmacy" : amenity === "restaurant" ? "Restaurant" : "Café"),
           ...point,
           distanceMeters: Math.round(haversineMeters(centre, point)),
-          detail: [element.tags?.cuisine, element.tags?.opening_hours].filter(Boolean).join(" · ") || undefined,
+          detail: [element.tags?.cuisine, opening.label].filter(Boolean).join(" · ") || undefined,
           address: [element.tags?.["addr:housenumber"], element.tags?.["addr:street"]].filter(Boolean).join(" ") || undefined,
           source: "osm",
+          openingHours,
+          openStatus: opening.status,
+          openLabel: opening.label,
         });
       }
+      result.pharmacies = sortByOpenStatus(result.pharmacies);
+      result.restaurants = sortByOpenStatus(result.restaurants);
+      result.cafes = sortByOpenStatus(result.cafes);
       return result;
     } catch { continue; }
   }
@@ -109,6 +121,8 @@ async function fromGeoapify(centre: Coordinates, radiusMeters: number) {
       const key = categories.some((c) => c.includes("pharmacy")) ? "pharmacies" : categories.some((c) => c.includes("restaurant")) ? "restaurants" : categories.some((c) => c.includes("cafe")) ? "cafes" : null;
       if (!key) continue;
       const point = { lon: Number(coords[0]), lat: Number(coords[1]) };
+      const openingHours = typeof properties.opening_hours === "string" ? properties.opening_hours : undefined;
+      const opening = evaluateOpeningHours(openingHours);
       result[key].push({
         name: String(properties.name || properties.formatted || "Nearby place"),
         lat: point.lat,
@@ -116,8 +130,15 @@ async function fromGeoapify(centre: Coordinates, radiusMeters: number) {
         distanceMeters: Math.round(haversineMeters(centre, point)),
         address: typeof properties.formatted === "string" ? properties.formatted : undefined,
         source: "geoapify",
+        openingHours,
+        openStatus: opening.status,
+        openLabel: opening.label,
+        detail: opening.label,
       });
     }
+    result.pharmacies = sortByOpenStatus(result.pharmacies);
+    result.restaurants = sortByOpenStatus(result.restaurants);
+    result.cafes = sortByOpenStatus(result.cafes);
     return result;
   } catch { return null; }
 }
@@ -152,6 +173,9 @@ async function foursquareSearch(centre: Coordinates, radiusMeters: number, query
         distanceMeters: Math.round(haversineMeters(centre, { lat, lon })),
         address: typeof location?.formatted_address === "string" ? location.formatted_address : undefined,
         source: "foursquare" as const,
+        openStatus: "unknown" as const,
+        openLabel: "Hours not confirmed",
+        detail: "Hours not confirmed",
       }];
     });
   } catch { return []; }
