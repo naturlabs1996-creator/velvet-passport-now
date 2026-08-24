@@ -3,12 +3,14 @@ import { getConfidentialRoutes } from "../../../../lib/confidential-routes";
 import { getPassAccess } from "../../../../lib/pass-access";
 import { getLiveNeedChoices, type LiveNeedScenario, type LiveNeedChoice } from "../../../../lib/live-needs";
 import { getRouteDisruptions, type RouteDisruption } from "../../../../lib/disruptions";
+import { normalizeNowRequest } from "../../../../lib/now-request";
+import { planComposableRequest, type ConstraintPlan } from "../../../../lib/now-planner";
 
 export const runtime = "nodejs";
 
 type TransportConnection = {
   minutes: number;
-  mode: string;
+  mode?: string;
   label: string;
   origin: string;
   detail?: string;
@@ -136,11 +138,62 @@ function recalculatePoiTiming(
   };
 }
 
-function integrateTransport(plan: RoutePlan, connection: TransportConnection, availableMinutes: number): RoutePlan {
+function applyConstraintPlan(plan: RoutePlan, constraints: ConstraintPlan, routeBudget: number): RoutePlan {
+  if (!constraints.needs.length) return plan;
+
+  const needMinutes = constraints.needs.reduce((sum, need) => sum + need.totalMinutes, 0);
+  let stops = [...plan.stops];
+  let baseMinutes = Number.parseInt(plan.meta, 10) || stops.reduce((sum, stop) => sum + durationMinutes(stop.duration), 0);
+  const protectedBudget = Math.max(0, routeBudget - constraints.protectedMarginMinutes);
+  const removed: string[] = [];
+
+  while (baseMinutes + needMinutes > protectedBudget && stops.length > 2) {
+    const removableIndex = stops.length - 2;
+    const [removedStop] = stops.splice(removableIndex, 1);
+    baseMinutes = Math.max(0, baseMinutes - durationMinutes(removedStop.duration));
+    removed.push(removedStop.title);
+  }
+
+  const needStops: RoutePlan["stops"] = constraints.needs.map((need) => ({
+    time: "+00",
+    duration: `${Math.max(1, need.totalMinutes)} min`,
+    title: need.selected?.name ?? need.type.replace(/(^|_)(\w)/g, (_match, _space, letter: string) => letter.toUpperCase()),
+    detail: [
+      need.selected?.detail,
+      need.cuisine ? `${need.cuisine} preference` : undefined,
+      `${need.travelMinutes} min travel`,
+      `${need.serviceMinutes} min stop`,
+      need.withinMinutes ? `${need.deadlineProtected ? "deadline protected" : "deadline at risk"} · within ${need.withinMinutes} min` : undefined,
+    ].filter(Boolean).join(" · "),
+    state: need.deadlineProtected ? "next" as const : "warning" as const,
+  }));
+
+  const first = stops[0];
+  const rest = stops.slice(1);
+  stops = retimeStops([first, ...needStops, ...rest]);
+
+  const totalMinutes = baseMinutes + needMinutes;
+  const marginMinutes = Math.max(0, routeBudget - totalMinutes);
+  const protectedTicket = marginMinutes >= constraints.protectedMarginMinutes && constraints.needs.every((need) => need.deadlineProtected);
+
+  return {
+    ...plan,
+    meta: `${totalMinutes} min · ${constraints.needs.length} live need${constraints.needs.length === 1 ? "" : "s"} · ${marginMinutes} min ticket margin`,
+    note: `${plan.note} NOW composed ${constraints.needs.length} live constraint${constraints.needs.length === 1 ? "" : "s"} into one route.${removed.length ? ` Optional stops removed first: ${removed.join(" / ")}.` : ""}`,
+    stops,
+    ticket: { ...plan.ticket, marginMinutes, protected: protectedTicket },
+    calculation: {
+      ...plan.calculation,
+      generatedAt: new Date().toISOString(),
+      factors: [...plan.calculation.factors, ...constraints.factors, "composable constraints", "optional-stop removal before ticket margin"],
+    },
+  };
+}
+
+function integrateTransport(plan: RoutePlan, connection: TransportConnection, routeBudget: number): RoutePlan {
   const connectionMinutes = Math.max(1, Math.min(120, Math.round(connection.minutes)));
-  const remaining = Math.max(15, availableMinutes - connectionMinutes);
-  const marginMinutes = Math.max(0, plan.ticket.marginMinutes - connectionMinutes);
-  const protectedTicket = marginMinutes >= 15;
+  const marginMinutes = plan.ticket.marginMinutes;
+  const protectedTicket = plan.ticket.protected;
   const shiftedStops = plan.stops.map((stop, index) => ({
     ...stop,
     time: stop.time === "NOW" ? `+${String(connectionMinutes).padStart(2, "0")}` : stop.time,
@@ -151,8 +204,8 @@ function integrateTransport(plan: RoutePlan, connection: TransportConnection, av
     ...plan,
     eyebrow: `NOW CONNECTION · ${connection.label.toUpperCase()}`,
     title: `From ${connection.origin} into ${plan.title}`,
-    meta: `${connectionMinutes} min connection · ${remaining} min route budget · ${protectedTicket ? "protected arrival" : "route must be shortened"}`,
-    note: `${connection.source === "official" ? "Official Île-de-France Mobilités connection" : "Estimated local connection"} is now part of the route calculation. Optional route time is reduced before the protected ticket margin is sacrificed.`,
+    meta: `${connectionMinutes} min connection · ${routeBudget} min route budget · ${marginMinutes} min ticket margin · ${protectedTicket ? "protected arrival" : "route must be shortened"}`,
+    note: `${connection.source === "official" ? "Official Île-de-France Mobilités connection" : "Estimated local connection"} is part of the route calculation. The connection is charged once; the already-reduced route budget is not debited a second time.`,
     stops: [
       {
         time: "NOW",
@@ -167,7 +220,7 @@ function integrateTransport(plan: RoutePlan, connection: TransportConnection, av
     calculation: {
       ...plan.calculation,
       generatedAt: new Date().toISOString(),
-      factors: [...plan.calculation.factors, "real starting point", "transport duration", "route time remaining", "ticket margin after connection"],
+      factors: [...plan.calculation.factors, "real starting point", "transport duration charged once", "route time remaining", "ticket margin after connection"],
     },
   };
 }
@@ -237,58 +290,50 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
-  let body: unknown;
 
+  let body: unknown;
   try { body = await request.json(); }
   catch { return Response.json({ error: "Invalid JSON body" }, { status: 400 }); }
-
   if (!body || typeof body !== "object") return Response.json({ error: "Request body is required" }, { status: 400 });
 
   const input = body as Record<string, unknown>;
-  if (!isNowScenario(input.scenario)) return Response.json({ error: "Unknown NOW scenario" }, { status: 400 });
+  const hasComposableNeeds = Array.isArray(input.needs) && input.needs.length > 0;
+  const legacyScenario = isNowScenario(input.scenario) ? input.scenario : hasComposableNeeds ? "route" : null;
+  if (!legacyScenario) return Response.json({ error: "Unknown NOW scenario" }, { status: 400 });
 
-  const ticketTime = typeof input.ticketTime === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.ticketTime) ? input.ticketTime : "16:30";
-  const availableMinutes = typeof input.availableMinutes === "number" && Number.isFinite(input.availableMinutes)
-    ? Math.max(15, Math.min(480, input.availableMinutes))
-    : 90;
-
-  const rawConnection = input.transport && typeof input.transport === "object" ? input.transport as Record<string, unknown> : null;
-  const transport = rawConnection && typeof rawConnection.minutes === "number" && Number.isFinite(rawConnection.minutes)
-    && typeof rawConnection.origin === "string" && typeof rawConnection.label === "string"
-    ? {
-        minutes: rawConnection.minutes,
-        mode: typeof rawConnection.mode === "string" ? rawConnection.mode : "transport",
-        label: rawConnection.label,
-        origin: rawConnection.origin.slice(0, 180),
-        detail: typeof rawConnection.detail === "string" ? rawConnection.detail.slice(0, 240) : undefined,
-        source: rawConnection.source === "official" ? "official" as const : "estimated" as const,
-      }
-    : null;
-
-  const routeBudget = transport ? Math.max(15, availableMinutes - Math.max(1, Math.round(transport.minutes))) : availableMinutes;
-  const routeId = typeof input.routeId === "string" ? input.routeId : null;
+  const normalized = normalizeNowRequest(input, legacyScenario);
+  const availableMinutes = normalized.availableMinutes;
+  const ticketTime = normalized.ticket?.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(normalized.ticket.time) ? normalized.ticket.time : "16:30";
+  const transport = normalized.transport ?? null;
+  const routeBudget = transport ? Math.max(15, availableMinutes - transport.minutes) : availableMinutes;
+  const routeId = normalized.routeId ?? null;
   const confidential = routeId ? getConfidentialRoutes().find((route) => route.id === routeId) : undefined;
-  const exactLocation = locationFromInput(input.location);
+  const exactLocation = normalized.location ?? locationFromInput(input.location);
+
   let routeDisruptions: RouteDisruption[] = [];
   let disruptionDegraded = false;
   let autoBlockedStop: string | null = null;
 
-  if (confidential) {
+  if (confidential && normalized.disruptions?.automatic !== false) {
     const disruptionCheck = await getRouteDisruptions(confidential.stops.map((stop) => stop.name), exactLocation);
     routeDisruptions = disruptionCheck.disruptions;
     disruptionDegraded = disruptionCheck.degraded;
     autoBlockedStop = disruptionCheck.blockedStop;
   }
 
-  const explicitBlockedStop = typeof input.blockedStop === "string" ? input.blockedStop : undefined;
+  const explicitBlockedStop = normalized.disruptions?.blockedStop;
   const autoBlocked = Boolean(autoBlockedStop);
-  const routeScenario = autoBlocked && (input.scenario === "route" || input.scenario === "rain" || input.scenario === "blocked")
+  const requestedWeather = normalized.weather?.scenario;
+  const weatherScenario = requestedWeather === "rain" ? "rain" : legacyScenario;
+  const routeScenario = autoBlocked && (weatherScenario === "route" || weatherScenario === "rain" || weatherScenario === "blocked")
     ? "blocked"
-    : input.scenario;
+    : weatherScenario;
+
   const selectedRoute = routeId
     ? buildIntegratedRoutePlan(routeId, routeScenario, ticketTime, routeBudget, explicitBlockedStop ?? autoBlockedStop ?? undefined)
     : null;
   let plan = selectedRoute ?? buildRoutePlan(routeScenario, ticketTime);
+
   if (autoBlocked && routeDisruptions[0]) {
     const issue = routeDisruptions.find((item) => item.severity === "blocked") ?? routeDisruptions[0];
     plan = {
@@ -301,15 +346,20 @@ export async function POST(request: Request) {
       },
     };
   }
+
+  let composablePlan: ConstraintPlan | null = null;
   let liveNeedChoices: Awaited<ReturnType<typeof getLiveNeedChoices>> = [];
   let selectedLiveChoice: LiveNeedChoice | null = null;
   let manuallySelected = false;
 
-  if (LIVE_NEEDS.has(input.scenario as LiveNeedScenario)) {
+  if (hasComposableNeeds) {
+    composablePlan = await planComposableRequest(normalized);
+    plan = applyConstraintPlan(plan, composablePlan, routeBudget);
+  } else if (LIVE_NEEDS.has(legacyScenario as LiveNeedScenario)) {
     const requestedChoice = input.selectedPoi && typeof input.selectedPoi === "object" ? input.selectedPoi as Record<string, unknown> : null;
     const live = await enrichLiveNeed(
       plan,
-      input.scenario as LiveNeedScenario,
+      legacyScenario as LiveNeedScenario,
       confidential?.zone ?? "Louvre & Opéra",
       routeId,
       Boolean(selectedRoute),
@@ -323,12 +373,23 @@ export async function POST(request: Request) {
     manuallySelected = live.manuallySelected;
   }
 
-  if (transport) plan = integrateTransport(plan, transport, availableMinutes);
+  if (transport) plan = integrateTransport(plan, transport, routeBudget);
 
   return Response.json({
     ...plan,
+    composable: composablePlan ? {
+      enabled: true,
+      availableMinutes: composablePlan.availableMinutes,
+      transportMinutes: composablePlan.transportMinutes,
+      protectedMarginMinutes: composablePlan.protectedMarginMinutes,
+      totalCommittedMinutes: composablePlan.totalCommittedMinutes,
+      remainingMinutes: composablePlan.remainingMinutes,
+      ticketProtected: plan.ticket.protected,
+      needs: composablePlan.needs,
+      factors: composablePlan.factors,
+    } : null,
     disruptionProtection: routeId ? {
-      checked: true,
+      checked: normalized.disruptions?.automatic !== false,
       degraded: disruptionDegraded,
       rerouted: autoBlocked,
       blockedStop: autoBlockedStop,
@@ -342,7 +403,7 @@ export async function POST(request: Request) {
       })),
     } : null,
     liveNeed: liveNeedChoices.length && selectedLiveChoice ? {
-      scenario: input.scenario,
+      scenario: legacyScenario,
       choices: liveNeedChoices,
       selected: selectedLiveChoice,
       selectedStatus: statusLine(selectedLiveChoice),
@@ -353,8 +414,8 @@ export async function POST(request: Request) {
         walkingSource: selectedLiveChoice.walkingSource ?? "estimated",
         walkingLive: Boolean(selectedLiveChoice.walkingLive),
         walkingCacheHit: Boolean(selectedLiveChoice.walkingCacheHit),
-        serviceMinutes: serviceMinutes(input.scenario as LiveNeedScenario),
-        totalMinutes: effectiveWalkingMinutes(selectedLiveChoice) + serviceMinutes(input.scenario as LiveNeedScenario),
+        serviceMinutes: serviceMinutes(legacyScenario as LiveNeedScenario),
+        totalMinutes: effectiveWalkingMinutes(selectedLiveChoice) + serviceMinutes(legacyScenario as LiveNeedScenario),
       },
       betterAlternativeSelected: manuallySelected ? false : betterAlternativeSelected(selectedLiveChoice, liveNeedChoices),
       cacheStrategy: "internal catalog first; address geocode cached 7 days; external POI zone cache 30 minutes; pedestrian route matrix cached 30 minutes; provider fallback only when needed",
@@ -362,7 +423,7 @@ export async function POST(request: Request) {
   }, {
     headers: {
       "Cache-Control": "no-store",
-      "X-NOW-Data-Mode": liveNeedChoices.length ? "internal-first-nearby" : transport ? "transport-integrated" : "prepared",
+      "X-NOW-Data-Mode": composablePlan ? "composable" : liveNeedChoices.length ? "internal-first-nearby" : transport ? "transport-integrated" : "prepared",
     },
   });
 }
