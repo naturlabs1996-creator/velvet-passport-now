@@ -15,6 +15,9 @@ export type LiveNeedChoice = {
   openLabel?: string;
   openingHours?: string;
   closesInMinutes?: number;
+  travelMinutes?: number;
+  safetyWindowMinutes?: number;
+  minutesOpenAfterArrival?: number;
 };
 
 const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
@@ -25,6 +28,12 @@ const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
   "Quartier latin": { lat: 48.8463, lon: 2.3470 },
   "Bords de Seine": { lat: 48.8550, lon: 2.3480 },
 };
+
+const CONTEXT_SAFETY_MINUTES = {
+  pharmacy: 20,
+  restaurant: 60,
+  cafe: 30,
+} as const;
 
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
 type ParisRecord = Record<string, unknown>;
@@ -48,6 +57,45 @@ function haversineMeters(a: { lat: number; lon: number }, b: { lat: number; lon:
 
 function normalizedName(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function estimatedWalkMinutes(distanceMeters: number) {
+  return Math.max(1, Math.ceil(distanceMeters / 75));
+}
+
+function contextualSafetyMinutes(scenario: LiveNeedScenario) {
+  if (scenario === "pharmacy") return CONTEXT_SAFETY_MINUTES.pharmacy;
+  if (scenario === "food") return CONTEXT_SAFETY_MINUTES.restaurant;
+  return CONTEXT_SAFETY_MINUTES.cafe;
+}
+
+function applyContextualAvailability(choice: LiveNeedChoice, scenario: LiveNeedScenario): LiveNeedChoice {
+  if (choice.openStatus === "closed") return choice;
+
+  const travelMinutes = estimatedWalkMinutes(choice.distanceMeters);
+  const safetyWindowMinutes = contextualSafetyMinutes(scenario);
+  const closesInMinutes = choice.closesInMinutes;
+
+  if (typeof closesInMinutes !== "number") {
+    return { ...choice, travelMinutes, safetyWindowMinutes };
+  }
+
+  const minutesOpenAfterArrival = closesInMinutes - travelMinutes;
+  const contextuallyClosingSoon = minutesOpenAfterArrival <= safetyWindowMinutes;
+  const openStatus: OpenStatus = contextuallyClosingSoon ? "closing_soon" : "open";
+  const openLabel = contextuallyClosingSoon
+    ? `Closing too soon · ${Math.max(0, minutesOpenAfterArrival)} min after arrival`
+    : `Open with margin · ${minutesOpenAfterArrival} min after arrival`;
+
+  return {
+    ...choice,
+    openStatus,
+    openLabel,
+    travelMinutes,
+    safetyWindowMinutes,
+    minutesOpenAfterArrival,
+    detail: [choice.detail, openLabel, `~${travelMinutes} min walk`].filter(Boolean).join(" · "),
+  };
 }
 
 function point(record: ParisRecord): { lat: number; lon: number } | null {
@@ -189,8 +237,8 @@ function prioritizeChoices(choices: LiveNeedChoice[]) {
     const bStatus = statusRank[b.openStatus ?? "unknown"];
     if (aStatus !== bStatus) return aStatus - bStatus;
     if (a.openStatus === "open" && b.openStatus === "open") {
-      const aRemaining = a.closesInMinutes ?? Number.POSITIVE_INFINITY;
-      const bRemaining = b.closesInMinutes ?? Number.POSITIVE_INFINITY;
+      const aRemaining = a.minutesOpenAfterArrival ?? a.closesInMinutes ?? Number.POSITIVE_INFINITY;
+      const bRemaining = b.minutesOpenAfterArrival ?? b.closesInMinutes ?? Number.POSITIVE_INFINITY;
       if (aRemaining !== bRemaining) return bRemaining - aRemaining;
     }
     const sourceDelta = sourceRank(a.source) - sourceRank(b.source);
@@ -210,7 +258,8 @@ export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenari
   const providerCandidates = scenario === "pharmacy" ? places.pharmacies : places.restaurants;
   const curated = await internalChoices(routeId, zone, category, centre, providerCandidates);
   const external = commercialChoices(providerCandidates);
-  const prioritized = prioritizeChoices([...curated, ...external]);
+  const contextual = [...curated, ...external].map((choice) => applyContextualAvailability(choice, scenario));
+  const prioritized = prioritizeChoices(contextual);
 
   const usable = prioritized.filter((choice) => choice.openStatus !== "closed" && choice.openStatus !== "closing_soon");
   const minimum = scenario === "pharmacy" ? 2 : 3;
