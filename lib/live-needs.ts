@@ -2,6 +2,7 @@ import { getNearbyPlaces, type NearbyPlace } from "./nearby-places";
 import { getEffectiveInternalPois } from "./internal-catalog-effective";
 import type { InternalPoiCategory } from "./internal-catalog";
 import { sortByOpenStatus, type OpenStatus } from "./opening-hours";
+import { getWalkingRoutes, type WalkingRoute } from "./walking-routing";
 
 export type LiveNeedScenario = "food" | "pharmacy" | "water" | "restroom" | "sitdown";
 export type LiveNeedChoice = {
@@ -18,6 +19,9 @@ export type LiveNeedChoice = {
   travelMinutes?: number;
   safetyWindowMinutes?: number;
   minutesOpenAfterArrival?: number;
+  walkingSource?: WalkingRoute["source"];
+  walkingLive?: boolean;
+  walkingCacheHit?: boolean;
 };
 
 const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
@@ -69,10 +73,28 @@ function contextualSafetyMinutes(scenario: LiveNeedScenario) {
   return CONTEXT_SAFETY_MINUTES.cafe;
 }
 
+async function applyWalkingRoutes(centre: { lat: number; lon: number }, choices: LiveNeedChoice[]) {
+  if (!choices.length) return choices;
+  const walking = await getWalkingRoutes(centre, choices.map((choice) => ({ lat: choice.lat, lon: choice.lon })));
+  return choices.map((choice, index) => {
+    const route = walking[index];
+    if (!route) return choice;
+    return {
+      ...choice,
+      distanceMeters: route.distanceMeters,
+      travelMinutes: route.minutes,
+      walkingSource: route.source,
+      walkingLive: route.live,
+      walkingCacheHit: route.cacheHit,
+      detail: [choice.detail, `${route.minutes} min walk`, route.source === "valhalla" ? "street-routed" : "walking estimate"].join(" · "),
+    };
+  });
+}
+
 function applyContextualAvailability(choice: LiveNeedChoice, scenario: LiveNeedScenario): LiveNeedChoice {
   if (choice.openStatus === "closed") return choice;
 
-  const travelMinutes = estimatedWalkMinutes(choice.distanceMeters);
+  const travelMinutes = choice.travelMinutes ?? estimatedWalkMinutes(choice.distanceMeters);
   const safetyWindowMinutes = contextualSafetyMinutes(scenario);
   const closesInMinutes = choice.closesInMinutes;
 
@@ -94,7 +116,7 @@ function applyContextualAvailability(choice: LiveNeedChoice, scenario: LiveNeedS
     travelMinutes,
     safetyWindowMinutes,
     minutesOpenAfterArrival,
-    detail: [choice.detail, openLabel, `~${travelMinutes} min walk`].filter(Boolean).join(" · "),
+    detail: [choice.detail, openLabel].filter(Boolean).join(" · "),
   };
 }
 
@@ -243,14 +265,20 @@ function prioritizeChoices(choices: LiveNeedChoice[]) {
     }
     const sourceDelta = sourceRank(a.source) - sourceRank(b.source);
     if (sourceDelta !== 0) return sourceDelta;
-    return a.distanceMeters - b.distanceMeters;
+    return (a.travelMinutes ?? Number.POSITIVE_INFINITY) - (b.travelMinutes ?? Number.POSITIVE_INFINITY) || a.distanceMeters - b.distanceMeters;
   });
 }
 
 export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenario, exactLocation?: { lat: number; lon: number }, routeId?: string | null) {
   const centre = exactLocation ?? centreForZone(zone);
-  if (scenario === "water") return parisPublicPlaces("fontaines-a-boire", centre, 900);
-  if (scenario === "restroom") return parisPublicPlaces("sanisettesparis", centre, 900);
+  if (scenario === "water") {
+    const choices = await parisPublicPlaces("fontaines-a-boire", centre, 900);
+    return (await applyWalkingRoutes(centre, choices)).sort((a, b) => (a.travelMinutes ?? 999) - (b.travelMinutes ?? 999)).slice(0, 5);
+  }
+  if (scenario === "restroom") {
+    const choices = await parisPublicPlaces("sanisettesparis", centre, 900);
+    return (await applyWalkingRoutes(centre, choices)).sort((a, b) => (a.travelMinutes ?? 999) - (b.travelMinutes ?? 999)).slice(0, 5);
+  }
   if (scenario === "sitdown") return parisPublicPlaces("espaces_verts", centre, 800);
 
   const places = await getNearbyPlaces(centre, 900);
@@ -258,7 +286,8 @@ export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenari
   const providerCandidates = scenario === "pharmacy" ? places.pharmacies : places.restaurants;
   const curated = await internalChoices(routeId, zone, category, centre, providerCandidates);
   const external = commercialChoices(providerCandidates);
-  const contextual = [...curated, ...external].map((choice) => applyContextualAvailability(choice, scenario));
+  const routed = await applyWalkingRoutes(centre, dedupe([...curated, ...external]).slice(0, 8));
+  const contextual = routed.map((choice) => applyContextualAvailability(choice, scenario));
   const prioritized = prioritizeChoices(contextual);
 
   const usable = prioritized.filter((choice) => choice.openStatus !== "closed" && choice.openStatus !== "closing_soon");
