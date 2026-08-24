@@ -6,6 +6,16 @@ import LiveNeedChoices, { type LiveNeedChoice } from "./LiveNeedChoices";
 import styles from "./page.module.css";
 
 type Need = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "transport" | "guardian";
+type WeatherScenario = "route" | "rain" | "snow" | "heat" | "cold";
+type WeatherState = {
+  available: boolean;
+  temperature?: number;
+  wind?: number;
+  precipitation?: number;
+  symbol?: string;
+  scenario: WeatherScenario;
+  source: string;
+};
 
 type ConfidentialRouteSummary = { id: string; zone: string; title: string; durationMinutes: number; stopCount: number; ticketProtection: boolean };
 
@@ -83,9 +93,19 @@ const emptyRoute: RouteView = {
 };
 
 const LOCATION_AWARE_NEEDS = new Set<Need>(["food", "pharmacy", "water", "restroom"]);
+const WEATHER_NEEDS = new Set<Need>(["route", "rain", "heat", "cold", "snow"]);
 const LOCATION_FRESH_MS = 2 * 60 * 1000;
 const LOCATION_REFRESH_MS = 2 * 60 * 1000;
 const LOCATION_MOVE_THRESHOLD_METERS = 120;
+const WEATHER_REFRESH_MS = 15 * 60 * 1000;
+const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
+  "Louvre & Opéra": { lat: 48.8662, lon: 2.3371 },
+  "Le Marais": { lat: 48.8590, lon: 2.3622 },
+  "Saint-Germain-des-Prés": { lat: 48.8534, lon: 2.3333 },
+  "Montmartre": { lat: 48.8867, lon: 2.3431 },
+  "Quartier latin": { lat: 48.8463, lon: 2.3470 },
+  "Bords de Seine": { lat: 48.8550, lon: 2.3480 },
+};
 
 function distanceMeters(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
   const rad = (value: number) => value * Math.PI / 180;
@@ -93,6 +113,29 @@ function distanceMeters(a: { lat: number; lon: number }, b: { lat: number; lon: 
   const dLon = rad(b.lon - a.lon);
   const x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
   return 6371000 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function weatherLabel(weather: WeatherState | null) {
+  if (!weather?.available) return "Weather updating";
+  const symbol = weather.symbol ?? "";
+  if (/snow/.test(symbol)) return "Snow";
+  if (/sleet/.test(symbol)) return "Sleet";
+  if (/rain|showers/.test(symbol)) return weather.precipitation && weather.precipitation > 1 ? "Rain" : "Light rain";
+  if (/cloud/.test(symbol)) return "Cloudy";
+  if (/fair/.test(symbol)) return "Fair";
+  if (/clear/.test(symbol)) return "Clear";
+  if (weather.scenario === "heat") return "Hot";
+  if (weather.scenario === "cold") return "Cold";
+  return "Current conditions";
+}
+
+function weatherIcon(weather: WeatherState | null) {
+  if (!weather?.available) return "◌";
+  if (weather.scenario === "snow") return "❅";
+  if (weather.scenario === "rain") return "☂";
+  if (weather.scenario === "heat") return "☀";
+  if (weather.scenario === "cold") return "❄";
+  return /cloud/.test(weather.symbol ?? "") ? "☁" : "☀";
 }
 
 const needs: { id: Need; label: string; icon: string }[] = [
@@ -127,6 +170,8 @@ export default function ParisNowApp() {
   const [travelerLocation, setTravelerLocation] = useState<TravelerLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const [locationRevision, setLocationRevision] = useState(0);
+  const [weather, setWeather] = useState<WeatherState | null>(null);
+  const [autoWeatherScenario, setAutoWeatherScenario] = useState<WeatherScenario>("route");
   const [ticket, setTicket] = useState<TicketState>({
     venue: "Musée du Louvre",
     time: "16:30",
@@ -151,6 +196,10 @@ export default function ParisNowApp() {
 
   function routeLocation() {
     return travelerLocation ? { lat: travelerLocation.lat, lon: travelerLocation.lon } : undefined;
+  }
+
+  function weatherLocation() {
+    return routeLocation() ?? ZONE_CENTRES[selectedZone] ?? ZONE_CENTRES["Louvre & Opéra"];
   }
 
   function commitTravelerLocation(current: TravelerLocation, recalculateOnMove: boolean) {
@@ -349,6 +398,44 @@ export default function ParisNowApp() {
   }, [passStatus.allowed]);
 
   useEffect(() => {
+    if (!passStatus.allowed) return;
+    const controller = new AbortController();
+    const loadWeather = async () => {
+      const point = weatherLocation();
+      try {
+        const response = await fetch("/api/now/context", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat: point.lat, lon: point.lon, radiusMeters: 800 }),
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const context = await response.json() as { weather?: WeatherState };
+        const nextWeather = context.weather ?? null;
+        setWeather(nextWeather);
+        const suggested = nextWeather?.available ? nextWeather.scenario : "route";
+        setAutoWeatherScenario(suggested);
+        setActive((current) => {
+          if (current === "route" && suggested !== "route") return suggested;
+          if (WEATHER_NEEDS.has(current) && current === autoWeatherScenario && suggested === "route") return "route";
+          if (WEATHER_NEEDS.has(current) && current === autoWeatherScenario && suggested !== "route" && suggested !== current) return suggested;
+          return current;
+        });
+      } catch (error) {
+        if (!(error instanceof Error && error.name === "AbortError")) setWeather((current) => current);
+      }
+    };
+    void loadWeather();
+    const refresh = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadWeather();
+    }, WEATHER_REFRESH_MS);
+    return () => {
+      controller.abort();
+      window.clearInterval(refresh);
+    };
+  }, [passStatus.allowed, selectedZone, locationRevision, travelerLocation?.lat, travelerLocation?.lon]);
+
+  useEffect(() => {
     if (!LOCATION_AWARE_NEEDS.has(active) || locationStatus !== "live" || !travelerLocation) return;
     const refresh = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
@@ -445,7 +532,9 @@ export default function ParisNowApp() {
           <p>A quieter Paris, with your Louvre entry safely protected.</p>
         </div>
         <div className={styles.weather}>
-          <span className={styles.weatherIcon} aria-hidden="true">☂</span><b>18°</b><span>Light rain</span>
+          <span className={styles.weatherIcon} aria-hidden="true">{weatherIcon(weather)}</span>
+          <b>{weather?.available && typeof weather.temperature === "number" ? `${Math.round(weather.temperature)}°` : "—°"}</b>
+          <span>{weatherLabel(weather)}</span>
         </div>
       </section>
 
@@ -465,7 +554,7 @@ export default function ParisNowApp() {
       <section id="now-route-section" className={styles.liveCard}>
         <div className={styles.liveTop}>
           <span><i className={active === "blocked" || active === "guardian" ? styles.alertDot : styles.liveDot} />{status}</span>
-          <span>{locationStatus === "live" ? "GPS LIVE" : locationStatus === "fallback" && LOCATION_AWARE_NEEDS.has(active) ? "ROUTE ANCHOR" : "15:04"}</span>
+          <span>{locationStatus === "live" ? "GPS LIVE" : locationStatus === "fallback" && LOCATION_AWARE_NEEDS.has(active) ? "ROUTE ANCHOR" : weather?.available ? "MET LIVE" : "LIVE"}</span>
         </div>
         <div className={styles.progressTrack}>
           <span className={active === "blocked" || active === "guardian" ? styles.redProgress : ""} style={{ width: `${progress}%` }} />
@@ -490,7 +579,7 @@ export default function ParisNowApp() {
             <div><span>Correct entrance</span><strong>{ticket.entrance}</strong></div>
             <div><span>{active === "guardian" ? "Journey status" : "Arrival margin"}</span><strong>{active === "guardian" ? "Journey paused" : `${ticket.marginMinutes} min`}</strong></div>
             <p>{ticket.protected ? "Protected. NOW will remove optional stops before risking this entry." : "The itinerary is paused while Guardian is active."}</p>
-            <small>Prepared calculation · live providers not connected yet</small>
+            <small>{weather?.available ? `Live weather · ${weather.source}` : "Weather fallback active"}</small>
           </div>
         )}
       </section>
