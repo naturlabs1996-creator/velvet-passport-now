@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { verifyPassToken, type PassPayload } from "./pass-token";
-import { isStripePassEntitlementActive } from "./stripe-now";
+import { isStripePassEntitlementActive } from "./stripe-entitlement";
 
 export type PassAccess =
   | { allowed: true; state: "active"; pass: PassPayload; degraded?: boolean }
@@ -19,8 +19,6 @@ export async function getPassAccess(): Promise<PassAccess> {
         if (active) return { allowed: true, state: "active", pass };
         return { allowed: false, state: "inactive", pass: null };
       } catch (error) {
-        // A valid signed pass should keep the traveler moving during a short Stripe outage.
-        // Stripe is rechecked on the next uncached entitlement validation.
         console.error("NOW Stripe entitlement revalidation unavailable", error);
         return { allowed: true, state: "active", pass, degraded: true };
       }
