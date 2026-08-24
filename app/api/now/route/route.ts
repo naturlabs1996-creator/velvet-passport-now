@@ -1,7 +1,7 @@
 import { buildRoutePlan, buildIntegratedRoutePlan, isNowScenario, type RoutePlan } from "../../../../lib/now-engine";
 import { getConfidentialRoutes } from "../../../../lib/confidential-routes";
 import { getPassAccess } from "../../../../lib/pass-access";
-import { getLiveNeedChoices, type LiveNeedScenario } from "../../../../lib/live-needs";
+import { getLiveNeedChoices, type LiveNeedScenario, type LiveNeedChoice } from "../../../../lib/live-needs";
 
 export const runtime = "nodejs";
 
@@ -15,6 +15,27 @@ type TransportConnection = {
 };
 
 const LIVE_NEEDS = new Set<LiveNeedScenario>(["food", "pharmacy", "water", "restroom", "sitdown"]);
+
+function formatRemaining(minutes?: number) {
+  if (typeof minutes !== "number" || !Number.isFinite(minutes) || minutes <= 0) return "";
+  if (minutes < 60) return `${Math.round(minutes)} MIN LEFT`;
+  const hours = Math.floor(minutes / 60);
+  const rest = Math.round(minutes % 60);
+  return rest ? `${hours}H ${rest} MIN LEFT` : `${hours}H LEFT`;
+}
+
+function statusLine(choice: LiveNeedChoice) {
+  const remaining = formatRemaining(choice.closesInMinutes);
+  if (choice.openStatus === "open") return `OPEN NOW${remaining ? ` · ${remaining}` : ""}`;
+  if (choice.openStatus === "closing_soon") return `CLOSING SOON${remaining ? ` · ${remaining}` : ""}`;
+  if (choice.openStatus === "closed") return "CLOSED NOW";
+  return "HOURS NOT CONFIRMED";
+}
+
+function betterAlternativeSelected(primary: LiveNeedChoice, choices: LiveNeedChoice[]) {
+  if (primary.source !== "Velvet Passport internal catalog") return true;
+  return choices.slice(1).some((choice) => choice.openStatus === "closing_soon" || choice.openStatus === "closed");
+}
 
 function integrateTransport(plan: RoutePlan, connection: TransportConnection, availableMinutes: number): RoutePlan {
   const connectionMinutes = Math.max(1, Math.min(120, Math.round(connection.minutes)));
@@ -75,22 +96,25 @@ async function enrichLiveNeed(
 
   const primary = choices[0];
   const alternatives = choices.slice(1, 3).map((choice) => choice.name);
+  const alternativeSelected = betterAlternativeSelected(primary, choices);
   const targetIndex = selectedRoute && plan.stops.length > 1 ? 1 : Math.max(0, plan.stops.findIndex((stop) => stop.state === "current"));
+  const status = statusLine(primary);
   const updatedStops = plan.stops.map((stop, index) => index === targetIndex ? {
     ...stop,
     title: primary.name,
-    detail: `${primary.detail} · source: ${primary.source}${alternatives.length ? ` · alternatives: ${alternatives.join(" / ")}` : ""}`,
+    detail: `${status}${alternativeSelected ? " · BETTER ALTERNATIVE SELECTED" : ""} · ${primary.detail} · source: ${primary.source}${alternatives.length ? ` · alternatives: ${alternatives.join(" / ")}` : ""}`,
+    state: primary.openStatus === "closing_soon" || primary.openStatus === "closed" ? "warning" as const : stop.state,
   } : stop);
 
   return {
     plan: {
       ...plan,
-      note: `${plan.note} NOW selected ${primary.name} from the internal-first nearby catalog; alternatives are retained so it can switch without another broad search.`,
+      note: `${plan.note} ${alternativeSelected ? "NOW avoided a less suitable timing option and selected the stronger available alternative." : `NOW selected ${primary.name} from the internal-first nearby catalog.`} Alternatives remain available so it can switch without another broad search.`,
       stops: updatedStops,
       calculation: {
         ...plan.calculation,
         generatedAt: new Date().toISOString(),
-        factors: [...plan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route"],
+        factors: [...plan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route", "open-now status", "contextual closing margin"],
       },
     },
     choices,
@@ -165,6 +189,8 @@ export async function POST(request: Request) {
       scenario: input.scenario,
       choices: liveNeedChoices,
       selected: liveNeedChoices[0],
+      selectedStatus: statusLine(liveNeedChoices[0]),
+      betterAlternativeSelected: betterAlternativeSelected(liveNeedChoices[0], liveNeedChoices),
       cacheStrategy: "internal catalog first; address geocode cached 7 days; external POI zone cache 30 minutes; provider fallback only when needed",
     } : null,
   }, {
