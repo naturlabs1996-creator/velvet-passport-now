@@ -1,3 +1,5 @@
+import { fetchOfficialWeatherModel } from "./weather-model-gateway";
+
 export type Coordinates = { lat: number; lon: number };
 export type WeatherScenario = "route" | "rain" | "snow" | "heat" | "cold";
 export type WeatherRegion = "europe" | "north-america" | "asia" | "global";
@@ -31,20 +33,11 @@ export type WeatherIntelligence = {
   readings: WeatherReading[];
 };
 
-const MODEL_GATEWAY = process.env.NOW_WEATHER_MODEL_GATEWAY?.replace(/\/$/, "") || "";
-
 const MODEL_PRIORITY: Record<WeatherRegion, WeatherModelId[]> = {
   europe: ["icon-eu", "ecmwf-ifs", "icon-global", "met"],
   "north-america": ["gfs", "ecmwf-ifs", "icon-global", "met"],
   asia: ["gfs", "icon-global", "ecmwf-ifs", "met"],
   global: ["gfs", "icon-global", "ecmwf-ifs", "met"],
-};
-
-const GATEWAY_MODEL_NAME: Partial<Record<WeatherModelId, string>> = {
-  "icon-eu": "icon_eu",
-  "icon-global": "icon_global",
-  gfs: "gfs_global",
-  "ecmwf-ifs": "ecmwf_ifs",
 };
 
 function finite(value: unknown): number | undefined {
@@ -67,56 +60,6 @@ function scenarioFromValues(temperature?: number, precipitation?: number, symbol
   if (typeof temperature === "number" && temperature >= 28) return "heat";
   if (typeof temperature === "number" && temperature <= 4) return "cold";
   return "route";
-}
-
-async function fetchModelGateway(model: Exclude<WeatherModelId, "met">, point: Coordinates): Promise<WeatherReading> {
-  if (!MODEL_GATEWAY) {
-    return { model, available: false, scenario: "route", source: model };
-  }
-  try {
-    const providerModel = GATEWAY_MODEL_NAME[model];
-    if (!providerModel) throw new Error("Unsupported model");
-    const url = new URL(`${MODEL_GATEWAY}/forecast`);
-    url.searchParams.set("latitude", point.lat.toFixed(4));
-    url.searchParams.set("longitude", point.lon.toFixed(4));
-    url.searchParams.set("model", providerModel);
-    const response = await fetch(url, {
-      headers: { Accept: "application/json", "User-Agent": "VelvetPassportNOW/1.0" },
-      next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!response.ok) throw new Error(`Weather gateway ${response.status}`);
-    const payload = await response.json() as {
-      current?: {
-        temperature?: unknown;
-        temperature_2m?: unknown;
-        wind?: unknown;
-        wind_speed_10m?: unknown;
-        precipitation?: unknown;
-        symbol?: unknown;
-        weather_code?: unknown;
-        time?: unknown;
-      };
-    };
-    const current = payload.current ?? {};
-    const temperature = finite(current.temperature ?? current.temperature_2m);
-    const wind = finite(current.wind ?? current.wind_speed_10m);
-    const precipitation = finite(current.precipitation) ?? 0;
-    const symbol = typeof current.symbol === "string" ? current.symbol : typeof current.weather_code === "number" ? `code_${current.weather_code}` : "unknown";
-    return {
-      model,
-      available: temperature !== undefined,
-      temperature,
-      wind,
-      precipitation,
-      symbol,
-      scenario: scenarioFromValues(temperature, precipitation, symbol),
-      source: model === "icon-eu" ? "DWD ICON-EU" : model === "icon-global" ? "DWD ICON Global" : model === "gfs" ? "NOAA GFS" : "ECMWF IFS Open Data",
-      observedAt: typeof current.time === "string" ? current.time : undefined,
-    };
-  } catch {
-    return { model, available: false, scenario: "route", source: model };
-  }
 }
 
 async function fetchMet(point: Coordinates): Promise<WeatherReading> {
@@ -185,7 +128,7 @@ export async function getWeatherIntelligence(point: Coordinates): Promise<Weathe
   const region = classifyWeatherRegion(point);
   const priority = MODEL_PRIORITY[region];
 
-  const readings = await Promise.all(priority.map((model) => model === "met" ? fetchMet(point) : fetchModelGateway(model, point)));
+  const readings = await Promise.all(priority.map((model) => model === "met" ? fetchMet(point) : fetchOfficialWeatherModel(model, point)));
   const available = readings.filter((reading) => reading.available);
   const decision = chooseScenario(available, priority);
   const primaryModel = priority.find((model) => available.some((reading) => reading.model === model)) ?? null;
