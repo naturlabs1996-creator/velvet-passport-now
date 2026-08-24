@@ -14,6 +14,7 @@ export type LiveNeedChoice = {
   openStatus?: OpenStatus;
   openLabel?: string;
   openingHours?: string;
+  closesInMinutes?: number;
 };
 
 const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
@@ -120,6 +121,7 @@ async function internalChoices(
       openStatus,
       openLabel,
       openingHours: status?.openingHours,
+      closesInMinutes: status?.closesInMinutes,
     } satisfies LiveNeedChoice;
   }));
   return sortByOpenStatus(resolved.filter((item): item is LiveNeedChoice => Boolean(item)));
@@ -161,6 +163,7 @@ function commercialChoices(items: NearbyPlace[]): LiveNeedChoice[] {
     openStatus: item.openStatus ?? "unknown",
     openLabel: item.openLabel ?? "Hours not confirmed",
     openingHours: item.openingHours,
+    closesInMinutes: item.closesInMinutes,
   }));
 }
 
@@ -179,11 +182,16 @@ function sourceRank(source: string) {
 }
 
 function prioritizeChoices(choices: LiveNeedChoice[]) {
-  const statusRank: Record<OpenStatus, number> = { open: 0, unknown: 1, closed: 2 };
+  const statusRank: Record<OpenStatus, number> = { open: 0, unknown: 1, closing_soon: 2, closed: 3 };
   return dedupe(choices).sort((a, b) => {
     const aStatus = statusRank[a.openStatus ?? "unknown"];
     const bStatus = statusRank[b.openStatus ?? "unknown"];
     if (aStatus !== bStatus) return aStatus - bStatus;
+    if (a.openStatus === "open" && b.openStatus === "open") {
+      const aRemaining = a.closesInMinutes ?? Number.POSITIVE_INFINITY;
+      const bRemaining = b.closesInMinutes ?? Number.POSITIVE_INFINITY;
+      if (aRemaining !== bRemaining) return bRemaining - aRemaining;
+    }
     const sourceDelta = sourceRank(a.source) - sourceRank(b.source);
     if (sourceDelta !== 0) return sourceDelta;
     return a.distanceMeters - b.distanceMeters;
@@ -203,9 +211,12 @@ export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenari
   const external = commercialChoices(providerCandidates);
   const prioritized = prioritizeChoices([...curated, ...external]);
 
-  const openOrUnknown = prioritized.filter((choice) => choice.openStatus !== "closed");
+  const usable = prioritized.filter((choice) => choice.openStatus !== "closed" && choice.openStatus !== "closing_soon");
   const minimum = scenario === "pharmacy" ? 2 : 3;
-  if (openOrUnknown.length >= minimum) return openOrUnknown.slice(0, 5);
+  if (usable.length >= minimum) return usable.slice(0, 5);
+
+  const notClosed = prioritized.filter((choice) => choice.openStatus !== "closed");
+  if (notClosed.length >= minimum) return notClosed.slice(0, 5);
 
   return prioritized.slice(0, 5);
 }
