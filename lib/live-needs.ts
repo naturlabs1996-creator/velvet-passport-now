@@ -145,7 +145,8 @@ export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenari
 
   const category: InternalPoiCategory = scenario === "pharmacy" ? "pharmacy" : "restaurant";
   const curated = await internalChoices(routeId, zone, category, centre);
-  if (curated.length >= 3) return curated.slice(0, 5);
+  const minimumCurated = scenario === "pharmacy" ? 2 : 3;
+  if (curated.length >= minimumCurated) return curated.slice(0, 5);
 
   const places = await getNearbyPlaces(centre, 900);
   const external = scenario === "pharmacy" ? commercialChoices(places.pharmacies) : commercialChoices(places.restaurants);
