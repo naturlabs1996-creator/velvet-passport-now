@@ -22,6 +22,8 @@ type AppSection = "now" | "day" | "tickets" | "guardian";
 type TransportMode = "metro" | "rer" | "bus" | "tram" | "taxi" | "walk";
 type TransportOption = { id: TransportMode; label: string; minutes: number; detail: string; source: "official" | "estimated"; transfers: number | null };
 type TransportResult = { origin: string; destination: string; options: TransportOption[]; provider: { connected: boolean; live: boolean; issue: boolean }; disclaimer: string };
+type TravelerLocation = { lat: number; lon: number; accuracy: number; capturedAt: number };
+type LocationStatus = "idle" | "locating" | "live" | "fallback";
 
 type PassStatus = {
   state: "loading" | "active" | "preview" | "inactive";
@@ -80,6 +82,8 @@ const emptyRoute: RouteView = {
   ],
 };
 
+const LOCATION_AWARE_NEEDS = new Set<Need>(["food", "pharmacy", "water", "restroom"]);
+
 const needs: { id: Need; label: string; icon: string }[] = [
   { id: "rain", label: "It’s raining", icon: "☂" },
   { id: "heat", label: "It’s too hot", icon: "☀" },
@@ -109,6 +113,8 @@ export default function ParisNowApp() {
   const [rebuilding, setRebuilding] = useState(false);
   const [choiceBusy, setChoiceBusy] = useState(false);
   const [serverRoute, setServerRoute] = useState<RouteView | null>(null);
+  const [travelerLocation, setTravelerLocation] = useState<TravelerLocation | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const [ticket, setTicket] = useState<TicketState>({
     venue: "Musée du Louvre",
     time: "16:30",
@@ -130,6 +136,43 @@ export default function ParisNowApp() {
   const [transportApplied, setTransportApplied] = useState<TransportMode | null>(null);
   const route = serverRoute ?? emptyRoute;
   const selectedCatalogRoute = catalogRoutes.find((item) => item.id === selectedRouteId) ?? null;
+
+  function routeLocation() {
+    return travelerLocation ? { lat: travelerLocation.lat, lon: travelerLocation.lon } : undefined;
+  }
+
+  function activateNeed(need: Need) {
+    if (!LOCATION_AWARE_NEEDS.has(need)) {
+      setActive(need);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationStatus("fallback");
+      setActive(need);
+      return;
+    }
+
+    setLocationStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const current = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          capturedAt: Date.now(),
+        };
+        setTravelerLocation(current);
+        setLocationStatus("live");
+        setActive(need);
+      },
+      () => {
+        setLocationStatus("fallback");
+        setActive(need);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 },
+    );
+  }
 
   async function findTransport(mode: TransportMode = transportMode) {
     if (transportOrigin.trim().length < 3) { setTransportError("Enter your hotel, address or starting station."); return; }
@@ -201,6 +244,7 @@ export default function ParisNowApp() {
           ticketTime: ticket.time,
           routeId: selectedRouteId,
           availableMinutes,
+          location: routeLocation(),
           selectedPoi: { name: choice.name, lat: choice.lat, lon: choice.lon },
         }),
       });
@@ -221,9 +265,21 @@ export default function ParisNowApp() {
     if (!navigator.geolocation) { setTransportError("Location is not available on this device."); return; }
     setTransportLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => { setTransportOrigin(position.coords.latitude.toFixed(5) + ", " + position.coords.longitude.toFixed(5)); setTransportLoading(false); setTransportError(""); },
+      (position) => {
+        const current = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          capturedAt: Date.now(),
+        };
+        setTravelerLocation(current);
+        setLocationStatus("live");
+        setTransportOrigin(position.coords.latitude.toFixed(5) + ", " + position.coords.longitude.toFixed(5));
+        setTransportLoading(false);
+        setTransportError("");
+      },
       () => { setTransportError("Location permission was not granted. Enter an address instead."); setTransportLoading(false); },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 },
     );
   }
 
@@ -269,7 +325,7 @@ export default function ParisNowApp() {
     fetch("/api/now/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scenario: active, ticketTime: "16:30", routeId: selectedRouteId, availableMinutes }),
+      body: JSON.stringify({ scenario: active, ticketTime: "16:30", routeId: selectedRouteId, availableMinutes, location: routeLocation() }),
       signal: controller.signal,
     })
       .then((response) => {
@@ -357,14 +413,14 @@ export default function ParisNowApp() {
 
       <section className={styles.journeyContext} aria-label="Your current travel context">
         <div><span>YOUR NEIGHBOURHOOD</span><strong>{selectedZone}</strong></div>
-        <div><span>TIME AVAILABLE</span><strong>{availableMinutes} min</strong></div>
+        <div><span>{locationStatus === "locating" ? "LOCATING" : locationStatus === "live" ? "LIVE LOCATION" : "TIME AVAILABLE"}</span><strong>{locationStatus === "locating" ? "Finding you…" : locationStatus === "live" ? `GPS · ±${Math.round(travelerLocation?.accuracy ?? 0)} m` : `${availableMinutes} min`}</strong></div>
         <button onClick={() => setAvailableMinutes((minutes) => minutes === 90 ? 60 : minutes === 60 ? 120 : 90)} aria-label="Change available time">Adjust</button>
       </section>
 
       <section id="now-route-section" className={styles.liveCard}>
         <div className={styles.liveTop}>
           <span><i className={active === "blocked" || active === "guardian" ? styles.alertDot : styles.liveDot} />{status}</span>
-          <span>15:04</span>
+          <span>{locationStatus === "live" ? "GPS LIVE" : locationStatus === "fallback" && LOCATION_AWARE_NEEDS.has(active) ? "ROUTE ANCHOR" : "15:04"}</span>
         </div>
         <div className={styles.progressTrack}>
           <span className={active === "blocked" || active === "guardian" ? styles.redProgress : ""} style={{ width: `${progress}%` }} />
@@ -429,9 +485,9 @@ export default function ParisNowApp() {
       <section className={styles.quickAccess} aria-label="Immediate travel needs">
         <div className={styles.quickHeading}><span>YOUR CONCIERGE, RIGHT NOW</span><h2>What do you need?</h2></div>
         <div className={styles.quickGrid}>
-          <button onClick={() => setActive("food")}><span>◈</span><strong>Find a table</strong><small>Places worth your time</small></button>
-          <button onClick={() => setActive("water")}><span>◉</span><strong>Water nearby</strong><small>A stop on your way</small></button>
-          <button onClick={() => setActive("restroom")}><span>◇</span><strong>Restroom</strong><small>Practical, close access</small></button>
+          <button onClick={() => activateNeed("food")}><span>◈</span><strong>Find a table</strong><small>Places worth your time</small></button>
+          <button onClick={() => activateNeed("water")}><span>◉</span><strong>Water nearby</strong><small>A stop on your way</small></button>
+          <button onClick={() => activateNeed("restroom")}><span>◇</span><strong>Restroom</strong><small>Practical, close access</small></button>
           <button onClick={() => openSection("guardian")}><span>✚</span><strong>Need help?</strong><small>Guardian is here</small></button>
         </div>
       </section>
@@ -443,7 +499,7 @@ export default function ParisNowApp() {
         </div>
         <div className={styles.needRail}>
           {needs.map((need) => (
-            <button key={need.id} className={active === need.id ? styles.activeNeed : ""} onClick={() => setActive(need.id)}>
+            <button key={need.id} className={active === need.id ? styles.activeNeed : ""} onClick={() => activateNeed(need.id)}>
               <span>{need.icon}</span>{need.label}
             </button>
           ))}
