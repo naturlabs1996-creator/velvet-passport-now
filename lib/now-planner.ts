@@ -12,6 +12,7 @@ export type PlannedNeed = {
   totalMinutes: number;
   withinMinutes?: number;
   deadlineProtected: boolean;
+  preferenceMatched?: boolean;
 };
 
 export type ConstraintPlan = {
@@ -49,11 +50,10 @@ function filterCuisine(choices: LiveNeedChoice[], cuisine?: string) {
     japonais: ["japanese", "sushi", "ramen", "japonais"],
   };
   const terms = aliases[wanted] ?? [wanted];
-  const matches = choices.filter((choice) => {
+  return choices.filter((choice) => {
     const haystack = normalize(`${choice.name} ${choice.detail}`);
     return terms.some((term) => haystack.includes(normalize(term)));
   });
-  return matches.length ? matches : choices;
 }
 
 function routeZone(routeId?: string) {
@@ -84,12 +84,13 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
       continue;
     }
 
-    let choices = await getLiveNeedChoices(zone, scenario, location, request.routeId);
-    if (need.type === "food") choices = filterCuisine(choices, need.cuisine);
+    const rawChoices = await getLiveNeedChoices(zone, scenario, location, request.routeId);
+    const choices = need.type === "food" ? filterCuisine(rawChoices, need.cuisine) : rawChoices;
+    const preferenceMatched = !need.cuisine || choices.length > 0;
     const usable = choices.filter((choice) => choice.openStatus !== "closed");
     const selected = usable[0] ?? choices[0] ?? null;
     const travelMinutes = selected?.travelMinutes ?? (selected ? Math.max(1, Math.ceil(selected.distanceMeters / 75)) : 0);
-    const service = serviceMinutes(need.type);
+    const service = selected || need.type !== "food" ? serviceMinutes(need.type) : 0;
     const totalMinutes = travelMinutes + service;
     elapsed += totalMinutes;
     const deadlineProtected = !need.withinMinutes || elapsed <= need.withinMinutes;
@@ -104,10 +105,15 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
       totalMinutes,
       withinMinutes: need.withinMinutes,
       deadlineProtected,
+      preferenceMatched,
     });
 
     if (selected) location = { lat: selected.lat, lon: selected.lon };
-    factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference`] : []));
+    if (need.cuisine && !preferenceMatched) {
+      factors.push(`${need.cuisine} cuisine unavailable — no substitute presented`);
+    } else {
+      factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference matched`] : []));
+    }
   }
 
   const totalCommittedMinutes = elapsed;
