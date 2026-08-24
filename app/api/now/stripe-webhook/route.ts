@@ -1,4 +1,4 @@
-import { recordRevenueEvent, verifyStripeWebhook } from "../../../../../lib/stripe-now";
+import { recordRevenueEvent, verifyStripeWebhook } from "../../../../lib/stripe-now";
 
 export const runtime = "nodejs";
 
