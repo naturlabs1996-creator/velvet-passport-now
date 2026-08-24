@@ -1,4 +1,4 @@
-import { createNowCheckoutSession, isNowPassPlan, isNowSalesChannel } from "../../../../../lib/stripe-now";
+import { createNowCheckoutSession, isNowPassPlan, isNowSalesChannel } from "../../../../lib/stripe-now";
 
 export const runtime = "nodejs";
 
