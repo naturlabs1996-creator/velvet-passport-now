@@ -1,6 +1,7 @@
 import type { NowScenario } from "./now-engine";
 
 export type NowNeedType = "food" | "pharmacy" | "water" | "restroom" | "sitdown" | "battery" | "medication" | "glucose";
+export type NowWeatherScenario = "route" | "rain" | "snow" | "heat" | "cold";
 
 export type NowNeedConstraint = {
   type: NowNeedType;
@@ -28,7 +29,7 @@ export type NowComposableRequest = {
     source?: "official" | "estimated";
   };
   weather?: {
-    scenario?: "route" | "rain" | "snow" | "heat" | "cold";
+    scenario?: NowWeatherScenario;
     automatic?: boolean;
   };
   disruptions?: {
@@ -110,7 +111,7 @@ export function normalizeNowRequest(input: Record<string, unknown>, legacyScenar
     },
     transport,
     weather: {
-      scenario: rawWeather && ["route", "rain", "snow", "heat", "cold"].includes(String(rawWeather.scenario)) ? rawWeather.scenario as NowComposableRequest["weather"]["scenario"] : undefined,
+      scenario: rawWeather && ["route", "rain", "snow", "heat", "cold"].includes(String(rawWeather.scenario)) ? rawWeather.scenario as NowWeatherScenario : undefined,
       automatic: rawWeather?.automatic !== false,
     },
     disruptions: {
