@@ -83,6 +83,17 @@ const emptyRoute: RouteView = {
 };
 
 const LOCATION_AWARE_NEEDS = new Set<Need>(["food", "pharmacy", "water", "restroom"]);
+const LOCATION_FRESH_MS = 2 * 60 * 1000;
+const LOCATION_REFRESH_MS = 2 * 60 * 1000;
+const LOCATION_MOVE_THRESHOLD_METERS = 120;
+
+function distanceMeters(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
+  const rad = (value: number) => value * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLon = rad(b.lon - a.lon);
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
 
 const needs: { id: Need; label: string; icon: string }[] = [
   { id: "rain", label: "It’s raining", icon: "☂" },
@@ -115,6 +126,7 @@ export default function ParisNowApp() {
   const [serverRoute, setServerRoute] = useState<RouteView | null>(null);
   const [travelerLocation, setTravelerLocation] = useState<TravelerLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
+  const [locationRevision, setLocationRevision] = useState(0);
   const [ticket, setTicket] = useState<TicketState>({
     venue: "Musée du Louvre",
     time: "16:30",
@@ -141,37 +153,61 @@ export default function ParisNowApp() {
     return travelerLocation ? { lat: travelerLocation.lat, lon: travelerLocation.lon } : undefined;
   }
 
-  function activateNeed(need: Need) {
-    if (!LOCATION_AWARE_NEEDS.has(need)) {
-      setActive(need);
-      return;
+  function commitTravelerLocation(current: TravelerLocation, recalculateOnMove: boolean) {
+    const moved = travelerLocation ? distanceMeters(travelerLocation, current) : Number.POSITIVE_INFINITY;
+    setTravelerLocation(current);
+    setLocationStatus("live");
+    if (recalculateOnMove && moved >= LOCATION_MOVE_THRESHOLD_METERS) {
+      setLocationRevision((revision) => revision + 1);
     }
+    return moved;
+  }
 
+  function requestTravelerLocation(options?: { recalculateOnMove?: boolean; onDone?: () => void; onFallback?: () => void }) {
     if (!navigator.geolocation) {
       setLocationStatus("fallback");
-      setActive(need);
+      options?.onFallback?.();
       return;
     }
 
     setLocationStatus("locating");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const current = {
+        const current: TravelerLocation = {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
           accuracy: position.coords.accuracy,
           capturedAt: Date.now(),
         };
-        setTravelerLocation(current);
-        setLocationStatus("live");
-        setActive(need);
+        commitTravelerLocation(current, options?.recalculateOnMove ?? false);
+        options?.onDone?.();
       },
       () => {
-        setLocationStatus("fallback");
-        setActive(need);
+        setLocationStatus(travelerLocation ? "live" : "fallback");
+        options?.onFallback?.();
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 },
     );
+  }
+
+  function activateNeed(need: Need) {
+    if (!LOCATION_AWARE_NEEDS.has(need)) {
+      setActive(need);
+      return;
+    }
+
+    const fresh = travelerLocation && Date.now() - travelerLocation.capturedAt < LOCATION_FRESH_MS;
+    if (fresh) {
+      setLocationStatus("live");
+      setActive(need);
+      return;
+    }
+
+    requestTravelerLocation({
+      recalculateOnMove: true,
+      onDone: () => setActive(need),
+      onFallback: () => setActive(need),
+    });
   }
 
   async function findTransport(mode: TransportMode = transportMode) {
@@ -191,7 +227,7 @@ export default function ParisNowApp() {
       setTransportResult(result);
       setTransportOrigin(result.origin);
     } catch (error) {
-      setTransportError(error instanceof Error ? error.message : "Unable to prepare transport options.");
+      setTransportError(error instanceof Error ? error.message : "Transport options unavailable");
     } finally { setTransportLoading(false); }
   }
 
@@ -266,14 +302,13 @@ export default function ParisNowApp() {
     setTransportLoading(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const current = {
+        const current: TravelerLocation = {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
           accuracy: position.coords.accuracy,
           capturedAt: Date.now(),
         };
-        setTravelerLocation(current);
-        setLocationStatus("live");
+        commitTravelerLocation(current, true);
         setTransportOrigin(position.coords.latitude.toFixed(5) + ", " + position.coords.longitude.toFixed(5));
         setTransportLoading(false);
         setTransportError("");
@@ -314,6 +349,16 @@ export default function ParisNowApp() {
   }, [passStatus.allowed]);
 
   useEffect(() => {
+    if (!LOCATION_AWARE_NEEDS.has(active) || locationStatus !== "live" || !travelerLocation) return;
+    const refresh = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - travelerLocation.capturedAt < LOCATION_FRESH_MS) return;
+      requestTravelerLocation({ recalculateOnMove: true });
+    }, LOCATION_REFRESH_MS);
+    return () => window.clearInterval(refresh);
+  }, [active, locationStatus, travelerLocation]);
+
+  useEffect(() => {
     setProgress(7);
     setRebuilding(true);
     const controller = new AbortController();
@@ -347,7 +392,7 @@ export default function ParisNowApp() {
       window.clearTimeout(rebuild);
       window.clearInterval(timer);
     };
-  }, [active, selectedRouteId, availableMinutes]);
+  }, [active, selectedRouteId, availableMinutes, locationRevision]);
 
   useEffect(() => {
     if (active !== "guardian") return;
