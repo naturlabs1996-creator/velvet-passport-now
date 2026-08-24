@@ -2,6 +2,7 @@ import { buildRoutePlan, buildIntegratedRoutePlan, isNowScenario, type RoutePlan
 import { getConfidentialRoutes } from "../../../../lib/confidential-routes";
 import { getPassAccess } from "../../../../lib/pass-access";
 import { getLiveNeedChoices, type LiveNeedScenario, type LiveNeedChoice } from "../../../../lib/live-needs";
+import { getRouteDisruptions, type RouteDisruption } from "../../../../lib/disruptions";
 
 export const runtime = "nodejs";
 
@@ -267,10 +268,39 @@ export async function POST(request: Request) {
   const routeBudget = transport ? Math.max(15, availableMinutes - Math.max(1, Math.round(transport.minutes))) : availableMinutes;
   const routeId = typeof input.routeId === "string" ? input.routeId : null;
   const confidential = routeId ? getConfidentialRoutes().find((route) => route.id === routeId) : undefined;
+  const exactLocation = locationFromInput(input.location);
+  let routeDisruptions: RouteDisruption[] = [];
+  let disruptionDegraded = false;
+  let autoBlockedStop: string | null = null;
+
+  if (confidential) {
+    const disruptionCheck = await getRouteDisruptions(confidential.stops.map((stop) => stop.name), exactLocation);
+    routeDisruptions = disruptionCheck.disruptions;
+    disruptionDegraded = disruptionCheck.degraded;
+    autoBlockedStop = disruptionCheck.blockedStop;
+  }
+
+  const explicitBlockedStop = typeof input.blockedStop === "string" ? input.blockedStop : undefined;
+  const autoBlocked = Boolean(autoBlockedStop);
+  const routeScenario = autoBlocked && (input.scenario === "route" || input.scenario === "rain" || input.scenario === "blocked")
+    ? "blocked"
+    : input.scenario;
   const selectedRoute = routeId
-    ? buildIntegratedRoutePlan(routeId, input.scenario, ticketTime, routeBudget, typeof input.blockedStop === "string" ? input.blockedStop : undefined)
+    ? buildIntegratedRoutePlan(routeId, routeScenario, ticketTime, routeBudget, explicitBlockedStop ?? autoBlockedStop ?? undefined)
     : null;
-  let plan = selectedRoute ?? buildRoutePlan(input.scenario, ticketTime);
+  let plan = selectedRoute ?? buildRoutePlan(routeScenario, ticketTime);
+  if (autoBlocked && routeDisruptions[0]) {
+    const issue = routeDisruptions.find((item) => item.severity === "blocked") ?? routeDisruptions[0];
+    plan = {
+      ...plan,
+      note: `${plan.note} NOW detected ${issue.label} on the active route from ${issue.source} and rebuilt the affected segment automatically.`,
+      calculation: {
+        ...plan.calculation,
+        generatedAt: new Date().toISOString(),
+        factors: [...plan.calculation.factors, "official disruption feed", "route corridor collision", "automatic blocked-stop substitution"],
+      },
+    };
+  }
   let liveNeedChoices: Awaited<ReturnType<typeof getLiveNeedChoices>> = [];
   let selectedLiveChoice: LiveNeedChoice | null = null;
   let manuallySelected = false;
@@ -284,7 +314,7 @@ export async function POST(request: Request) {
       routeId,
       Boolean(selectedRoute),
       routeBudget,
-      locationFromInput(input.location),
+      exactLocation,
       requestedChoice,
     );
     plan = live.plan;
@@ -297,6 +327,20 @@ export async function POST(request: Request) {
 
   return Response.json({
     ...plan,
+    disruptionProtection: routeId ? {
+      checked: true,
+      degraded: disruptionDegraded,
+      rerouted: autoBlocked,
+      blockedStop: autoBlockedStop,
+      issues: routeDisruptions.map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        label: item.label,
+        severity: item.severity,
+        distanceMeters: item.distanceMeters,
+        source: item.source,
+      })),
+    } : null,
     liveNeed: liveNeedChoices.length && selectedLiveChoice ? {
       scenario: input.scenario,
       choices: liveNeedChoices,
