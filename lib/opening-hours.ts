@@ -1,9 +1,10 @@
-export type OpenStatus = "open" | "closed" | "unknown";
+export type OpenStatus = "open" | "closing_soon" | "closed" | "unknown";
 
 export type OpeningEvaluation = {
   status: OpenStatus;
   label: string;
   openingHours?: string;
+  closesInMinutes?: number;
 };
 
 const DAY_INDEX: Record<string, number> = {
@@ -15,6 +16,8 @@ const DAY_INDEX: Record<string, number> = {
   Sa: 6,
   Su: 7,
 };
+
+const CLOSING_SOON_MINUTES = 30;
 
 function parisNowParts(now = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -64,10 +67,10 @@ function expandDays(expression: string): Set<number> | null {
   return result;
 }
 
-function ruleMatches(rule: string, day: number, minuteOfDay: number): boolean | null {
+function evaluateRule(rule: string, day: number, minuteOfDay: number): { matches: boolean; closesInMinutes?: number } | null {
   const normalized = rule.trim().replace(/\s+/g, " ");
   if (!normalized) return null;
-  if (/\boff\b|\bclosed\b/i.test(normalized)) return false;
+  if (/\boff\b|\bclosed\b/i.test(normalized)) return { matches: false };
 
   const match = normalized.match(/^((?:(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:-(?:Mo|Tu|We|Th|Fr|Sa|Su))?(?:,(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:-(?:Mo|Tu|We|Th|Fr|Sa|Su))?)*))\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
   if (!match) return null;
@@ -77,11 +80,14 @@ function ruleMatches(rule: string, day: number, minuteOfDay: number): boolean | 
   if (!days || start === null || end === null) return null;
 
   if (start <= end) {
-    return days.has(day) && minuteOfDay >= start && minuteOfDay < end;
+    const matches = days.has(day) && minuteOfDay >= start && minuteOfDay < end;
+    return matches ? { matches: true, closesInMinutes: end - minuteOfDay } : { matches: false };
   }
 
   const previousDay = day === 1 ? 7 : day - 1;
-  return (days.has(day) && minuteOfDay >= start) || (days.has(previousDay) && minuteOfDay < end);
+  if (days.has(day) && minuteOfDay >= start) return { matches: true, closesInMinutes: (24 * 60 - minuteOfDay) + end };
+  if (days.has(previousDay) && minuteOfDay < end) return { matches: true, closesInMinutes: end - minuteOfDay };
+  return { matches: false };
 }
 
 export function evaluateOpeningHours(openingHours?: string, now = new Date()): OpeningEvaluation {
@@ -93,22 +99,33 @@ export function evaluateOpeningHours(openingHours?: string, now = new Date()): O
   const rules = raw.split(";").map((rule) => rule.trim()).filter(Boolean);
   let understoodAny = false;
   for (const rule of rules) {
-    const result = ruleMatches(rule, day, minuteOfDay);
+    const result = evaluateRule(rule, day, minuteOfDay);
     if (result === null) continue;
     understoodAny = true;
-    if (result) return { status: "open", label: "Open now", openingHours: raw };
+    if (result.matches) {
+      const closesInMinutes = result.closesInMinutes;
+      if (typeof closesInMinutes === "number" && closesInMinutes <= CLOSING_SOON_MINUTES) {
+        return { status: "closing_soon", label: `Closing soon · ${closesInMinutes} min`, openingHours: raw, closesInMinutes };
+      }
+      return { status: "open", label: "Open now", openingHours: raw, closesInMinutes };
+    }
   }
 
   if (understoodAny) return { status: "closed", label: "Closed now", openingHours: raw };
   return { status: "unknown", label: "Hours not confirmed", openingHours: raw };
 }
 
-export function sortByOpenStatus<T extends { openStatus?: OpenStatus; distanceMeters: number }>(items: T[]) {
-  const rank: Record<OpenStatus, number> = { open: 0, unknown: 1, closed: 2 };
+export function sortByOpenStatus<T extends { openStatus?: OpenStatus; distanceMeters: number; closesInMinutes?: number }>(items: T[]) {
+  const rank: Record<OpenStatus, number> = { open: 0, unknown: 1, closing_soon: 2, closed: 3 };
   return [...items].sort((a, b) => {
     const aRank = rank[a.openStatus ?? "unknown"];
     const bRank = rank[b.openStatus ?? "unknown"];
     if (aRank !== bRank) return aRank - bRank;
+    if (a.openStatus === "open" && b.openStatus === "open") {
+      const aRemaining = a.closesInMinutes ?? Number.POSITIVE_INFINITY;
+      const bRemaining = b.closesInMinutes ?? Number.POSITIVE_INFINITY;
+      if (aRemaining !== bRemaining) return bRemaining - aRemaining;
+    }
     return a.distanceMeters - b.distanceMeters;
   });
 }
