@@ -21,9 +21,7 @@ async function stripe(path: string, init?: RequestInit): Promise<any> {
     signal: AbortSignal.timeout(10000),
   });
   const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || `Stripe request failed (${response.status})`);
-  }
+  if (!response.ok) throw new Error(payload?.error?.message || `Stripe request failed (${response.status})`);
   return payload;
 }
 
@@ -35,25 +33,16 @@ async function session(sessionId: string) {
 function validatePaidSession(value: any) {
   const meta = value?.metadata || {};
   const plan = meta.pass_duration;
-  if (meta.product_family !== "velvet_passport" || meta.product !== "paris_now" || !isNowPassPlan(plan)) {
-    return { valid: false as const, reason: "not-paris-now" };
-  }
-  if (value?.payment_status !== "paid" || value?.status !== "complete") {
-    return { valid: false as const, reason: "payment-not-complete" };
-  }
-  if (String(value?.currency || "").toLowerCase() !== "eur" || value?.amount_total !== EXPECTED_AMOUNTS[plan]) {
-    return { valid: false as const, reason: "amount-mismatch" };
-  }
+  if (meta.product_family !== "velvet_passport" || meta.product !== "paris_now" || !isNowPassPlan(plan)) return { valid: false as const, reason: "not-paris-now" };
+  if (value?.payment_status !== "paid" || value?.status !== "complete") return { valid: false as const, reason: "payment-not-complete" };
+  if (String(value?.currency || "").toLowerCase() !== "eur" || value?.amount_total !== EXPECTED_AMOUNTS[plan]) return { valid: false as const, reason: "amount-mismatch" };
   return { valid: true as const, plan };
 }
 
 async function updateIntent(paymentIntentId: string, params: URLSearchParams, idempotencyKey: string) {
   await stripe(`/payment_intents/${encodeURIComponent(paymentIntentId)}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Idempotency-Key": idempotencyKey,
-    },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "Idempotency-Key": idempotencyKey },
     body: params,
   });
 }
@@ -101,25 +90,24 @@ export async function verifyPurchasedNowSession(sessionId: string) {
   const checkout = await session(sessionId);
   const validated = validatePaidSession(checkout);
   if (!validated.valid) return validated;
-  return { valid: true as const, plan: validated.plan, sessionId: checkout.id };
+  return {
+    valid: true as const,
+    plan: validated.plan,
+    sessionId: checkout.id,
+    activationNonceHash: typeof checkout?.metadata?.activation_nonce_hash === "string" ? checkout.metadata.activation_nonce_hash : null,
+  };
 }
 
 export async function activateStripeNowSession(sessionId: string) {
   const checkout = await session(sessionId);
   const validated = validatePaidSession(checkout);
-  if (!validated.valid) {
-    return { ready: false as const, retryable: validated.reason === "payment-not-complete", reason: validated.reason };
-  }
+  if (!validated.valid) return { ready: false as const, retryable: validated.reason === "payment-not-complete", reason: validated.reason };
 
   const intent = typeof checkout.payment_intent === "object" ? checkout.payment_intent : null;
   const metadata = intent?.metadata || {};
   if (!intent?.id) return { ready: false as const, retryable: true, reason: "payment-intent-unavailable" };
-  if (metadata.product_family !== "velvet_passport" || metadata.product !== "paris_now") {
-    return { ready: false as const, retryable: false, reason: "payment-intent-metadata-mismatch" };
-  }
-  if (metadata.now_access_state !== "active") {
-    return { ready: false as const, retryable: metadata.now_access_state === "pending", reason: `access-${metadata.now_access_state || "unknown"}` };
-  }
+  if (metadata.product_family !== "velvet_passport" || metadata.product !== "paris_now") return { ready: false as const, retryable: false, reason: "payment-intent-metadata-mismatch" };
+  if (metadata.now_access_state !== "active") return { ready: false as const, retryable: metadata.now_access_state === "pending", reason: `access-${metadata.now_access_state || "unknown"}` };
 
   const previousActivatedAt = Number(metadata.now_activated_at);
   const previousExpiresAt = Number(metadata.now_expires_at);
