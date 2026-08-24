@@ -8,9 +8,13 @@ type ActivationState = "ready" | "pending" | "activating" | "retry" | "error";
 export default function ActivateParisNow() {
   const [state, setState] = useState<ActivationState>("pending");
   const [message, setMessage] = useState("Checking your Stripe purchase. Your Pass has not started.");
+  const [pendingSessionId, setPendingSessionId] = useState("");
 
   useEffect(() => {
-    const checkout = new URLSearchParams(window.location.search).get("checkout");
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    const sessionId = params.get("session_id") ?? "";
+    setPendingSessionId(sessionId);
     if (checkout === "ready") {
       setState("ready");
       setMessage("Your Pass is paid and waiting. The clock has not started.");
@@ -19,7 +23,7 @@ export default function ActivateParisNow() {
       setMessage("We could not verify this purchase in this browser. No Pass has been activated and no timer has started.");
     } else {
       setState("pending");
-      setMessage("Stripe is still confirming the purchase. Your Pass has not started. Refresh this page after confirmation completes.");
+      setMessage("Stripe is still confirming the purchase. Your Pass has not started. Check again after confirmation completes.");
     }
   }, []);
 
@@ -47,6 +51,15 @@ export default function ActivateParisNow() {
     }
   }
 
+  function recheckPurchase() {
+    if (!pendingSessionId) {
+      setState("error");
+      setMessage("The purchase reference is missing. No Pass has been activated.");
+      return;
+    }
+    window.location.assign(`/api/now/complete-checkout?session_id=${encodeURIComponent(pendingSessionId)}`);
+  }
+
   const confirmed = state === "ready" || state === "activating" || state === "retry";
 
   return (
@@ -68,7 +81,7 @@ export default function ActivateParisNow() {
         {state !== "error" && state !== "pending" && <button className={styles.activate} type="button" onClick={activate} disabled={state === "activating"}>
           {state === "activating" ? "ACTIVATING…" : state === "retry" ? "TRY ACTIVATION AGAIN →" : "ACTIVATE PARIS NOW →"}
         </button>}
-        {state === "pending" && <button className={styles.activate} type="button" onClick={() => window.location.reload()}>CHECK AGAIN →</button>}
+        {state === "pending" && <button className={styles.activate} type="button" onClick={recheckPurchase}>CHECK AGAIN →</button>}
         {state === "error" && <a className={styles.activate} href="/contact">CONTACT VELVET PASSPORT →</a>}
         <p className={styles.small}>Activation is final for the current Pass period. Your exact expiration is recorded securely when you confirm.</p>
       </section>
