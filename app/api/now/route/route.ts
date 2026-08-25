@@ -246,12 +246,35 @@ async function enrichLiveNeed(
   requestedChoice?: Record<string, unknown> | null,
 ) {
   const rawChoices = await getLiveNeedChoices(zone, scenario, exactLocation, routeId);
-  if (rawChoices.length === 0) return { plan, choices: [], selected: null as LiveNeedChoice | null, manuallySelected: false };
+  const service = serviceMinutes(scenario);
+  const safeRawChoices = rawChoices.filter((choice) => {
+    if (choice.openStatus === "closed") return false;
+    if (choice.openStatus === "closing_soon" && typeof choice.minutesOpenAfterArrival === "number") {
+      return choice.minutesOpenAfterArrival >= service;
+    }
+    return true;
+  });
+  if (safeRawChoices.length === 0) {
+    return {
+      plan: {
+        ...plan,
+        note: `${plan.note} NOW found no live ${scenario} option that can be used safely right now, so the current route remains unchanged.`,
+        calculation: {
+          ...plan.calculation,
+          generatedAt: new Date().toISOString(),
+          factors: [...plan.calculation.factors, "live-need safety filter", "closed venue rejection", "closing-before-completion rejection"],
+        },
+      },
+      choices: [],
+      selected: null as LiveNeedChoice | null,
+      manuallySelected: false,
+    };
+  }
 
   const targetIndex = selectedRoute && plan.stops.length > 1 ? 1 : Math.max(0, plan.stops.findIndex((stop) => stop.state === "current"));
   const choices = scenario === "food"
-    ? rawChoices.filter((choice) => recalculatePoiTiming(plan, choice, scenario, targetIndex, availableMinutes).ticket.protected)
-    : rawChoices;
+    ? safeRawChoices.filter((choice) => recalculatePoiTiming(plan, choice, scenario, targetIndex, availableMinutes).ticket.protected)
+    : safeRawChoices;
 
   if (choices.length === 0) {
     return {
