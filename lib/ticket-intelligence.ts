@@ -29,7 +29,9 @@ export type TicketRecommendation = TicketCandidate & {
   committedMinutes: number;
   remainingMinutes: number;
   ticketMarginProtected: boolean;
+  availabilityVerified: boolean;
   promotionVerified: boolean;
+  bookingReady: boolean;
   affiliateUrl: string;
   reason: string;
 };
@@ -37,12 +39,25 @@ export type TicketRecommendation = TicketCandidate & {
 const VIATOR_PID = process.env.VIATOR_PARTNER_ID || "P00314403";
 const VIATOR_MCID = process.env.VIATOR_MCID || "42383";
 const VIATOR_MEDIUM = process.env.VIATOR_MEDIUM || "link";
+const REQUIRED_SUGGESTIONS = 3;
 
 function safeCampaign(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "now-ticket";
 }
 
+export function isExactViatorProductUrl(productUrl: string) {
+  try {
+    const url = new URL(productUrl);
+    if (url.protocol !== "https:" || !/(^|\.)viator\.com$/i.test(url.hostname)) return false;
+    if (!/^\/tours\//i.test(url.pathname)) return false;
+    return /\/d\d+-[A-Za-z0-9]+\/?$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 export function buildViatorAffiliateUrl(productUrl: string, campaign: string) {
+  if (!isExactViatorProductUrl(productUrl)) throw new Error("Viator URL must point to an exact product page");
   const url = new URL(productUrl);
   url.searchParams.set("pid", VIATOR_PID);
   url.searchParams.set("mcid", VIATOR_MCID);
@@ -55,7 +70,7 @@ export function buildViatorAffiliateUrl(productUrl: string, campaign: string) {
 function freshEnough(iso?: string, maxAgeMinutes = 30) {
   if (!iso) return false;
   const ts = Date.parse(iso);
-  return Number.isFinite(ts) && Date.now() - ts <= maxAgeMinutes * 60_000;
+  return Number.isFinite(ts) && Date.now() - ts >= 0 && Date.now() - ts <= maxAgeMinutes * 60_000;
 }
 
 function timeToMinutes(value?: string) {
@@ -85,45 +100,52 @@ export function rankTicketCandidates(candidates: TicketCandidate[], context: Tic
     ? Math.min(totalBudget, Math.max(0, context.nextObligationInMinutes))
     : totalBudget;
 
-  return candidates.map((candidate) => {
-    const committedMinutes = Math.max(0, candidate.travelMinutes) + Math.max(1, candidate.durationMinutes);
-    const remainingMinutes = Math.max(0, hardWindow - elapsed - committedMinutes);
-    const availabilityVerified = freshEnough(candidate.availabilityVerifiedAt, 15);
-    const ticketMarginProtected = remainingMinutes >= protectedMargin;
-    const fit = ticketMarginProtected && (availabilityVerified || candidate.flexibleDeparture === true || !candidate.departureTime);
-    const promotionVerified = verifiedPromotion(candidate);
+  const ranked = candidates
+    .filter((candidate) => isExactViatorProductUrl(candidate.productUrl))
+    .map((candidate) => {
+      const committedMinutes = Math.max(0, candidate.travelMinutes) + Math.max(1, candidate.durationMinutes);
+      const remainingMinutes = Math.max(0, hardWindow - elapsed - committedMinutes);
+      const availabilityVerified = freshEnough(candidate.availabilityVerifiedAt, 15);
+      const ticketMarginProtected = remainingMinutes >= protectedMargin;
+      const bookingReady = availabilityVerified && ticketMarginProtected;
+      const fit = bookingReady;
+      const promotionVerified = verifiedPromotion(candidate);
 
-    let score = 100;
-    if (!ticketMarginProtected) score -= 70;
-    if (!availabilityVerified && candidate.departureTime) score -= 15;
-    if (candidate.flexibleDeparture) score += 8;
-    if (promotionVerified) score += 6;
-    score -= timingPenalty(candidate);
-    score -= Math.min(20, Math.round(committedMinutes / 20));
+      let score = 100;
+      if (!ticketMarginProtected) score -= 70;
+      if (!availabilityVerified) score -= 40;
+      if (candidate.flexibleDeparture) score += 8;
+      if (promotionVerified) score += 6;
+      score -= timingPenalty(candidate);
+      score -= Math.min(20, Math.round(committedMinutes / 20));
 
-    const reason = !ticketMarginProtected
-      ? "Does not fit without sacrificing the protected margin."
-      : availabilityVerified
-        ? "Fits the current schedule and availability was recently verified."
-        : candidate.flexibleDeparture
-          ? "Fits the current schedule and the experience is flexible enough to place safely."
-          : "Fits by time, but live availability still needs verification before NOW can recommend booking.";
+      const reason = !ticketMarginProtected
+        ? "Does not fit without sacrificing the protected margin."
+        : !availabilityVerified
+          ? "Schedule fit is possible, but live availability is not fresh enough to recommend booking."
+          : "Fits the current schedule and live availability was recently verified.";
 
-    return {
-      ...candidate,
-      fit,
-      score,
-      committedMinutes,
-      remainingMinutes,
-      ticketMarginProtected,
-      promotionVerified,
-      affiliateUrl: buildViatorAffiliateUrl(candidate.productUrl, `paris-now-${candidate.id}`),
-      reason,
-    };
-  })
-    .filter((candidate) => candidate.fit)
-    .sort((a, b) => b.score - a.score || a.committedMinutes - b.committedMinutes)
-    .slice(0, Math.max(1, Math.min(5, context.maxSuggestions ?? 3)));
+      return {
+        ...candidate,
+        fit,
+        score,
+        committedMinutes,
+        remainingMinutes,
+        ticketMarginProtected,
+        availabilityVerified,
+        promotionVerified,
+        bookingReady,
+        affiliateUrl: buildViatorAffiliateUrl(candidate.productUrl, `paris-now-${candidate.id}`),
+        reason,
+      };
+    })
+    .filter((candidate) => candidate.bookingReady)
+    .sort((a, b) => b.score - a.score || a.committedMinutes - b.committedMinutes);
+
+  const requested = Math.max(1, Math.min(5, context.maxSuggestions ?? REQUIRED_SUGGESTIONS));
+  const required = requested === REQUIRED_SUGGESTIONS ? REQUIRED_SUGGESTIONS : requested;
+  if (ranked.length < required) return [];
+  return ranked.slice(0, required);
 }
 
 export const PARIS_TICKET_SEEDS: TicketCandidate[] = [
