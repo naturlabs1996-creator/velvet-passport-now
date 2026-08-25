@@ -39,6 +39,18 @@ export async function POST(request: Request) {
     && provider.verifiedCount >= 3
     && recommendations.length === 3;
 
+  const priceChanges = provider.diagnostics.filter((item) => item.state === "price_changed");
+  const removedOffers = provider.diagnostics.filter((item) => ["product_unavailable", "slot_unavailable", "invalid_product"].includes(item.state));
+  const providerFailures = provider.diagnostics.filter((item) => item.state === "provider_unavailable");
+
+  const travelerFallback = bookingReady
+    ? null
+    : providerFailures.length
+      ? "Ticket availability is temporarily unavailable. Your current route remains valid; NOW will keep the no-ticket version rather than guess."
+      : removedOffers.length
+        ? "One or more ticketed options changed or disappeared. NOW removed them and kept your route safe without forcing a replacement."
+        : "NOW does not currently have three verified offers that fit safely, so it is keeping the no-ticket route instead of showing a partial selection.";
+
   return Response.json({
     status: bookingReady ? "ready" : "degraded",
     bookingReady,
@@ -47,9 +59,14 @@ export async function POST(request: Request) {
     decision: bookingReady
       ? "NOW found three Viator offers whose product status and today's availability schedule were freshly revalidated and that still fit the protected route margin."
       : "NOW cannot currently prove three safe, freshly revalidated Viator offers, so it is not presenting a partial or unverified booking selection.",
-    fallback: bookingReady
-      ? null
-      : "Keep the current route and use a no-ticket alternative until three offers can be revalidated.",
+    fallback: travelerFallback,
+    fallbackState: {
+      priceChanged: priceChanges.length > 0,
+      removedOfferCount: removedOffers.length,
+      providerUnavailable: providerFailures.length > 0,
+      routePreserved: true,
+      staleEvidenceDiscarded: provider.diagnostics.some((item) => item.state !== "verified"),
+    },
     providerHealth: {
       provider: "Viator Partner API",
       mode: provider.mode,
@@ -57,18 +74,19 @@ export async function POST(request: Request) {
       verifiedCount: provider.verifiedCount,
       degraded: provider.degraded,
       reason: provider.reason ?? null,
+      diagnostics: provider.diagnostics,
     },
     commercialModel: "Book only what fits; no bundle required.",
-    availabilityMode: "Single-product Viator availability schedules are fetched at request time; sandbox data never becomes traveler-facing booking readiness.",
+    availabilityMode: "Single-product Viator availability schedules are fetched at request time; stale evidence is discarded whenever revalidation fails.",
     finalCheckoutVerification: "Availability and price can still change after recommendation. Viator performs the final booking-side verification; if NOW later books directly, it must call /availability/check immediately before booking.",
-    priceMode: "Only provider-returned pricing may be surfaced. Promotions still require both current and original prices to be recently verified.",
+    priceMode: "If the provider price changes, NOW discards the previous amount immediately and surfaces only the freshly revalidated amount. A promotion is never inferred from a price change alone.",
     linkMode: "Exact Viator product deep links only; generic provider pages are rejected.",
     provider: "Viator Partner API + affiliate deep links",
     generatedAt: new Date().toISOString(),
   }, {
     headers: {
       "Cache-Control": "private, no-store",
-      "X-NOW-Ticket-Mode": bookingReady ? "schedule-revalidated-three" : "degraded-no-partial-offers",
+      "X-NOW-Ticket-Mode": bookingReady ? "schedule-revalidated-three" : "degraded-fallback-active",
       "X-NOW-Viator-Mode": provider.mode,
     },
   });
