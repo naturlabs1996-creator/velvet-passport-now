@@ -300,18 +300,26 @@ export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30"
     eyebrow: "CONFIDENTIAL ROUTE · " + route.zone.toUpperCase(),
     title: route.title,
     meta: effectiveDuration + " min · " + stops.length + " confidential stops" + (weather === "rain" ? " · sheltered options prepared" : "") + " · protected arrival",
-    note: blockedStop ? "An unavailable stop was replaced while preserving your protected arrival." : safeMinutes < route.durationMinutes ? "Your route was shortened to fit your available time and preserve your arrival margin." : weather === "rain" ? "Rain-aware route: covered alternatives and practical shelter are prepared." : "A discreet, carefully prepared route with alternatives for closures and blocked streets.",
+    note: blockedStop && weather === "rain"
+      ? "An unavailable stop was replaced and rain-aware sheltered alternatives were prepared while preserving your protected arrival."
+      : blockedStop
+        ? "An unavailable stop was replaced while preserving your protected arrival."
+        : safeMinutes < route.durationMinutes
+          ? "Your route was shortened to fit your available time and preserve your arrival margin."
+          : weather === "rain"
+            ? "Rain-aware route: covered alternatives and practical shelter are prepared."
+            : "A discreet, carefully prepared route with alternatives for closures and blocked streets.",
     stops,
     ticket: { venue: "Musée du Louvre", time: ticketTime, entrance: "Carrousel du Louvre", marginMinutes: Math.max(15, safeMinutes - effectiveDuration), protected: true },
     calculation: { mode: "prepared", generatedAt: new Date().toISOString(), factors: ["confidential neighbourhood", "available time", "walking time", "weather", "opening hours", "alternative access", "ticket margin"] },
   };
 }
 
-
 export function buildIntegratedRoutePlan(routeId: string, scenario: NowScenario, ticketTime = "16:30", availableMinutes = 90, blockedStop?: string): RoutePlan | null {
   if (scenario === "guardian") return buildRoutePlan("guardian", ticketTime);
   if (scenario === "route" || scenario === "blocked" || scenario === "rain") {
-    return buildConfidentialRoutePlan(routeId, ticketTime, scenario === "blocked" ? blockedStop || "__next__" : undefined, availableMinutes, scenario === "rain" ? "rain" : undefined);
+    const effectiveBlockedStop = scenario === "blocked" ? blockedStop || "__next__" : blockedStop;
+    return buildConfidentialRoutePlan(routeId, ticketTime, effectiveBlockedStop, availableMinutes, scenario === "rain" ? "rain" : undefined);
   }
 
   const base = buildConfidentialRoutePlan(routeId, ticketTime, undefined, availableMinutes);
