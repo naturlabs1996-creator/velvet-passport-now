@@ -1,5 +1,7 @@
 import { getConfidentialRoutes } from "./confidential-routes";
 import { getLiveNeedChoices, type LiveNeedChoice, type LiveNeedScenario } from "./live-needs";
+import { liveNeedsHealthSignal, walkingHealthSignal } from "./now-health-adapters";
+import { summarizeNowHealth, type NowHealthSignal, type NowHealthSnapshot } from "./now-health";
 import type { NowComposableRequest, NowNeedConstraint } from "./now-request";
 
 export type PlannedNeed = {
@@ -26,6 +28,7 @@ export type ConstraintPlan = {
   remainingMinutes: number;
   ticketProtected: boolean;
   factors: string[];
+  health: NowHealthSnapshot;
 };
 
 function normalize(value: string) {
@@ -78,6 +81,7 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
   let elapsed = transportMinutes;
   const needs: PlannedNeed[] = [];
   const factors = ["available time", "protected ticket margin"];
+  const healthSignals: NowHealthSignal[] = [];
   if (transportMinutes) factors.push("transport connection");
 
   for (const need of request.needs) {
@@ -90,6 +94,11 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     }
 
     const rawChoices = await getLiveNeedChoices(zone, scenario, location, request.routeId);
+    healthSignals.push(liveNeedsHealthSignal(scenario, rawChoices));
+    if (rawChoices.some((choice) => choice.walkingSource !== undefined || choice.walkingLive !== undefined)) {
+      healthSignals.push(walkingHealthSignal(rawChoices));
+    }
+
     const preferenceChoices = need.type === "food" ? filterCuisine(rawChoices, need.cuisine) : rawChoices;
     const preferenceMatched = !need.cuisine || preferenceChoices.length > 0;
     const openChoices = preferenceChoices.filter((choice) => choice.openStatus !== "closed");
@@ -153,5 +162,6 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     remainingMinutes,
     ticketProtected,
     factors,
+    health: summarizeNowHealth(healthSignals),
   };
 }
