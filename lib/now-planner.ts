@@ -101,13 +101,20 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
 
     const preferenceChoices = need.type === "food" ? filterCuisine(rawChoices, need.cuisine) : rawChoices;
     const preferenceMatched = !need.cuisine || preferenceChoices.length > 0;
-    const openChoices = preferenceChoices.filter((choice) => choice.openStatus !== "closed");
     const service = serviceMinutes(need.type);
+    const openChoices = preferenceChoices.filter((choice) => {
+      if (choice.openStatus === "closed") return false;
+      if (choice.openStatus === "closing_soon" && typeof choice.minutesOpenAfterArrival === "number") {
+        return choice.minutesOpenAfterArrival >= service;
+      }
+      return true;
+    });
 
     // Hard constraints outrank curation/source ranking. Every live need must still fit
     // the protected overall budget, and a stated deadline (for example pharmacy in
     // 30 minutes) must be satisfied by the selected choice rather than merely reported
-    // as missed after selection.
+    // as missed after selection. A venue predicted to close before the stop can finish
+    // is not selectable even when it is technically still open at request time.
     const feasibleChoices = openChoices.filter((choice) => {
       const arrivalAndService = elapsed + choiceTravelMinutes(choice) + service;
       const protectsOverallTime = arrivalAndService + protectedMarginMinutes <= request.availableMinutes;
