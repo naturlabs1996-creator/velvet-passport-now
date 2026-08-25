@@ -125,24 +125,27 @@ export function walkingHealthSignal(choices: Array<Pick<LiveNeedChoice, "walking
 
 export function liveNeedsHealthSignal(scenario: LiveNeedScenario, choices: LiveNeedChoice[]): NowHealthSignal {
   const minimum = scenario === "pharmacy" ? 2 : scenario === "food" ? 3 : 1;
-  const usable = choices.filter((choice) => choice.openStatus !== "closed" && choice.openStatus !== "closing_soon");
+  const confirmedOpen = choices.filter((choice) => choice.openStatus === "open");
+  const unknown = choices.filter((choice) => !choice.openStatus || choice.openStatus === "unknown");
 
-  if (usable.length >= minimum) {
+  if (confirmedOpen.length >= minimum) {
     return providerHealthySignal(
       "live_needs",
       "live_needs_healthy",
-      `NOW has enough usable ${scenario} choices for the current location.`,
-      { scenario, usable: usable.length, total: choices.length },
+      `NOW has enough confirmed-open ${scenario} choices for the current location.`,
+      { scenario, usable: confirmedOpen.length, unknown: unknown.length, total: choices.length },
     );
   }
 
   if (choices.length > 0) {
     return providerFailureSignal(
       "live_needs",
-      "live_needs_limited",
-      `NOW found ${scenario} options, but fewer than the preferred number are safely usable right now.`,
+      unknown.length > 0 ? "live_needs_hours_unconfirmed" : "live_needs_limited",
+      unknown.length > 0
+        ? `NOW found ${scenario} options, but too few have confirmed current opening hours.`
+        : `NOW found ${scenario} options, but fewer than the preferred number are safely usable right now.`,
       true,
-      { scenario, usable: usable.length, total: choices.length, minimum },
+      { scenario, usable: confirmedOpen.length, unknown: unknown.length, total: choices.length, minimum },
     );
   }
 
@@ -151,6 +154,6 @@ export function liveNeedsHealthSignal(scenario: LiveNeedScenario, choices: LiveN
     "live_needs_unavailable",
     `NOW could not verify a usable ${scenario} option for the current request.`,
     false,
-    { scenario, usable: 0, total: 0, minimum },
+    { scenario, usable: 0, unknown: 0, total: 0, minimum },
   );
 }
