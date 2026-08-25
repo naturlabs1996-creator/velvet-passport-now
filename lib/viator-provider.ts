@@ -30,10 +30,19 @@ export type ViatorProviderResult = {
   candidates: TicketCandidate[];
 };
 
+type BookingConfirmationSettings = {
+  bookingCutoffType?: "START_TIME" | "OPENING_TIME" | "CLOSING_TIME" | "FIXED_TIME" | string;
+  bookingCutoffInMinutes?: number;
+  bookingCutoffFixedTime?: string;
+  confirmationType?: string;
+};
+
 type ViatorProduct = {
   status?: string;
   productCode?: string;
   title?: string;
+  timeZone?: string;
+  bookingConfirmationSettings?: BookingConfirmationSettings;
 };
 
 type TimedEntry = {
@@ -133,8 +142,15 @@ function startMinutes(value?: string) {
   return hours * 60 + minutes;
 }
 
-function scheduleHasAvailabilityToday(schedule: AvailabilitySchedule) {
+function startTimeCutoffMinutes(settings?: BookingConfirmationSettings) {
+  if (settings?.bookingCutoffType !== "START_TIME") return 0;
+  const value = Number(settings.bookingCutoffInMinutes ?? 0);
+  return Number.isFinite(value) ? Math.max(0, Math.min(7 * 24 * 60, value)) : 0;
+}
+
+function scheduleHasAvailabilityToday(schedule: AvailabilitySchedule, cutoffMinutes = 0) {
   const today = parisDateParts();
+  const earliestBookableStart = today.minutesNow + cutoffMinutes;
   for (const item of schedule.bookableItems ?? []) {
     for (const season of item.seasons ?? []) {
       if (!dateWithinSeason(today.date, season)) continue;
@@ -150,7 +166,7 @@ function scheduleHasAvailabilityToday(schedule: AvailabilitySchedule) {
           if ((entry.unavailableDates ?? []).includes(today.date)) return false;
           const minutes = startMinutes(entry.startTime);
           if (minutes === null) return true;
-          return minutes >= today.minutesNow;
+          return minutes >= earliestBookableStart;
         });
         if (viableTimedEntry) return true;
       }
@@ -213,7 +229,8 @@ async function revalidateCandidate(
     }
 
     const hasBookableItems = Array.isArray(schedule.bookableItems) && schedule.bookableItems.length > 0;
-    const availableToday = hasBookableItems && scheduleHasAvailabilityToday(schedule);
+    const cutoffMinutes = startTimeCutoffMinutes(product.bookingConfirmationSettings);
+    const availableToday = hasBookableItems && scheduleHasAvailabilityToday(schedule, cutoffMinutes);
     if (!availableToday) {
       return {
         candidate: cleanCandidate,
@@ -221,7 +238,9 @@ async function revalidateCandidate(
           id: candidate.id,
           productCode,
           state: "slot_unavailable",
-          message: "The product is active, but no viable remaining slot is present today. NOW removed it from the current selection.",
+          message: cutoffMinutes > 0
+            ? "The product is active, but no remaining slot is safely beyond the supplier booking cutoff. NOW removed it from the current selection."
+            : "The product is active, but no viable remaining slot is present today. NOW removed it from the current selection.",
         },
       };
     }
