@@ -1,6 +1,24 @@
 import type { TicketCandidate } from "./ticket-intelligence";
 
 export type ViatorProviderMode = "production" | "sandbox" | "unconfigured";
+export type ViatorCandidateState =
+  | "verified"
+  | "product_unavailable"
+  | "slot_unavailable"
+  | "price_changed"
+  | "provider_unavailable"
+  | "invalid_product"
+  | "sandbox_only";
+
+export type ViatorCandidateDiagnostic = {
+  id: string;
+  state: ViatorCandidateState;
+  productCode?: string;
+  previousPrice?: number;
+  currentPrice?: number;
+  currency?: string;
+  message: string;
+};
 
 export type ViatorProviderResult = {
   mode: ViatorProviderMode;
@@ -8,6 +26,7 @@ export type ViatorProviderResult = {
   verifiedCount: number;
   degraded: boolean;
   reason?: string;
+  diagnostics: ViatorCandidateDiagnostic[];
   candidates: TicketCandidate[];
 };
 
@@ -70,6 +89,17 @@ function productCodeFromUrl(productUrl: string) {
   } catch {
     return null;
   }
+}
+
+function clearLiveEvidence(candidate: TicketCandidate): TicketCandidate {
+  const {
+    availabilityVerifiedAt: _availabilityVerifiedAt,
+    priceVerifiedAt: _priceVerifiedAt,
+    currentPrice: _currentPrice,
+    currency: _currency,
+    ...safe
+  } = candidate;
+  return safe;
 }
 
 function parisDateParts(now = new Date()) {
@@ -143,9 +173,25 @@ async function viatorGet<T>(base: string, path: string, apiKey: string): Promise
   return await response.json() as T;
 }
 
-async function revalidateCandidate(candidate: TicketCandidate, base: string, apiKey: string, mode: ViatorProviderMode) {
+async function revalidateCandidate(
+  candidate: TicketCandidate,
+  base: string,
+  apiKey: string,
+  mode: ViatorProviderMode,
+): Promise<{ candidate: TicketCandidate; diagnostic: ViatorCandidateDiagnostic }> {
   const productCode = productCodeFromUrl(candidate.productUrl);
-  if (!productCode) return candidate;
+  const cleanCandidate = clearLiveEvidence(candidate);
+
+  if (!productCode) {
+    return {
+      candidate: cleanCandidate,
+      diagnostic: {
+        id: candidate.id,
+        state: "invalid_product",
+        message: "The stored Viator URL no longer resolves to a valid exact product code.",
+      },
+    };
+  }
 
   try {
     const [product, schedule] = await Promise.all([
@@ -154,23 +200,87 @@ async function revalidateCandidate(candidate: TicketCandidate, base: string, api
     ]);
 
     const active = product.status === "ACTIVE" && product.productCode === productCode;
-    const hasBookableItems = Array.isArray(schedule.bookableItems) && schedule.bookableItems.length > 0;
-    const availableToday = active && hasBookableItems && scheduleHasAvailabilityToday(schedule);
-    const verifiedAt = new Date().toISOString();
+    if (!active) {
+      return {
+        candidate: cleanCandidate,
+        diagnostic: {
+          id: candidate.id,
+          productCode,
+          state: "product_unavailable",
+          message: "Viator no longer reports this product as active, so NOW removed it from booking suggestions.",
+        },
+      };
+    }
 
-    // Sandbox is diagnostic only. It must never make a traveler-facing offer booking-ready.
-    const productionVerified = mode === "production" && availableToday;
+    const hasBookableItems = Array.isArray(schedule.bookableItems) && schedule.bookableItems.length > 0;
+    const availableToday = hasBookableItems && scheduleHasAvailabilityToday(schedule);
+    if (!availableToday) {
+      return {
+        candidate: cleanCandidate,
+        diagnostic: {
+          id: candidate.id,
+          productCode,
+          state: "slot_unavailable",
+          message: "The product is active, but no viable remaining slot is present today. NOW removed it from the current selection.",
+        },
+      };
+    }
+
+    const verifiedAt = new Date().toISOString();
+    const providerPrice = typeof schedule.summary?.fromPrice === "number" ? schedule.summary.fromPrice : undefined;
+    const providerCurrency = typeof schedule.currency === "string" ? schedule.currency : undefined;
+    const priceChanged = typeof candidate.currentPrice === "number"
+      && typeof providerPrice === "number"
+      && Math.abs(candidate.currentPrice - providerPrice) > 0.009;
+
+    if (mode !== "production") {
+      return {
+        candidate: cleanCandidate,
+        diagnostic: {
+          id: candidate.id,
+          productCode,
+          state: "sandbox_only",
+          currentPrice: providerPrice,
+          currency: providerCurrency,
+          message: "Viator Sandbox returned data, but sandbox evidence never becomes traveler-facing booking readiness.",
+        },
+      };
+    }
+
+    const refreshed: TicketCandidate = {
+      ...cleanCandidate,
+      title: typeof product.title === "string" && product.title.trim() ? product.title.trim() : candidate.title,
+      availabilityVerifiedAt: verifiedAt,
+      currentPrice: providerPrice,
+      currency: providerCurrency,
+      priceVerifiedAt: providerPrice !== undefined ? verifiedAt : undefined,
+    };
 
     return {
-      ...candidate,
-      title: typeof product.title === "string" && product.title.trim() ? product.title.trim() : candidate.title,
-      availabilityVerifiedAt: productionVerified ? verifiedAt : undefined,
-      currentPrice: productionVerified && typeof schedule.summary?.fromPrice === "number" ? schedule.summary.fromPrice : undefined,
-      currency: productionVerified && typeof schedule.currency === "string" ? schedule.currency : undefined,
-      priceVerifiedAt: productionVerified && typeof schedule.summary?.fromPrice === "number" ? verifiedAt : undefined,
-    } satisfies TicketCandidate;
-  } catch {
-    return candidate;
+      candidate: refreshed,
+      diagnostic: {
+        id: candidate.id,
+        productCode,
+        state: priceChanged ? "price_changed" : "verified",
+        previousPrice: priceChanged ? candidate.currentPrice : undefined,
+        currentPrice: providerPrice,
+        currency: providerCurrency,
+        message: priceChanged
+          ? "The live Viator price changed. NOW discarded the old price and will show only the freshly revalidated amount."
+          : "Product, same-day availability and current provider pricing were freshly revalidated.",
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Viator request failed";
+    return {
+      candidate: cleanCandidate,
+      diagnostic: {
+        id: candidate.id,
+        productCode,
+        state: "provider_unavailable",
+        message: `${message}. NOW removed stale booking evidence and kept the route usable without this offer.`,
+      },
+    };
   }
 }
 
@@ -180,18 +290,30 @@ export async function revalidateViatorCandidates(candidates: TicketCandidate[]):
   const base = baseUrl(mode);
 
   if (!apiKey || !base) {
+    const diagnostics = candidates.map<ViatorCandidateDiagnostic>((candidate) => ({
+      id: candidate.id,
+      state: "provider_unavailable",
+      message: "Viator live verification is not configured. NOW will not expose stale or assumed booking availability.",
+    }));
     return {
       mode,
       configured: false,
       verifiedCount: 0,
       degraded: true,
       reason: "Viator API is not configured for live verification.",
-      candidates,
+      diagnostics,
+      candidates: candidates.map(clearLiveEvidence),
     };
   }
 
-  const refreshed = await Promise.all(candidates.map((candidate) => revalidateCandidate(candidate, base, apiKey, mode)));
-  const verifiedCount = refreshed.filter((candidate) => Boolean(candidate.availabilityVerifiedAt)).length;
+  const results = await Promise.all(candidates.map((candidate) => revalidateCandidate(candidate, base, apiKey, mode)));
+  const refreshed = results.map((result) => result.candidate);
+  const diagnostics = results.map((result) => result.diagnostic);
+  const verifiedCount = diagnostics.filter((diagnostic) => diagnostic.state === "verified" || diagnostic.state === "price_changed").length;
+
+  const unavailableCount = diagnostics.filter((diagnostic) =>
+    ["product_unavailable", "slot_unavailable", "provider_unavailable", "invalid_product", "sandbox_only"].includes(diagnostic.state)
+  ).length;
 
   return {
     mode,
@@ -199,10 +321,11 @@ export async function revalidateViatorCandidates(candidates: TicketCandidate[]):
     verifiedCount,
     degraded: mode !== "production" || verifiedCount < 3,
     reason: mode !== "production"
-      ? "Viator Sandbox is available for testing, but sandbox responses are never treated as live booking availability."
+      ? "Viator Sandbox is diagnostic only and cannot make offers booking-ready."
       : verifiedCount < 3
-        ? "Fewer than three offers passed live Viator verification."
+        ? `${unavailableCount} prepared offer(s) failed live revalidation; fewer than three remain safe to show.`
         : undefined,
+    diagnostics,
     candidates: refreshed,
   };
 }
