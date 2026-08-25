@@ -1,7 +1,7 @@
 import { isNowPassPlan, planDurationMs } from "./stripe-now";
 
 const EXPECTED_AMOUNTS = { "72h": 1490, "7d": 2290 } as const;
-const cache = new Map<string, { active: boolean; checkedAt: number }>();
+const cache = new Map<string, { active: boolean; checkedAt: number; expiresAt?: number }>();
 const CACHE_MS = 2 * 60 * 1000;
 
 function secret() {
@@ -111,8 +111,16 @@ export async function activateStripeNowSession(sessionId: string) {
 
   const previousActivatedAt = Number(metadata.now_activated_at);
   const previousExpiresAt = Number(metadata.now_expires_at);
-  if (Number.isFinite(previousActivatedAt) && Number.isFinite(previousExpiresAt) && previousExpiresAt > previousActivatedAt) {
+  if (
+    Number.isFinite(previousActivatedAt)
+    && Number.isFinite(previousExpiresAt)
+    && previousExpiresAt > previousActivatedAt
+    && previousExpiresAt > Date.now()
+  ) {
     return { ready: true as const, sessionId: checkout.id, plan: validated.plan, activatedAt: previousActivatedAt, expiresAt: previousExpiresAt };
+  }
+  if (Number.isFinite(previousExpiresAt) && previousExpiresAt <= Date.now()) {
+    return { ready: false as const, retryable: false, reason: "access-expired" };
   }
 
   const activatedAt = Date.now();
@@ -127,12 +135,29 @@ export async function activateStripeNowSession(sessionId: string) {
 }
 
 export async function isStripePassEntitlementActive(sessionId: string) {
+  const now = Date.now();
   const cached = cache.get(sessionId);
-  if (cached && Date.now() - cached.checkedAt < CACHE_MS) return cached.active;
+  if (
+    cached
+    && now - cached.checkedAt < CACHE_MS
+    && (!cached.active || (typeof cached.expiresAt === "number" && cached.expiresAt > now))
+  ) {
+    return cached.active;
+  }
+
   const checkout = await session(sessionId);
   const validated = validatePaidSession(checkout);
   const intent = typeof checkout.payment_intent === "object" ? checkout.payment_intent : null;
-  const active = Boolean(validated.valid && intent?.metadata?.now_access_state === "active");
-  cache.set(sessionId, { active, checkedAt: Date.now() });
+  const activatedAt = Number(intent?.metadata?.now_activated_at);
+  const expiresAt = Number(intent?.metadata?.now_expires_at);
+  const active = Boolean(
+    validated.valid
+    && intent?.metadata?.now_access_state === "active"
+    && Number.isFinite(activatedAt)
+    && Number.isFinite(expiresAt)
+    && expiresAt > activatedAt
+    && expiresAt > now
+  );
+  cache.set(sessionId, { active, checkedAt: now, expiresAt: Number.isFinite(expiresAt) ? expiresAt : undefined });
   return active;
 }
