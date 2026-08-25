@@ -24,6 +24,23 @@ const PARIS_REFERENCE = { lat: 48.8566, lon: 2.3522 };
 const WALK_REFERENCE = { lat: 48.8606, lon: 2.3376 };
 const LEVEL_WEIGHT: Record<NowHealthLevel, number> = { green: 0, amber: 1, red: 2 };
 
+async function isolatedSignal(
+  component: NowHealthComponent,
+  fallbackAvailable: boolean,
+  code: string,
+  message: string,
+  probe: () => Promise<NowHealthSignal>,
+): Promise<NowHealthSignal> {
+  try {
+    return await probe();
+  } catch (error) {
+    console.error(`NOW health probe failed: ${component}`, error);
+    return providerFailureSignal(component, code, message, fallbackAvailable, {
+      probeException: true,
+    });
+  }
+}
+
 async function transportProbe(): Promise<NowHealthSignal> {
   const token = process.env.IDFM_PRIM_API_KEY || process.env.PRIM_API_KEY;
   if (!token) {
@@ -190,34 +207,76 @@ export type GlobalNowHealth = NowHealthSnapshot & {
 };
 
 export async function runGlobalNowHealth(): Promise<GlobalNowHealth> {
-  const [weather, rainAhead, walking, pharmacyChoices, foodChoices, tickets, transport, disruptions, commerce] = await Promise.all([
-    getWeatherIntelligence(PARIS_REFERENCE),
-    getRainAhead(PARIS_REFERENCE),
-    getWalkingRoute(PARIS_REFERENCE, WALK_REFERENCE),
-    getLiveNeedChoices("Louvre & Opéra", "pharmacy", PARIS_REFERENCE),
-    getLiveNeedChoices("Louvre & Opéra", "food", PARIS_REFERENCE),
-    revalidateViatorCandidates(PARIS_TICKET_SEEDS),
-    transportProbe(),
-    disruptionProbe(),
-    commerceProbe(),
+  const probes = await Promise.all([
+    isolatedSignal(
+      "weather",
+      true,
+      "weather_probe_exception",
+      "Weather health probing failed unexpectedly; NOW must stay weather-neutral until verification recovers.",
+      async () => weatherHealthSignal(await getWeatherIntelligence(PARIS_REFERENCE)),
+    ),
+    isolatedSignal(
+      "rain_ahead",
+      true,
+      "rain_ahead_probe_exception",
+      "Rain Ahead health probing failed unexpectedly; proactive rain claims are suppressed.",
+      async () => rainAheadHealthSignal(await getRainAhead(PARIS_REFERENCE)),
+    ),
+    isolatedSignal(
+      "walking_routing",
+      true,
+      "walking_probe_exception",
+      "Walking routing health probing failed unexpectedly; deterministic walking estimates remain available.",
+      async () => {
+        const walking = await getWalkingRoute(PARIS_REFERENCE, WALK_REFERENCE);
+        return walkingHealthSignal([{ walkingSource: walking.source, walkingLive: walking.live }]);
+      },
+    ),
+    isolatedSignal(
+      "live_needs",
+      false,
+      "pharmacy_probe_exception",
+      "Pharmacy health probing failed unexpectedly; NOW cannot claim a verified pharmacy choice from this probe.",
+      async () => liveNeedsHealthSignal("pharmacy", await getLiveNeedChoices("Louvre & Opéra", "pharmacy", PARIS_REFERENCE)),
+    ),
+    isolatedSignal(
+      "live_needs",
+      true,
+      "food_probe_exception",
+      "Food health probing failed unexpectedly; the current route remains usable without adding a meal stop.",
+      async () => liveNeedsHealthSignal("food", await getLiveNeedChoices("Louvre & Opéra", "food", PARIS_REFERENCE)),
+    ),
+    isolatedSignal(
+      "ticket_intelligence",
+      true,
+      "ticket_probe_exception",
+      "Ticket health probing failed unexpectedly; NOW continues without exposing unverified offers.",
+      async () => ticketSignal(await revalidateViatorCandidates(PARIS_TICKET_SEEDS)),
+    ),
+    isolatedSignal(
+      "transport",
+      true,
+      "transport_probe_exception",
+      "Transport health probing failed unexpectedly; labelled estimates remain the fallback.",
+      transportProbe,
+    ),
+    isolatedSignal(
+      "disruptions",
+      true,
+      "disruptions_probe_exception",
+      "Disruption health probing failed unexpectedly; NOW must avoid claiming that the route is clear.",
+      disruptionProbe,
+    ),
+    isolatedSignal(
+      "commerce",
+      false,
+      "commerce_probe_exception",
+      "Commerce health probing failed unexpectedly; new purchases must not be assumed available.",
+      commerceProbe,
+    ),
   ]);
 
-  const signals: NowHealthSignal[] = [
-    weatherHealthSignal(weather),
-    rainAheadHealthSignal(rainAhead),
-    walkingHealthSignal([{
-      walkingSource: walking.source,
-      walkingLive: walking.live,
-    }]),
-    liveNeedsHealthSignal("pharmacy", pharmacyChoices),
-    liveNeedsHealthSignal("food", foodChoices),
-    ticketSignal(tickets),
-    transport,
-    disruptions,
-    commerce,
-    passAccessProbe(),
-  ];
-
+  const signals: NowHealthSignal[] = [...probes, passAccessProbe()];
   const snapshot = summarizeNowHealth(signals);
   const components = componentRollup(signals);
   return {
