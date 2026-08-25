@@ -13,6 +13,7 @@ export type PlannedNeed = {
   withinMinutes?: number;
   deadlineProtected: boolean;
   preferenceMatched?: boolean;
+  timeFeasible?: boolean;
 };
 
 export type ConstraintPlan = {
@@ -36,6 +37,10 @@ function serviceMinutes(type: NowNeedConstraint["type"]) {
   if (type === "pharmacy") return 10;
   if (type === "water" || type === "restroom" || type === "sitdown") return 8;
   return 5;
+}
+
+function choiceTravelMinutes(choice: LiveNeedChoice) {
+  return choice.travelMinutes ?? Math.max(1, Math.ceil(choice.distanceMeters / 75));
 }
 
 function filterCuisine(choices: LiveNeedChoice[], cuisine?: string) {
@@ -85,13 +90,26 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     }
 
     const rawChoices = await getLiveNeedChoices(zone, scenario, location, request.routeId);
-    const choices = need.type === "food" ? filterCuisine(rawChoices, need.cuisine) : rawChoices;
-    const preferenceMatched = !need.cuisine || choices.length > 0;
-    const usable = choices.filter((choice) => choice.openStatus !== "closed");
-    const selected = usable[0] ?? choices[0] ?? null;
-    const travelMinutes = selected?.travelMinutes ?? (selected ? Math.max(1, Math.ceil(selected.distanceMeters / 75)) : 0);
-    const service = selected || need.type !== "food" ? serviceMinutes(need.type) : 0;
-    const totalMinutes = travelMinutes + service;
+    const preferenceChoices = need.type === "food" ? filterCuisine(rawChoices, need.cuisine) : rawChoices;
+    const preferenceMatched = !need.cuisine || preferenceChoices.length > 0;
+    const openChoices = preferenceChoices.filter((choice) => choice.openStatus !== "closed");
+    const service = serviceMinutes(need.type);
+
+    const feasibleChoices = need.type === "food"
+      ? openChoices.filter((choice) => {
+          const arrivalAndService = elapsed + choiceTravelMinutes(choice) + service;
+          const protectsOverallTime = arrivalAndService + protectedMarginMinutes <= request.availableMinutes;
+          const protectsNeedDeadline = !need.withinMinutes || arrivalAndService <= need.withinMinutes;
+          return protectsOverallTime && protectsNeedDeadline;
+        })
+      : openChoices;
+
+    const timeFeasible = need.type !== "food" || feasibleChoices.length > 0;
+    const selectableChoices = need.type === "food" ? feasibleChoices : openChoices;
+    const selected = selectableChoices[0] ?? (need.type === "food" ? null : preferenceChoices[0] ?? null);
+    const travelMinutes = selected ? choiceTravelMinutes(selected) : 0;
+    const effectiveService = selected || need.type !== "food" ? service : 0;
+    const totalMinutes = travelMinutes + effectiveService;
     elapsed += totalMinutes;
     const deadlineProtected = !need.withinMinutes || elapsed <= need.withinMinutes;
 
@@ -99,18 +117,21 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
       type: need.type,
       cuisine: need.cuisine,
       selected,
-      choices: choices.slice(0, need.type === "food" ? 3 : 5),
+      choices: selectableChoices.slice(0, need.type === "food" ? 3 : 5),
       travelMinutes,
-      serviceMinutes: service,
+      serviceMinutes: effectiveService,
       totalMinutes,
       withinMinutes: need.withinMinutes,
       deadlineProtected,
       preferenceMatched,
+      timeFeasible,
     });
 
     if (selected) location = { lat: selected.lat, lon: selected.lon };
     if (need.cuisine && !preferenceMatched) {
       factors.push(`${need.cuisine} cuisine unavailable — no substitute presented`);
+    } else if (need.type === "food" && !timeFeasible) {
+      factors.push(`${need.cuisine ? `${need.cuisine} ` : ""}food options do not fit the protected time budget`);
     } else {
       factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference matched`] : []));
     }
@@ -118,7 +139,9 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
 
   const totalCommittedMinutes = elapsed;
   const remainingMinutes = Math.max(0, request.availableMinutes - totalCommittedMinutes);
-  const ticketProtected = remainingMinutes >= protectedMarginMinutes && needs.every((need) => need.deadlineProtected);
+  const ticketProtected = remainingMinutes >= protectedMarginMinutes
+    && needs.every((need) => need.deadlineProtected)
+    && needs.every((need) => need.timeFeasible !== false);
 
   return {
     routeId: request.routeId,
