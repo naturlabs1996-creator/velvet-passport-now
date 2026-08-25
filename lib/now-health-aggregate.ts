@@ -14,12 +14,15 @@ import {
   providerFailureSignal,
   providerHealthySignal,
   summarizeNowHealth,
+  type NowHealthComponent,
+  type NowHealthLevel,
   type NowHealthSignal,
   type NowHealthSnapshot,
 } from "./now-health";
 
 const PARIS_REFERENCE = { lat: 48.8566, lon: 2.3522 };
 const WALK_REFERENCE = { lat: 48.8606, lon: 2.3376 };
+const LEVEL_WEIGHT: Record<NowHealthLevel, number> = { green: 0, amber: 1, red: 2 };
 
 async function transportProbe(): Promise<NowHealthSignal> {
   const token = process.env.IDFM_PRIM_API_KEY || process.env.PRIM_API_KEY;
@@ -147,10 +150,43 @@ function ticketSignal(provider: Awaited<ReturnType<typeof revalidateViatorCandid
   );
 }
 
+export type GlobalHealthComponent = {
+  component: NowHealthComponent;
+  status: NowHealthLevel;
+  degraded: boolean;
+  fallbackActive: boolean;
+  signalCount: number;
+  primaryCode: string;
+  primaryMessage: string;
+};
+
+function componentRollup(signals: NowHealthSignal[]): GlobalHealthComponent[] {
+  const groups = new Map<NowHealthComponent, NowHealthSignal[]>();
+  for (const signal of signals) {
+    const existing = groups.get(signal.component) ?? [];
+    existing.push(signal);
+    groups.set(signal.component, existing);
+  }
+
+  return [...groups.entries()].map(([component, componentSignals]) => {
+    const primary = [...componentSignals].sort((a, b) => LEVEL_WEIGHT[b.level] - LEVEL_WEIGHT[a.level])[0];
+    return {
+      component,
+      status: primary.level,
+      degraded: componentSignals.some((signal) => signal.level !== "green"),
+      fallbackActive: componentSignals.some((signal) => Boolean(signal.fallbackActive)),
+      signalCount: componentSignals.length,
+      primaryCode: primary.code,
+      primaryMessage: primary.message,
+    };
+  }).sort((a, b) => LEVEL_WEIGHT[b.status] - LEVEL_WEIGHT[a.status] || a.component.localeCompare(b.component));
+}
+
 export type GlobalNowHealth = NowHealthSnapshot & {
   scope: "paris-now";
   probeType: "deep";
   componentCount: number;
+  components: GlobalHealthComponent[];
 };
 
 export async function runGlobalNowHealth(): Promise<GlobalNowHealth> {
@@ -183,10 +219,12 @@ export async function runGlobalNowHealth(): Promise<GlobalNowHealth> {
   ];
 
   const snapshot = summarizeNowHealth(signals);
+  const components = componentRollup(signals);
   return {
     ...snapshot,
     scope: "paris-now",
     probeType: "deep",
-    componentCount: signals.length,
+    componentCount: components.length,
+    components,
   };
 }
