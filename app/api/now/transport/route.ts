@@ -1,4 +1,6 @@
 import { getPassAccess } from "../../../../lib/pass-access";
+import { transportHealthSignal } from "../../../../lib/now-health-adapters";
+import { summarizeNowHealth } from "../../../../lib/now-health";
 
 export const runtime = "nodejs";
 
@@ -284,18 +286,22 @@ export async function POST(request: Request) {
     return { id, label: mode.label, minutes, detail, source, transfers };
   }).sort((a, b) => a.minutes - b.minutes);
 
+  const provider = {
+    name: "Île-de-France Mobilités · PRIM",
+    connected: Boolean(token),
+    live: Boolean(liveJourney),
+    issue: providerIssue,
+  };
+  const health = summarizeNowHealth([transportHealthSignal(provider)]);
+
   return Response.json({
     origin,
     destination,
     originCoordinates: resolvedOrigin?.coordinates ?? null,
     destinationCoordinates: resolvedDestination?.coordinates ?? null,
     options,
-    provider: {
-      name: "Île-de-France Mobilités · PRIM",
-      connected: Boolean(token),
-      live: Boolean(liveJourney),
-      issue: providerIssue,
-    },
+    provider,
+    health,
     geocoding: { source: "Base Adresse Nationale", originResolved: Boolean(resolvedOrigin), destinationResolved: Boolean(resolvedDestination) },
     disclaimer: liveJourney
       ? "Public transport data supplied by Île-de-France Mobilités. Walking and taxi times remain estimates."
