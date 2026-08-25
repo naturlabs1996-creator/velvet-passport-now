@@ -104,23 +104,25 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     const openChoices = preferenceChoices.filter((choice) => choice.openStatus !== "closed");
     const service = serviceMinutes(need.type);
 
-    const feasibleChoices = need.type === "food"
-      ? openChoices.filter((choice) => {
-          const arrivalAndService = elapsed + choiceTravelMinutes(choice) + service;
-          const protectsOverallTime = arrivalAndService + protectedMarginMinutes <= request.availableMinutes;
-          const protectsNeedDeadline = !need.withinMinutes || arrivalAndService <= need.withinMinutes;
-          return protectsOverallTime && protectsNeedDeadline;
-        })
-      : openChoices;
+    // Hard constraints outrank curation/source ranking. Every live need must still fit
+    // the protected overall budget, and a stated deadline (for example pharmacy in
+    // 30 minutes) must be satisfied by the selected choice rather than merely reported
+    // as missed after selection.
+    const feasibleChoices = openChoices.filter((choice) => {
+      const arrivalAndService = elapsed + choiceTravelMinutes(choice) + service;
+      const protectsOverallTime = arrivalAndService + protectedMarginMinutes <= request.availableMinutes;
+      const protectsNeedDeadline = !need.withinMinutes || arrivalAndService <= need.withinMinutes;
+      return protectsOverallTime && protectsNeedDeadline;
+    });
 
-    const timeFeasible = need.type !== "food" || feasibleChoices.length > 0;
-    const selectableChoices = need.type === "food" ? feasibleChoices : openChoices;
-    const selected = selectableChoices[0] ?? (need.type === "food" ? null : preferenceChoices[0] ?? null);
+    const timeFeasible = feasibleChoices.length > 0;
+    const selectableChoices = feasibleChoices;
+    const selected = selectableChoices[0] ?? null;
     const travelMinutes = selected ? choiceTravelMinutes(selected) : 0;
-    const effectiveService = selected || need.type !== "food" ? service : 0;
+    const effectiveService = selected ? service : 0;
     const totalMinutes = travelMinutes + effectiveService;
     elapsed += totalMinutes;
-    const deadlineProtected = !need.withinMinutes || elapsed <= need.withinMinutes;
+    const deadlineProtected = !need.withinMinutes || (selected !== null && elapsed <= need.withinMinutes);
 
     needs.push({
       type: need.type,
@@ -139,10 +141,10 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     if (selected) location = { lat: selected.lat, lon: selected.lon };
     if (need.cuisine && !preferenceMatched) {
       factors.push(`${need.cuisine} cuisine unavailable — no substitute presented`);
-    } else if (need.type === "food" && !timeFeasible) {
-      factors.push(`${need.cuisine ? `${need.cuisine} ` : ""}food options do not fit the protected time budget`);
+    } else if (!timeFeasible) {
+      factors.push(`${need.cuisine ? `${need.cuisine} ` : ""}${need.type} options do not fit the protected time constraints — no unsafe substitution`);
     } else {
-      factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference matched`] : []));
+      factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference matched`] : []), ...(need.withinMinutes ? [`${need.type} deadline protected`] : []));
     }
   }
 
