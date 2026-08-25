@@ -343,15 +343,18 @@ export async function POST(request: Request) {
   }
 
   const explicitBlockedStop = normalized.disruptions?.blockedStop;
+  const blockedStopForRoute = explicitBlockedStop ?? autoBlockedStop ?? undefined;
   const autoBlocked = Boolean(autoBlockedStop);
   const requestedWeather = normalized.weather?.scenario;
   const weatherScenario = requestedWeather === "rain" ? "rain" : legacyScenario;
-  const routeScenario = autoBlocked && (weatherScenario === "route" || weatherScenario === "rain" || weatherScenario === "blocked")
-    ? "blocked"
-    : weatherScenario;
+  const routeScenario = weatherScenario === "rain"
+    ? "rain"
+    : blockedStopForRoute && (weatherScenario === "route" || weatherScenario === "blocked")
+      ? "blocked"
+      : weatherScenario;
 
   const selectedRoute = routeId
-    ? buildIntegratedRoutePlan(routeId, routeScenario, ticketTime, routeBudget, explicitBlockedStop ?? autoBlockedStop ?? undefined)
+    ? buildIntegratedRoutePlan(routeId, routeScenario, ticketTime, routeBudget, blockedStopForRoute)
     : null;
   let plan = selectedRoute ?? buildRoutePlan(routeScenario, ticketTime);
 
