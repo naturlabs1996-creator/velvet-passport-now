@@ -45,6 +45,14 @@ const GATEWAY_MODEL_NAME: Partial<Record<WeatherModelId, string>> = {
   "ecmwf-ifs": "ecmwf_ifs",
 };
 
+const SCENARIO_PROTECTION_WEIGHT: Record<WeatherScenario, number> = {
+  route: 0,
+  cold: 2,
+  heat: 2,
+  rain: 3,
+  snow: 4,
+};
+
 function finite(value: unknown): number | undefined {
   const number = Number(value);
   return Number.isFinite(number) ? number : undefined;
@@ -174,13 +182,19 @@ function median(values: number[]) {
 function chooseScenario(readings: WeatherReading[], priority: WeatherModelId[]): { scenario: WeatherScenario; agreement: WeatherIntelligence["agreement"] } {
   if (!readings.length) return { scenario: "route", agreement: "none" };
   if (readings.length === 1) return { scenario: readings[0].scenario, agreement: "single-source" };
+
   const counts = new Map<WeatherScenario, number>();
   for (const reading of readings) counts.set(reading.scenario, (counts.get(reading.scenario) ?? 0) + 1);
   const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   if (ranked[0][1] > readings.length / 2) return { scenario: ranked[0][0], agreement: "high" };
-  const firstPriority = priority.find((candidate) => readings.some((reading) => reading.model === candidate));
-  const chosen = readings.find((reading) => reading.model === firstPriority)?.scenario ?? readings[0].scenario;
-  return { scenario: chosen, agreement: "mixed" };
+
+  const priorityIndex = new Map(priority.map((model, index) => [model, index]));
+  const conservative = [...readings].sort((a, b) => {
+    const protectionDelta = SCENARIO_PROTECTION_WEIGHT[b.scenario] - SCENARIO_PROTECTION_WEIGHT[a.scenario];
+    if (protectionDelta !== 0) return protectionDelta;
+    return (priorityIndex.get(a.model) ?? 999) - (priorityIndex.get(b.model) ?? 999);
+  })[0];
+  return { scenario: conservative?.scenario ?? "route", agreement: "mixed" };
 }
 
 export async function getWeatherIntelligence(point: Coordinates): Promise<WeatherIntelligence> {
