@@ -14,8 +14,6 @@ type ContextResponse = {
   rainAhead?: RainAheadState;
 };
 
-const FALLBACK_POINT = { lat: 48.8662, lon: 2.3371 };
-
 export default function RainAheadPrompt() {
   const [rain, setRain] = useState<RainAheadState | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -36,18 +34,17 @@ export default function RainAheadPrompt() {
         const context = await response.json() as ContextResponse;
         if (!cancelled) setRain(context.rainAhead ?? null);
       } catch {
-        // Weather Ahead must never block the core route.
+        // Rain Ahead is optional intelligence and must never block the core route.
       }
     };
 
-    if (!navigator.geolocation) {
-      void load(FALLBACK_POINT.lat, FALLBACK_POINT.lon);
-      return () => { cancelled = true; };
-    }
+    if (!navigator.geolocation) return () => { cancelled = true; };
 
     navigator.geolocation.getCurrentPosition(
       (position) => void load(position.coords.latitude, position.coords.longitude),
-      () => void load(FALLBACK_POINT.lat, FALLBACK_POINT.lon),
+      () => {
+        // No reliable location means no proactive rain claim.
+      },
       { enableHighAccuracy: false, timeout: 5000, maximumAge: 120000 },
     );
 
