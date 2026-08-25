@@ -45,8 +45,8 @@ export async function POST(request: Request) {
     requiredRecommendationCount: 3,
     recommendations: bookingReady ? recommendations : [],
     decision: bookingReady
-      ? "NOW found three Viator offers that were revalidated against today's live product and availability schedule and still fit the protected route margin."
-      : "NOW cannot currently prove three safe, live Viator offers, so it is not presenting a partial or unverified booking selection.",
+      ? "NOW found three Viator offers whose product status and today's availability schedule were freshly revalidated and that still fit the protected route margin."
+      : "NOW cannot currently prove three safe, freshly revalidated Viator offers, so it is not presenting a partial or unverified booking selection.",
     fallback: bookingReady
       ? null
       : "Keep the current route and use a no-ticket alternative until three offers can be revalidated.",
@@ -60,6 +60,7 @@ export async function POST(request: Request) {
     },
     commercialModel: "Book only what fits; no bundle required.",
     availabilityMode: "Single-product Viator availability schedules are fetched at request time; sandbox data never becomes traveler-facing booking readiness.",
+    finalCheckoutVerification: "Availability and price can still change after recommendation. Viator performs the final booking-side verification; if NOW later books directly, it must call /availability/check immediately before booking.",
     priceMode: "Only provider-returned pricing may be surfaced. Promotions still require both current and original prices to be recently verified.",
     linkMode: "Exact Viator product deep links only; generic provider pages are rejected.",
     provider: "Viator Partner API + affiliate deep links",
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
   }, {
     headers: {
       "Cache-Control": "private, no-store",
-      "X-NOW-Ticket-Mode": bookingReady ? "live-provider-verified-three" : "degraded-no-partial-offers",
+      "X-NOW-Ticket-Mode": bookingReady ? "schedule-revalidated-three" : "degraded-no-partial-offers",
       "X-NOW-Viator-Mode": provider.mode,
     },
   });
