@@ -247,8 +247,10 @@ async function enrichLiveNeed(
 ) {
   const rawChoices = await getLiveNeedChoices(zone, scenario, exactLocation, routeId);
   const service = serviceMinutes(scenario);
+  const commercialCritical = scenario === "food" || scenario === "pharmacy";
   const safeRawChoices = rawChoices.filter((choice) => {
     if (choice.openStatus === "closed") return false;
+    if (commercialCritical && (!choice.openStatus || choice.openStatus === "unknown")) return false;
     if (choice.openStatus === "closing_soon" && typeof choice.minutesOpenAfterArrival === "number") {
       return choice.minutesOpenAfterArrival >= service;
     }
@@ -258,11 +260,11 @@ async function enrichLiveNeed(
     return {
       plan: {
         ...plan,
-        note: `${plan.note} NOW found no live ${scenario} option that can be used safely right now, so the current route remains unchanged.`,
+        note: `${plan.note} NOW found no live ${scenario} option that can be safely verified right now, so the current route remains unchanged.`,
         calculation: {
           ...plan.calculation,
           generatedAt: new Date().toISOString(),
-          factors: [...plan.calculation.factors, "live-need safety filter", "closed venue rejection", "closing-before-completion rejection"],
+          factors: [...plan.calculation.factors, "live-need safety filter", "closed venue rejection", "unconfirmed commercial hours rejection", "closing-before-completion rejection"],
         },
       },
       choices: [],
