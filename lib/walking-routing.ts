@@ -10,7 +10,8 @@ export type WalkingRoute = {
 
 type CacheEntry = { expiresAt: number; value: WalkingRoute };
 const cache = new Map<string, CacheEntry>();
-const TTL_MS = 30 * 60 * 1000;
+const LIVE_TTL_MS = 30 * 60 * 1000;
+const FALLBACK_TTL_MS = 2 * 60 * 1000;
 const WALK_KMH = 4.7;
 
 function haversineMeters(a: Coordinates, b: Coordinates) {
@@ -33,7 +34,8 @@ function estimatedRoute(origin: Coordinates, destination: Coordinates): WalkingR
 }
 
 function remember(origin: Coordinates, destination: Coordinates, value: WalkingRoute) {
-  cache.set(key(origin, destination), { expiresAt: Date.now() + TTL_MS, value });
+  const ttl = value.live && value.source === "valhalla" ? LIVE_TTL_MS : FALLBACK_TTL_MS;
+  cache.set(key(origin, destination), { expiresAt: Date.now() + ttl, value });
   while (cache.size > 300) cache.delete(cache.keys().next().value as string);
 }
 
@@ -41,8 +43,10 @@ export async function getWalkingRoutes(origin: Coordinates, destinations: Coordi
   if (!destinations.length) return [];
 
   const results: Array<WalkingRoute | null> = destinations.map((destination) => {
-    const cached = cache.get(key(origin, destination));
+    const cacheKey = key(origin, destination);
+    const cached = cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return { ...cached.value, cacheHit: true };
+    if (cached) cache.delete(cacheKey);
     return null;
   });
 
