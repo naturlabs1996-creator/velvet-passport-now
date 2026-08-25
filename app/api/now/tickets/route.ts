@@ -32,19 +32,29 @@ export async function POST(request: Request) {
     maxSuggestions: 3,
   });
 
+  const bookingReady = recommendations.length === 3;
+
   return Response.json({
+    status: bookingReady ? "ready" : "degraded",
+    bookingReady,
+    requiredRecommendationCount: 3,
     recommendations,
-    decision: recommendations.length
-      ? "NOW found ticketed experiences that fit without sacrificing the protected schedule margin."
-      : "NOW is not recommending a ticketed experience because none of the prepared options fit safely right now.",
+    decision: bookingReady
+      ? "NOW found three live-verified ticketed experiences that fit without sacrificing the protected schedule margin."
+      : "NOW does not have three live-verified offers that fit safely right now, so it is not presenting a partial booking selection.",
+    fallback: bookingReady
+      ? null
+      : "Keep the current route and use a no-ticket alternative until three bookable offers can be revalidated.",
     commercialModel: "Book only what fits; no bundle required.",
+    availabilityMode: "Every recommendation must have availability verified within the last 15 minutes before it is shown as bookable.",
     priceMode: "A promotion is shown only when a current price and original price were recently verified from an approved Viator data source.",
+    linkMode: "Exact Viator product deep links only; generic provider pages are rejected.",
     provider: "Viator affiliate deep links",
     generatedAt: new Date().toISOString(),
   }, {
     headers: {
       "Cache-Control": "private, no-store",
-      "X-NOW-Ticket-Mode": "schedule-first",
+      "X-NOW-Ticket-Mode": bookingReady ? "live-verified-three" : "degraded-no-partial-offers",
     },
   });
 }
