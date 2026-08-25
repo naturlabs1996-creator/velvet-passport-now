@@ -10,6 +10,7 @@ export type NowCheckoutInput = {
   commissionScheme?: string;
   origin: string;
   activationNonceHash: string;
+  checkoutAttemptId: string;
 };
 
 type StripeCheckoutSession = {
@@ -82,13 +83,14 @@ export async function createNowCheckoutSession(input: NowCheckoutInput) {
   const partnerId = (input.partnerId || "").trim().slice(0, 120);
   const commissionScheme = (input.commissionScheme || (channelCommissionable ? "partner-default" : "none")).trim().slice(0, 120);
   if (!/^[a-f0-9]{64}$/.test(input.activationNonceHash)) throw new Error("Invalid activation nonce hash");
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(input.checkoutAttemptId)) throw new Error("Invalid checkout attempt id");
 
   const params = new URLSearchParams();
   params.set("mode", "payment");
   addCheckoutPrice(params, input.plan);
   params.set("success_url", `${input.origin}/api/now/complete-checkout?session_id={CHECKOUT_SESSION_ID}`);
   params.set("cancel_url", `${input.origin}/?checkout=cancelled`);
-  params.set("client_reference_id", `paris-now-${input.plan}-${Date.now()}`);
+  params.set("client_reference_id", `paris-now-${input.plan}-${input.checkoutAttemptId.slice(0, 48)}`);
   params.set("metadata[product_family]", "velvet_passport");
   params.set("metadata[product]", "paris_now");
   params.set("metadata[pass_duration]", input.plan);
@@ -99,6 +101,7 @@ export async function createNowCheckoutSession(input: NowCheckoutInput) {
   params.set("metadata[non_commissionable_amount]", channelCommissionable ? "0" : String(config.amount));
   params.set("metadata[currency]", "eur");
   params.set("metadata[activation_nonce_hash]", input.activationNonceHash);
+  params.set("metadata[checkout_attempt_id]", input.checkoutAttemptId);
   params.set("payment_intent_data[metadata][product_family]", "velvet_passport");
   params.set("payment_intent_data[metadata][product]", "paris_now");
   params.set("payment_intent_data[metadata][pass_duration]", input.plan);
@@ -108,10 +111,14 @@ export async function createNowCheckoutSession(input: NowCheckoutInput) {
   params.set("payment_intent_data[metadata][commissionable_amount]", channelCommissionable ? String(config.amount) : "0");
   params.set("payment_intent_data[metadata][non_commissionable_amount]", channelCommissionable ? "0" : String(config.amount));
   params.set("payment_intent_data[metadata][now_access_state]", "pending");
+  params.set("payment_intent_data[metadata][checkout_attempt_id]", input.checkoutAttemptId);
 
   const payload = await stripeRequest("/checkout/sessions", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": `paris-now-checkout-${input.checkoutAttemptId}`,
+    },
     body: params,
   });
   const session = payload as unknown as StripeCheckoutSession;
