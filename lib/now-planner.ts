@@ -102,8 +102,10 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     const preferenceChoices = need.type === "food" ? filterCuisine(rawChoices, need.cuisine) : rawChoices;
     const preferenceMatched = !need.cuisine || preferenceChoices.length > 0;
     const service = serviceMinutes(need.type);
+    const commercialCritical = need.type === "food" || need.type === "pharmacy";
     const openChoices = preferenceChoices.filter((choice) => {
       if (choice.openStatus === "closed") return false;
+      if (commercialCritical && (!choice.openStatus || choice.openStatus === "unknown")) return false;
       if (choice.openStatus === "closing_soon" && typeof choice.minutesOpenAfterArrival === "number") {
         return choice.minutesOpenAfterArrival >= service;
       }
@@ -113,8 +115,7 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     // Hard constraints outrank curation/source ranking. Every live need must still fit
     // the protected overall budget, and a stated deadline (for example pharmacy in
     // 30 minutes) must be satisfied by the selected choice rather than merely reported
-    // as missed after selection. A venue predicted to close before the stop can finish
-    // is not selectable even when it is technically still open at request time.
+    // as missed after selection. Commercial venues also need confirmed current hours.
     const feasibleChoices = openChoices.filter((choice) => {
       const arrivalAndService = elapsed + choiceTravelMinutes(choice) + service;
       const protectsOverallTime = arrivalAndService + protectedMarginMinutes <= request.availableMinutes;
@@ -149,7 +150,7 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     if (need.cuisine && !preferenceMatched) {
       factors.push(`${need.cuisine} cuisine unavailable — no substitute presented`);
     } else if (!timeFeasible) {
-      factors.push(`${need.cuisine ? `${need.cuisine} ` : ""}${need.type} options do not fit the protected time constraints — no unsafe substitution`);
+      factors.push(`${need.cuisine ? `${need.cuisine} ` : ""}${need.type} options are not safely verifiable within the protected constraints — no unsafe substitution`);
     } else {
       factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference matched`] : []), ...(need.withinMinutes ? [`${need.type} deadline protected`] : []));
     }
