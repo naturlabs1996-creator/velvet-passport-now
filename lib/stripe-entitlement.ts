@@ -3,6 +3,7 @@ import { isNowPassPlan, planDurationMs } from "./stripe-now";
 const EXPECTED_AMOUNTS = { "72h": 1490, "7d": 2290 } as const;
 const cache = new Map<string, { active: boolean; checkedAt: number; expiresAt?: number }>();
 const CACHE_MS = 2 * 60 * 1000;
+const STATE_RANK: Record<string, number> = { pending: 0, active: 1, revoked: 2 };
 
 function secret() {
   const value = process.env.STRIPE_SECRET_KEY;
@@ -64,6 +65,13 @@ async function paymentIntentIdForEvent(event: any) {
   return null;
 }
 
+function eventState(event: any) {
+  if (event.type === "checkout.session.completed" && event?.data?.object?.payment_status === "paid") return "active";
+  if (event.type === "checkout.session.async_payment_succeeded") return "active";
+  if (["checkout.session.async_payment_failed", "charge.refunded", "charge.dispute.created"].includes(event.type)) return "revoked";
+  return "pending";
+}
+
 export async function markStripeEventState(event: any) {
   const paymentIntentId = await paymentIntentIdForEvent(event);
   if (!paymentIntentId) {
@@ -71,15 +79,33 @@ export async function markStripeEventState(event: any) {
     throw new Error("Relevant Stripe event has no PaymentIntent");
   }
 
-  let state = "pending";
-  if (event.type === "checkout.session.completed" && event?.data?.object?.payment_status === "paid") state = "active";
-  if (event.type === "checkout.session.async_payment_succeeded") state = "active";
-  if (["checkout.session.async_payment_failed", "charge.refunded", "charge.dispute.created"].includes(event.type)) state = "revoked";
+  const state = eventState(event);
+  const currentIntent = await stripe(`/payment_intents/${encodeURIComponent(paymentIntentId)}`);
+  const currentMetadata = currentIntent?.metadata || {};
+  const previousState = typeof currentMetadata.now_access_state === "string" ? currentMetadata.now_access_state : "pending";
+  const previousCreated = Number(currentMetadata.now_state_event_created);
+  const incomingCreated = Number(event?.created);
+
+  // Revocation is terminal for the events handled here. A delayed completion or
+  // success event must never restore access after a refund, dispute or async failure.
+  if (previousState === "revoked" && state !== "revoked") {
+    return { recorded: true, skipped: true, state: previousState, reason: "revocation-is-terminal" } as const;
+  }
+
+  if (Number.isFinite(previousCreated) && Number.isFinite(incomingCreated)) {
+    if (incomingCreated < previousCreated) {
+      return { recorded: true, skipped: true, state: previousState, reason: "stale-event" } as const;
+    }
+    if (incomingCreated === previousCreated && (STATE_RANK[state] ?? 0) < (STATE_RANK[previousState] ?? 0)) {
+      return { recorded: true, skipped: true, state: previousState, reason: "lower-priority-same-time-event" } as const;
+    }
+  }
 
   const params = new URLSearchParams();
   params.set("metadata[now_access_state]", state);
   params.set("metadata[now_state_event_id]", String(event.id));
   params.set("metadata[now_state_event_type]", String(event.type));
+  params.set("metadata[now_state_event_created]", Number.isFinite(incomingCreated) ? String(incomingCreated) : String(Math.floor(Date.now() / 1000)));
   params.set("metadata[now_state_updated_at]", new Date().toISOString());
   await updateIntent(paymentIntentId, params, `now-state-${event.id}`);
   cache.clear();
