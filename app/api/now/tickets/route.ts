@@ -1,5 +1,6 @@
 import { getPassAccess } from "../../../../lib/pass-access";
 import { PARIS_TICKET_SEEDS, rankTicketCandidates } from "../../../../lib/ticket-intelligence";
+import { revalidateViatorCandidates } from "../../../../lib/viator-provider";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,8 @@ export async function POST(request: Request) {
     ? Math.max(0, Math.min(480, nextObligationRaw))
     : undefined;
 
-  const recommendations = rankTicketCandidates(PARIS_TICKET_SEEDS, {
+  const provider = await revalidateViatorCandidates(PARIS_TICKET_SEEDS);
+  const recommendations = rankTicketCandidates(provider.candidates, {
     availableMinutes,
     elapsedMinutes,
     protectedMarginMinutes,
@@ -32,29 +34,41 @@ export async function POST(request: Request) {
     maxSuggestions: 3,
   });
 
-  const bookingReady = recommendations.length === 3;
+  const bookingReady = provider.mode === "production"
+    && !provider.degraded
+    && provider.verifiedCount >= 3
+    && recommendations.length === 3;
 
   return Response.json({
     status: bookingReady ? "ready" : "degraded",
     bookingReady,
     requiredRecommendationCount: 3,
-    recommendations,
+    recommendations: bookingReady ? recommendations : [],
     decision: bookingReady
-      ? "NOW found three live-verified ticketed experiences that fit without sacrificing the protected schedule margin."
-      : "NOW does not have three live-verified offers that fit safely right now, so it is not presenting a partial booking selection.",
+      ? "NOW found three Viator offers that were revalidated against today's live product and availability schedule and still fit the protected route margin."
+      : "NOW cannot currently prove three safe, live Viator offers, so it is not presenting a partial or unverified booking selection.",
     fallback: bookingReady
       ? null
-      : "Keep the current route and use a no-ticket alternative until three bookable offers can be revalidated.",
+      : "Keep the current route and use a no-ticket alternative until three offers can be revalidated.",
+    providerHealth: {
+      provider: "Viator Partner API",
+      mode: provider.mode,
+      configured: provider.configured,
+      verifiedCount: provider.verifiedCount,
+      degraded: provider.degraded,
+      reason: provider.reason ?? null,
+    },
     commercialModel: "Book only what fits; no bundle required.",
-    availabilityMode: "Every recommendation must have availability verified within the last 15 minutes before it is shown as bookable.",
-    priceMode: "A promotion is shown only when a current price and original price were recently verified from an approved Viator data source.",
+    availabilityMode: "Single-product Viator availability schedules are fetched at request time; sandbox data never becomes traveler-facing booking readiness.",
+    priceMode: "Only provider-returned pricing may be surfaced. Promotions still require both current and original prices to be recently verified.",
     linkMode: "Exact Viator product deep links only; generic provider pages are rejected.",
-    provider: "Viator affiliate deep links",
+    provider: "Viator Partner API + affiliate deep links",
     generatedAt: new Date().toISOString(),
   }, {
     headers: {
       "Cache-Control": "private, no-store",
-      "X-NOW-Ticket-Mode": bookingReady ? "live-verified-three" : "degraded-no-partial-offers",
+      "X-NOW-Ticket-Mode": bookingReady ? "live-provider-verified-three" : "degraded-no-partial-offers",
+      "X-NOW-Viator-Mode": provider.mode,
     },
   });
 }
