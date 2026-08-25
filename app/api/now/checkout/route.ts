@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { createNowCheckoutSession, isNowPassPlan, isNowSalesChannel } from "../../../../lib/stripe-now";
 
@@ -9,6 +9,18 @@ function requestOrigin(request: Request) {
   if (configured) return configured;
   const url = new URL(request.url);
   return `${url.protocol}//${url.host}`;
+}
+
+function checkoutBindingSecret() {
+  const secret = process.env.PARIS_NOW_PASS_SECRET || process.env.STRIPE_SECRET_KEY;
+  if (!secret) throw new Error("Checkout binding secret is not configured");
+  return secret;
+}
+
+function checkoutAttemptId(request: Request) {
+  const supplied = request.headers.get("x-now-checkout-attempt")?.trim() ?? "";
+  if (/^[A-Za-z0-9_-]{20,100}$/.test(supplied)) return supplied;
+  return randomBytes(24).toString("base64url");
 }
 
 export async function POST(request: Request) {
@@ -24,7 +36,10 @@ export async function POST(request: Request) {
   if (!isNowPassPlan(plan)) return Response.json({ error: "plan must be 72h or 7d" }, { status: 400 });
   if (!isNowSalesChannel(channel)) return Response.json({ error: "channel must be direct, hotel or affiliate" }, { status: 400 });
 
-  const nonce = randomBytes(32).toString("base64url");
+  const attemptId = checkoutAttemptId(request);
+  const nonce = createHmac("sha256", checkoutBindingSecret())
+    .update(`paris-now-checkout:${attemptId}`)
+    .digest("base64url");
   const activationNonceHash = createHash("sha256").update(nonce).digest("hex");
 
   try {
@@ -35,6 +50,7 @@ export async function POST(request: Request) {
       commissionScheme: typeof input.commissionScheme === "string" ? input.commissionScheme : undefined,
       origin: requestOrigin(request),
       activationNonceHash,
+      checkoutAttemptId: attemptId,
     });
 
     const jar = await cookies();
