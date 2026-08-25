@@ -2,6 +2,8 @@ import { getPassAccess } from "../../../../lib/pass-access";
 import { getNearbyPlaces } from "../../../../lib/nearby-places";
 import { getRainAhead } from "../../../../lib/rain-ahead";
 import { getWeatherIntelligence, type Coordinates } from "../../../../lib/weather-intelligence";
+import { rainAheadHealthSignal, weatherHealthSignal } from "../../../../lib/now-health-adapters";
+import { summarizeNowHealth } from "../../../../lib/now-health";
 
 export const runtime = "nodejs";
 
@@ -104,11 +106,17 @@ export async function POST(request: Request) {
   ]);
 
   const disruptions = [...closures, ...works].sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 12);
+  const health = summarizeNowHealth([
+    weatherHealthSignal(forecast),
+    rainAheadHealthSignal(rainAhead),
+  ]);
+
   return Response.json({
     location: centre,
     radiusMeters,
     weather: forecast,
     rainAhead,
+    health,
     water: fountains,
     restrooms,
     pharmacies: amenities.pharmacies,
