@@ -1,6 +1,7 @@
 import { getPassAccess } from "../../../../lib/pass-access";
 import { PARIS_TICKET_SEEDS, rankTicketCandidates } from "../../../../lib/ticket-intelligence";
 import { revalidateViatorCandidates } from "../../../../lib/viator-provider";
+import { providerFailureSignal, providerHealthySignal, summarizeNowHealth } from "../../../../lib/now-health";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,29 @@ export async function POST(request: Request) {
         ? "One or more ticketed options changed or disappeared. NOW removed them and kept your route safe without forcing a replacement."
         : "NOW does not currently have three verified offers that fit safely, so it is keeping the no-ticket route instead of showing a partial selection.";
 
+  const ticketHealth = bookingReady
+    ? providerHealthySignal(
+        "ticket_intelligence",
+        "viator_three_verified",
+        "Three ticket offers passed live provider and schedule verification.",
+        { verifiedCount: provider.verifiedCount, mode: provider.mode },
+      )
+    : providerFailureSignal(
+        "ticket_intelligence",
+        providerFailures.length ? "viator_provider_unavailable" : "viator_booking_selection_degraded",
+        provider.reason ?? "Ticket Intelligence is running with the no-ticket fallback.",
+        true,
+        {
+          verifiedCount: provider.verifiedCount,
+          mode: provider.mode,
+          providerUnavailable: providerFailures.length > 0,
+          removedOfferCount: removedOffers.length,
+          priceChanged: priceChanges.length > 0,
+        },
+      );
+
+  const health = summarizeNowHealth([ticketHealth]);
+
   return Response.json({
     status: bookingReady ? "ready" : "degraded",
     bookingReady,
@@ -76,6 +100,7 @@ export async function POST(request: Request) {
       reason: provider.reason ?? null,
       diagnostics: provider.diagnostics,
     },
+    health,
     commercialModel: "Book only what fits; no bundle required.",
     availabilityMode: "Single-product Viator availability schedules are fetched at request time; stale evidence is discarded whenever revalidation fails.",
     finalCheckoutVerification: "Availability and price can still change after recommendation. Viator performs the final booking-side verification; if NOW later books directly, it must call /availability/check immediately before booking.",
@@ -88,6 +113,7 @@ export async function POST(request: Request) {
       "Cache-Control": "private, no-store",
       "X-NOW-Ticket-Mode": bookingReady ? "schedule-revalidated-three" : "degraded-fallback-active",
       "X-NOW-Viator-Mode": provider.mode,
+      "X-NOW-Health": health.status,
     },
   });
 }
