@@ -190,13 +190,20 @@ function applyConstraintPlan(plan: RoutePlan, constraints: ConstraintPlan, route
   };
 }
 
+function shiftRelativeStopTime(time: string, offsetMinutes: number) {
+  if (time === "NOW") return `+${String(offsetMinutes).padStart(2, "0")}`;
+  const match = time.trim().match(/^\+(\d+)(?:\s*min)?$/i);
+  if (!match) return time;
+  return `+${String(Number(match[1]) + offsetMinutes).padStart(2, "0")}`;
+}
+
 function integrateTransport(plan: RoutePlan, connection: TransportConnection, routeBudget: number): RoutePlan {
   const connectionMinutes = Math.max(1, Math.min(120, Math.round(connection.minutes)));
   const marginMinutes = plan.ticket.marginMinutes;
   const protectedTicket = plan.ticket.protected;
   const shiftedStops = plan.stops.map((stop, index) => ({
     ...stop,
-    time: stop.time === "NOW" ? `+${String(connectionMinutes).padStart(2, "0")}` : stop.time,
+    time: shiftRelativeStopTime(stop.time, connectionMinutes),
     state: index === 0 ? "next" as const : stop.state,
   }));
 
@@ -220,7 +227,7 @@ function integrateTransport(plan: RoutePlan, connection: TransportConnection, ro
     calculation: {
       ...plan.calculation,
       generatedAt: new Date().toISOString(),
-      factors: [...plan.calculation.factors, "real starting point", "transport duration charged once", "route time remaining", "ticket margin after connection"],
+      factors: [...plan.calculation.factors, "real starting point", "transport duration charged once", "route time remaining", "ticket margin after connection", "chronological stop retiming"],
     },
   };
 }
@@ -351,7 +358,17 @@ export async function POST(request: Request) {
   const availableMinutes = normalized.availableMinutes;
   const ticketTime = normalized.ticket?.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(normalized.ticket.time) ? normalized.ticket.time : "16:30";
   const transport = normalized.transport ?? null;
-  const routeBudget = transport ? Math.max(15, availableMinutes - transport.minutes) : availableMinutes;
+  const remainingAfterTransport = transport ? availableMinutes - transport.minutes : availableMinutes;
+  if (transport && remainingAfterTransport < 15) {
+    return Response.json({
+      error: "The connection consumes too much of the available time to build a safe Paris NOW route.",
+      code: "INSUFFICIENT_TIME_AFTER_TRANSPORT",
+      availableMinutes,
+      transportMinutes: transport.minutes,
+      remainingMinutes: Math.max(0, remainingAfterTransport),
+    }, { status: 422, headers: { "Cache-Control": "no-store" } });
+  }
+  const routeBudget = remainingAfterTransport;
   const routeId = normalized.routeId ?? null;
   const confidential = routeId ? getConfidentialRoutes().find((route) => route.id === routeId) : undefined;
   const exactLocation = normalized.location ?? locationFromInput(input.location);
