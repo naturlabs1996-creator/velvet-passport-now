@@ -27,6 +27,8 @@ export type NearbyPlaceGroups = {
 type CacheEntry = { expiresAt: number; value: NearbyPlaceGroups };
 const memoryCache = new Map<string, CacheEntry>();
 const TTL_MS = 30 * 60 * 1000;
+const NEGATIVE_TTL_MS = 2 * 60 * 1000;
+const OSM_TIMEOUT_MS = 4500;
 
 function haversineMeters(a: Coordinates, b: Coordinates) {
   const rad = (value: number) => value * Math.PI / 180;
@@ -58,7 +60,7 @@ function mergePlaces(groups: NearbyPlaceGroups, key: "pharmacies" | "restaurants
 }
 
 async function fromOsm(centre: Coordinates, radiusMeters: number) {
-  const query = `[out:json][timeout:8];(node[amenity=pharmacy](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=restaurant](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=cafe](around:${radiusMeters},${centre.lat},${centre.lon}););out tags;`;
+  const query = `[out:json][timeout:5];(node[amenity=pharmacy](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=restaurant](around:${radiusMeters},${centre.lat},${centre.lon});node[amenity=cafe](around:${radiusMeters},${centre.lat},${centre.lon}););out tags;`;
   const endpoints = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
   for (const endpoint of endpoints) {
     try {
@@ -66,7 +68,7 @@ async function fromOsm(centre: Coordinates, radiusMeters: number) {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "VelvetPassportNOW/1.0" },
         body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(OSM_TIMEOUT_MS),
       });
       if (!response.ok) continue;
       const payload = await response.json() as { elements?: Array<{ lat?: number; lon?: number; tags?: Record<string, string> }> };
@@ -198,6 +200,7 @@ export async function getNearbyPlaces(centre: Coordinates, radiusMeters: number)
   const key = cacheKey(centre, radiusMeters);
   const cached = memoryCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return { ...cached.value, cacheHit: true };
+  if (cached) memoryCache.delete(key);
 
   const groups: NearbyPlaceGroups = { pharmacies: [], restaurants: [], cafes: [], providersUsed: [], cacheHit: false };
 
@@ -231,7 +234,8 @@ export async function getNearbyPlaces(centre: Coordinates, radiusMeters: number)
     }
   }
 
-  memoryCache.set(key, { expiresAt: Date.now() + TTL_MS, value: groups });
+  const hasAnyResult = groups.pharmacies.length + groups.restaurants.length + groups.cafes.length > 0;
+  memoryCache.set(key, { expiresAt: Date.now() + (hasAnyResult ? TTL_MS : NEGATIVE_TTL_MS), value: groups });
   if (memoryCache.size > 250) {
     const oldest = memoryCache.keys().next().value;
     if (oldest) memoryCache.delete(oldest);
