@@ -5,6 +5,7 @@ import { summarizeNowHealth } from "../../../../lib/now-health";
 export const runtime = "nodejs";
 
 type Mode = "metro" | "rer" | "bus" | "tram" | "taxi" | "walk";
+type TransitMode = Exclude<Mode, "taxi" | "walk">;
 type Coordinates = { lat: number; lon: number };
 
 type ResolvedPlace = {
@@ -46,7 +47,12 @@ type PrimPlace = {
 type PrimSection = {
   type?: string;
   duration?: number;
-  display_informations?: { commercial_mode?: string; code?: string; direction?: string };
+  display_informations?: {
+    commercial_mode?: string;
+    code?: string;
+    direction?: string;
+    uris?: { line?: string };
+  };
   from?: { name?: string };
   to?: { name?: string };
 };
@@ -175,6 +181,32 @@ function estimatedTaxiMinutes(distanceKm: number): number {
   return Math.max(6, Math.round(5 + (distanceKm / 18) * 60));
 }
 
+function transitModeFromCommercialMode(value?: string): TransitMode | null {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  if (!normalized) return null;
+  if (normalized.includes("metro") || normalized.includes("métro")) return "metro";
+  if (normalized.includes("rer") || normalized === "train" || normalized.includes("rail")) return "rer";
+  if (normalized.includes("tram")) return "tram";
+  if (normalized.includes("bus") || normalized.includes("coach")) return "bus";
+  return null;
+}
+
+function publicSections(journey: PrimJourney): PrimSection[] {
+  return (journey.sections ?? []).filter((section) => section.type === "public_transport");
+}
+
+function journeyPrimaryMode(journey: PrimJourney): TransitMode | null {
+  for (const section of publicSections(journey)) {
+    const mode = transitModeFromCommercialMode(section.display_informations?.commercial_mode);
+    if (mode) return mode;
+  }
+  return null;
+}
+
+function journeyUsesMode(journey: PrimJourney, mode: TransitMode): boolean {
+  return publicSections(journey).some((section) => transitModeFromCommercialMode(section.display_informations?.commercial_mode) === mode);
+}
+
 export async function POST(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
@@ -213,7 +245,15 @@ export async function POST(request: Request) {
   const origin = resolvedOrigin?.label || originInput;
   const destination = resolvedDestination?.label || destinationInput;
   const token = process.env.IDFM_PRIM_API_KEY || process.env.PRIM_API_KEY;
-  let liveJourney: { minutes: number; transfers: number; lines: string[]; departure: string; arrival: string } | null = null;
+  let liveJourney: {
+    minutes: number;
+    transfers: number;
+    lines: string[];
+    lineIds: string[];
+    primaryMode: TransitMode;
+    departure: string;
+    arrival: string;
+  } | null = null;
   let providerIssue = false;
 
   if (token && preferredMode !== "taxi" && preferredMode !== "walk") {
@@ -240,15 +280,23 @@ export async function POST(request: Request) {
           throw new Error("Journey outside Paris NOW area");
         }
 
-        const data = await primRequest("journeys?from=" + encodeURIComponent(from.id) + "&to=" + encodeURIComponent(to.id) + "&count=3", token);
-        const journeys = (data as { journeys?: PrimJourney[] }).journeys ?? [];
-        const journey = journeys.find((candidate) => (candidate.duration ?? 0) > 0 && (candidate.duration ?? 0) <= 7200) ?? journeys[0];
-        if (journey?.duration) {
-          const publicSections = (journey.sections ?? []).filter((section) => section.type === "public_transport");
+        const data = await primRequest("journeys?from=" + encodeURIComponent(from.id) + "&to=" + encodeURIComponent(to.id) + "&count=5", token);
+        const journeys = ((data as { journeys?: PrimJourney[] }).journeys ?? [])
+          .filter((candidate) => (candidate.duration ?? 0) > 0 && (candidate.duration ?? 0) <= 7200);
+        const requestedTransitMode = preferredMode && preferredMode !== "taxi" && preferredMode !== "walk" ? preferredMode : null;
+        const journey = requestedTransitMode
+          ? journeys.find((candidate) => journeyUsesMode(candidate, requestedTransitMode)) ?? journeys[0]
+          : journeys[0];
+        const primaryMode = journey ? journeyPrimaryMode(journey) : null;
+
+        if (journey?.duration && primaryMode) {
+          const sections = publicSections(journey);
           liveJourney = {
             minutes: Math.max(1, Math.round(journey.duration / 60)),
             transfers: journey.nb_transfers ?? 0,
-            lines: publicSections.map((section) => [section.display_informations?.commercial_mode, section.display_informations?.code].filter(Boolean).join(" ")).filter(Boolean),
+            lines: sections.map((section) => [section.display_informations?.commercial_mode, section.display_informations?.code].filter(Boolean).join(" ")).filter(Boolean),
+            lineIds: [...new Set(sections.map((section) => section.display_informations?.uris?.line).filter((value): value is string => Boolean(value)))],
+            primaryMode,
             departure: primLabel(from, origin),
             arrival: primLabel(to, destination),
           };
@@ -264,7 +312,7 @@ export async function POST(request: Request) {
     : null;
 
   const options = (Object.entries(modes) as [Mode, typeof modes[Mode]][]).map(([id, mode]) => {
-    const live = Boolean(liveJourney && id !== "taxi" && id !== "walk" && (!preferredMode || preferredMode === id));
+    const live = Boolean(liveJourney && id === liveJourney.primaryMode);
     let minutes = mode.minutes;
     let detail = mode.detail;
     let source: "official" | "estimated" = "estimated";
@@ -291,6 +339,8 @@ export async function POST(request: Request) {
     connected: Boolean(token),
     live: Boolean(liveJourney),
     issue: providerIssue,
+    primaryMode: liveJourney?.primaryMode ?? null,
+    lineIds: liveJourney?.lineIds ?? [],
   };
   const health = summarizeNowHealth([transportHealthSignal(provider)]);
 
@@ -304,7 +354,7 @@ export async function POST(request: Request) {
     health,
     geocoding: { source: "Base Adresse Nationale", originResolved: Boolean(resolvedOrigin), destinationResolved: Boolean(resolvedDestination) },
     disclaimer: liveJourney
-      ? "Public transport data supplied by Île-de-France Mobilités. Walking and taxi times remain estimates."
+      ? "Public transport data supplied by Île-de-France Mobilités. The official time is attached only to the transport mode actually used by the returned journey. Walking and taxi times remain estimates."
       : "Paris-local planning only. Walking and taxi times are estimated; live public transport requires an available PRIM response.",
   }, { headers: { "Cache-Control": "no-store" } });
 }
