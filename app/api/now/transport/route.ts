@@ -57,6 +57,12 @@ type PrimSection = {
   to?: { name?: string };
 };
 type PrimJourney = { duration?: number; nb_transfers?: number; sections?: PrimSection[] };
+type PrimDisruption = {
+  id?: string;
+  status?: string;
+  severity?: { name?: string; effect?: string };
+  messages?: Array<{ text?: string }>;
+};
 
 type BanFeature = {
   geometry?: { coordinates?: [number, number] };
@@ -76,6 +82,38 @@ async function primRequest(path: string, token: string): Promise<unknown> {
   });
   if (!response.ok) throw new Error("Official transport provider unavailable");
   return response.json();
+}
+
+async function getLineTraffic(lineIds: string[], token: string) {
+  if (!lineIds.length) return { checked: false, providerIssue: false, active: [] as Array<{ id: string; severity: string; message: string }> };
+  let providerIssue = false;
+  const active: Array<{ id: string; severity: string; message: string }> = [];
+  const seen = new Set<string>();
+
+  const results = await Promise.allSettled(lineIds.slice(0, 4).map(async (lineId) => {
+    const payload = await primRequest(`line_reports/lines/${encodeURIComponent(lineId)}/line_reports?count=20`, token) as { disruptions?: PrimDisruption[] };
+    return payload.disruptions ?? [];
+  }));
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      providerIssue = true;
+      continue;
+    }
+    for (const disruption of result.value) {
+      if ((disruption.status ?? "").toLowerCase() !== "active") continue;
+      const id = disruption.id || `${disruption.severity?.effect ?? "traffic"}:${disruption.messages?.[0]?.text ?? "active"}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      active.push({
+        id,
+        severity: disruption.severity?.name || disruption.severity?.effect || "active disruption",
+        message: disruption.messages?.map((item) => item.text?.trim()).find(Boolean) || "Active service disruption reported by Île-de-France Mobilités.",
+      });
+    }
+  }
+
+  return { checked: true, providerIssue, active: active.slice(0, 5) };
 }
 
 function parseCoordinates(value: string): Coordinates | null {
@@ -307,6 +345,10 @@ export async function POST(request: Request) {
     }
   }
 
+  const traffic = token && liveJourney?.lineIds.length
+    ? await getLineTraffic(liveJourney.lineIds, token)
+    : { checked: false, providerIssue: false, active: [] as Array<{ id: string; severity: string; message: string }> };
+
   const distanceKm = resolvedOrigin?.coordinates && resolvedDestination?.coordinates
     ? haversineKm(resolvedOrigin.coordinates, resolvedDestination.coordinates)
     : null;
@@ -341,6 +383,8 @@ export async function POST(request: Request) {
     issue: providerIssue,
     primaryMode: liveJourney?.primaryMode ?? null,
     lineIds: liveJourney?.lineIds ?? [],
+    trafficChecked: traffic.checked,
+    trafficProviderIssue: traffic.providerIssue,
   };
   const health = summarizeNowHealth([transportHealthSignal(provider)]);
 
@@ -351,10 +395,16 @@ export async function POST(request: Request) {
     destinationCoordinates: resolvedDestination?.coordinates ?? null,
     options,
     provider,
+    traffic: {
+      checked: traffic.checked,
+      activeDisruption: traffic.active.length > 0,
+      disruptions: traffic.active,
+      action: traffic.active.length > 0 ? "recalculate-before-travel" : null,
+    },
     health,
     geocoding: { source: "Base Adresse Nationale", originResolved: Boolean(resolvedOrigin), destinationResolved: Boolean(resolvedDestination) },
     disclaimer: liveJourney
-      ? "Public transport data supplied by Île-de-France Mobilités. The official time is attached only to the transport mode actually used by the returned journey. Walking and taxi times remain estimates."
+      ? "Public transport data supplied by Île-de-France Mobilités. The official time is attached only to the transport mode actually used by the returned journey. Active line disruptions are checked separately through PRIM traffic information when line identifiers are available. Walking and taxi times remain estimates."
       : "Paris-local planning only. Walking and taxi times are estimated; live public transport requires an available PRIM response.",
   }, { headers: { "Cache-Control": "no-store" } });
 }
