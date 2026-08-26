@@ -290,12 +290,8 @@ export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenari
   const contextual = routed.map((choice) => applyContextualAvailability(choice, scenario));
   const prioritized = prioritizeChoices(contextual);
 
-  const usable = prioritized.filter((choice) => choice.openStatus !== "closed" && choice.openStatus !== "closing_soon");
-  const minimum = scenario === "pharmacy" ? 2 : 3;
-  if (usable.length >= minimum) return usable.slice(0, 5);
-
-  const notClosed = prioritized.filter((choice) => choice.openStatus !== "closed");
-  if (notClosed.length >= minimum) return notClosed.slice(0, 5);
-
-  return prioritized.slice(0, 5);
+  // Commercial recommendations fail closed. Quantity never outranks verified
+  // opening margin: unknown, closed, or contextually closing-soon venues are
+  // never reintroduced simply to fill the result list.
+  return prioritized.filter((choice) => choice.openStatus === "open").slice(0, 5);
 }
