@@ -5,13 +5,38 @@ import { summarizeNowHealth } from "../../../../lib/now-health";
 export const runtime = "nodejs";
 
 type Mode = "metro" | "rer" | "bus" | "tram" | "taxi" | "walk";
-type TransitMode = Exclude<Mode, "taxi" | "walk">;
+type TransitMode = "metro" | "rer" | "bus" | "tram";
 type Coordinates = { lat: number; lon: number };
+type ResolvedPlace = { label: string; coordinates: Coordinates | null; inParis: boolean };
+type TrafficItem = { id: string; severity: string; message: string };
+type TrafficResult = { checked: boolean; providerIssue: boolean; active: TrafficItem[] };
 
-type ResolvedPlace = {
-  label: string;
-  coordinates: Coordinates | null;
-  inParis: boolean;
+type PrimPlace = {
+  id?: string;
+  name?: string;
+  address?: { label?: string; coord?: { lat?: string; lon?: string } };
+  stop_area?: { label?: string; coord?: { lat?: string; lon?: string } };
+};
+
+type PrimSection = {
+  type?: string;
+  display_informations?: {
+    commercial_mode?: string;
+    code?: string;
+    uris?: { line?: string };
+  };
+};
+
+type PrimJourney = { duration?: number; nb_transfers?: number; sections?: PrimSection[] };
+type PrimDisruption = {
+  id?: string;
+  status?: string;
+  severity?: { name?: string; effect?: string };
+  messages?: Array<{ text?: string }>;
+};
+type BanFeature = {
+  geometry?: { coordinates?: [number, number] };
+  properties?: { label?: string; city?: string; postcode?: string };
 };
 
 const modes: Record<Mode, { label: string; minutes: number; detail: string }> = {
@@ -23,56 +48,9 @@ const modes: Record<Mode, { label: string; minutes: number; detail: string }> = 
   walk: { label: "Walk", minutes: 35, detail: "A direct pedestrian connection when practical" },
 };
 
-const PARIS_BOUNDS = {
-  minLat: 48.815,
-  maxLat: 48.905,
-  minLon: 2.224,
-  maxLon: 2.470,
-};
-
+const PARIS_BOUNDS = { minLat: 48.815, maxLat: 48.905, minLon: 2.224, maxLon: 2.470 };
 const PARIS_CENTRE: Coordinates = { lat: 48.8566, lon: 2.3522 };
 const MAX_LOCAL_DISTANCE_KM = 18;
-
-type PrimPlace = {
-  id?: string;
-  name?: string;
-  embedded_type?: string;
-  address?: {
-    name?: string;
-    label?: string;
-    coord?: { lat?: string; lon?: string };
-  };
-  stop_area?: { name?: string; label?: string; coord?: { lat?: string; lon?: string } };
-};
-type PrimSection = {
-  type?: string;
-  duration?: number;
-  display_informations?: {
-    commercial_mode?: string;
-    code?: string;
-    direction?: string;
-    uris?: { line?: string };
-  };
-  from?: { name?: string };
-  to?: { name?: string };
-};
-type PrimJourney = { duration?: number; nb_transfers?: number; sections?: PrimSection[] };
-type PrimDisruption = {
-  id?: string;
-  status?: string;
-  severity?: { name?: string; effect?: string };
-  messages?: Array<{ text?: string }>;
-};
-
-type BanFeature = {
-  geometry?: { coordinates?: [number, number] };
-  properties?: {
-    label?: string;
-    city?: string;
-    postcode?: string;
-    context?: string;
-  };
-};
 
 async function primRequest(path: string, token: string): Promise<unknown> {
   const response = await fetch("https://prim.iledefrance-mobilites.fr/marketplace/v2/navitia/" + path, {
@@ -84,36 +62,19 @@ async function primRequest(path: string, token: string): Promise<unknown> {
   return response.json();
 }
 
-async function getLineTraffic(lineIds: string[], token: string) {
-  if (!lineIds.length) return { checked: false, providerIssue: false, active: [] as Array<{ id: string; severity: string; message: string }> };
-  let providerIssue = false;
-  const active: Array<{ id: string; severity: string; message: string }> = [];
-  const seen = new Set<string>();
+function isInsideParis(coords: Coordinates) {
+  return coords.lat >= PARIS_BOUNDS.minLat && coords.lat <= PARIS_BOUNDS.maxLat && coords.lon >= PARIS_BOUNDS.minLon && coords.lon <= PARIS_BOUNDS.maxLon;
+}
 
-  const results = await Promise.allSettled(lineIds.slice(0, 4).map(async (lineId) => {
-    const payload = await primRequest(`line_reports/lines/${encodeURIComponent(lineId)}/line_reports?count=20`, token) as { disruptions?: PrimDisruption[] };
-    return payload.disruptions ?? [];
-  }));
-
-  for (const result of results) {
-    if (result.status === "rejected") {
-      providerIssue = true;
-      continue;
-    }
-    for (const disruption of result.value) {
-      if ((disruption.status ?? "").toLowerCase() !== "active") continue;
-      const id = disruption.id || `${disruption.severity?.effect ?? "traffic"}:${disruption.messages?.[0]?.text ?? "active"}`;
-      if (seen.has(id)) continue;
-      seen.add(id);
-      active.push({
-        id,
-        severity: disruption.severity?.name || disruption.severity?.effect || "active disruption",
-        message: disruption.messages?.map((item) => item.text?.trim()).find(Boolean) || "Active service disruption reported by Île-de-France Mobilités.",
-      });
-    }
-  }
-
-  return { checked: true, providerIssue, active: active.slice(0, 5) };
+function haversineKm(a: Coordinates, b: Coordinates) {
+  const toRad = (value: number) => value * Math.PI / 180;
+  const earthKm = 6371;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
 function parseCoordinates(value: string): Coordinates | null {
@@ -123,21 +84,6 @@ function parseCoordinates(value: string): Coordinates | null {
   const lon = Number(match[2]);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
   return { lat, lon };
-}
-
-function isInsideParis(coords: Coordinates): boolean {
-  return coords.lat >= PARIS_BOUNDS.minLat && coords.lat <= PARIS_BOUNDS.maxLat && coords.lon >= PARIS_BOUNDS.minLon && coords.lon <= PARIS_BOUNDS.maxLon;
-}
-
-function haversineKm(a: Coordinates, b: Coordinates): number {
-  const toRad = (value: number) => value * Math.PI / 180;
-  const earthKm = 6371;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return earthKm * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
 async function reverseGeocode(coords: Coordinates): Promise<ResolvedPlace> {
@@ -150,11 +96,13 @@ async function reverseGeocode(coords: Coordinates): Promise<ResolvedPlace> {
     if (!response.ok) throw new Error("Reverse geocoding unavailable");
     const data = await response.json() as { features?: BanFeature[] };
     const feature = data.features?.[0];
-    const label = feature?.properties?.label?.trim();
     const city = feature?.properties?.city?.toLowerCase() ?? "";
     const postcode = feature?.properties?.postcode ?? "";
-    const inParis = city === "paris" || /^75\d{3}$/.test(postcode) || isInsideParis(coords);
-    return { label: label || "Current location", coordinates: coords, inParis };
+    return {
+      label: feature?.properties?.label?.trim() || "Current location",
+      coordinates: coords,
+      inParis: city === "paris" || /^75\d{3}$/.test(postcode) || isInsideParis(coords),
+    };
   } catch {
     return { label: "Current location", coordinates: coords, inParis: isInsideParis(coords) };
   }
@@ -181,12 +129,6 @@ async function forwardGeocode(query: string): Promise<ResolvedPlace | null> {
       const inParis = city === "paris" || /^75\d{3}$/.test(postcode) || isInsideParis(coordinates);
       if (inParis) return { label: feature.properties?.label || query, coordinates, inParis: true };
     }
-    const first = candidates[0];
-    const pair = first?.geometry?.coordinates;
-    if (pair) {
-      const coordinates = { lon: Number(pair[0]), lat: Number(pair[1]) };
-      return { label: first.properties?.label || query, coordinates, inParis: isInsideParis(coordinates) };
-    }
     return null;
   } catch {
     return null;
@@ -195,8 +137,7 @@ async function forwardGeocode(query: string): Promise<ResolvedPlace | null> {
 
 async function resolveInput(value: string): Promise<ResolvedPlace | null> {
   const coords = parseCoordinates(value);
-  if (coords) return reverseGeocode(coords);
-  return forwardGeocode(value);
+  return coords ? reverseGeocode(coords) : forwardGeocode(value);
 }
 
 function primCoordinates(place: PrimPlace | undefined): Coordinates | null {
@@ -207,21 +148,12 @@ function primCoordinates(place: PrimPlace | undefined): Coordinates | null {
   return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
 }
 
-function primLabel(place: PrimPlace | undefined, fallback: string): string {
+function primLabel(place: PrimPlace | undefined, fallback: string) {
   return place?.address?.label || place?.stop_area?.label || place?.name || fallback;
 }
 
-function estimatedWalkMinutes(distanceKm: number): number {
-  return Math.max(4, Math.round((distanceKm / 4.7) * 60));
-}
-
-function estimatedTaxiMinutes(distanceKm: number): number {
-  return Math.max(6, Math.round(5 + (distanceKm / 18) * 60));
-}
-
 function transitModeFromCommercialMode(value?: string): TransitMode | null {
-  const normalized = value?.trim().toLowerCase() ?? "";
-  if (!normalized) return null;
+  const normalized = (value || "").trim().toLowerCase();
   if (normalized.includes("metro") || normalized.includes("métro")) return "metro";
   if (normalized.includes("rer") || normalized === "train" || normalized.includes("rail")) return "rer";
   if (normalized.includes("tram")) return "tram";
@@ -229,20 +161,72 @@ function transitModeFromCommercialMode(value?: string): TransitMode | null {
   return null;
 }
 
-function publicSections(journey: PrimJourney): PrimSection[] {
+function publicSections(journey: PrimJourney) {
   return (journey.sections ?? []).filter((section) => section.type === "public_transport");
 }
 
 function journeyPrimaryMode(journey: PrimJourney): TransitMode | null {
-  for (const section of publicSections(journey)) {
+  const sections = publicSections(journey);
+  for (const section of sections) {
     const mode = transitModeFromCommercialMode(section.display_informations?.commercial_mode);
     if (mode) return mode;
   }
   return null;
 }
 
-function journeyUsesMode(journey: PrimJourney, mode: TransitMode): boolean {
+function journeyUsesMode(journey: PrimJourney, mode: TransitMode) {
   return publicSections(journey).some((section) => transitModeFromCommercialMode(section.display_informations?.commercial_mode) === mode);
+}
+
+function requestedTransitMode(mode: Mode | null): TransitMode | null {
+  if (mode === "metro" || mode === "rer" || mode === "bus" || mode === "tram") return mode;
+  return null;
+}
+
+function collectLineIds(sections: PrimSection[]) {
+  const ids = new Set<string>();
+  for (const section of sections) {
+    const line = section.display_informations?.uris?.line;
+    if (typeof line === "string" && line.length > 0) ids.add(line);
+  }
+  return Array.from(ids);
+}
+
+async function getLineTraffic(lineIds: string[], token: string): Promise<TrafficResult> {
+  if (!lineIds.length) return { checked: false, providerIssue: false, active: [] };
+  let providerIssue = false;
+  const active: TrafficItem[] = [];
+  const seen = new Set<string>();
+
+  for (const lineId of lineIds.slice(0, 4)) {
+    try {
+      const payload = await primRequest(`line_reports/lines/${encodeURIComponent(lineId)}/line_reports?count=20`, token) as { disruptions?: PrimDisruption[] };
+      for (const disruption of payload.disruptions ?? []) {
+        if ((disruption.status || "").toLowerCase() !== "active") continue;
+        const message = disruption.messages?.map((item) => item.text?.trim()).find((text) => Boolean(text)) || "Active service disruption reported by Île-de-France Mobilités.";
+        const id = disruption.id || `${disruption.severity?.effect || "traffic"}:${message}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        active.push({
+          id,
+          severity: disruption.severity?.name || disruption.severity?.effect || "active disruption",
+          message,
+        });
+      }
+    } catch {
+      providerIssue = true;
+    }
+  }
+
+  return { checked: true, providerIssue, active: active.slice(0, 5) };
+}
+
+function estimatedWalkMinutes(distanceKm: number) {
+  return Math.max(4, Math.round((distanceKm / 4.7) * 60));
+}
+
+function estimatedTaxiMinutes(distanceKm: number) {
+  return Math.max(6, Math.round(5 + (distanceKm / 18) * 60));
 }
 
 export async function POST(request: Request) {
@@ -256,75 +240,40 @@ export async function POST(request: Request) {
   const input = body as Record<string, unknown>;
   const originInput = typeof input.origin === "string" ? input.origin.trim().slice(0, 160) : "";
   const destinationInput = typeof input.destination === "string" ? input.destination.trim().slice(0, 160) : "";
-  const preferredMode = typeof input.mode === "string" && input.mode in modes ? input.mode as Mode : null;
+  const rawMode = typeof input.mode === "string" ? input.mode : "";
+  const preferredMode: Mode | null = rawMode === "metro" || rawMode === "rer" || rawMode === "bus" || rawMode === "tram" || rawMode === "taxi" || rawMode === "walk" ? rawMode : null;
+
   if (originInput.length < 3 || destinationInput.length < 2) {
     return Response.json({ error: "Enter your starting point and choose a destination." }, { status: 400 });
   }
 
-  const [resolvedOrigin, resolvedDestination] = await Promise.all([
-    resolveInput(originInput),
-    resolveInput(destinationInput),
-  ]);
+  const [resolvedOrigin, resolvedDestination] = await Promise.all([resolveInput(originInput), resolveInput(destinationInput)]);
+  if (resolvedOrigin && !resolvedOrigin.inParis) return Response.json({ error: "Your starting point appears to be outside Paris. Paris NOW currently prepares local Paris journeys only." }, { status: 422 });
+  if (resolvedDestination && !resolvedDestination.inParis) return Response.json({ error: "That destination appears to be outside Paris. Choose a Paris destination for this route." }, { status: 422 });
 
-  if (resolvedOrigin && !resolvedOrigin.inParis) {
-    return Response.json({ error: "Your starting point appears to be outside Paris. Paris NOW currently prepares local Paris journeys only." }, { status: 422 });
-  }
-  if (resolvedDestination && !resolvedDestination.inParis) {
-    return Response.json({ error: "That destination appears to be outside Paris. Choose a Paris destination for this route." }, { status: 422 });
-  }
-
-  if (resolvedOrigin?.coordinates && resolvedDestination?.coordinates) {
-    const straightLineKm = haversineKm(resolvedOrigin.coordinates, resolvedDestination.coordinates);
-    if (straightLineKm > MAX_LOCAL_DISTANCE_KM) {
-      return Response.json({ error: "This journey is outside the local Paris NOW operating area." }, { status: 422 });
-    }
+  if (resolvedOrigin?.coordinates && resolvedDestination?.coordinates && haversineKm(resolvedOrigin.coordinates, resolvedDestination.coordinates) > MAX_LOCAL_DISTANCE_KM) {
+    return Response.json({ error: "This journey is outside the local Paris NOW operating area." }, { status: 422 });
   }
 
   const origin = resolvedOrigin?.label || originInput;
   const destination = resolvedDestination?.label || destinationInput;
   const token = process.env.IDFM_PRIM_API_KEY || process.env.PRIM_API_KEY;
-  let liveJourney: {
-    minutes: number;
-    transfers: number;
-    lines: string[];
-    lineIds: string[];
-    primaryMode: TransitMode;
-    departure: string;
-    arrival: string;
-  } | null = null;
+
+  let liveJourney: { minutes: number; transfers: number; lines: string[]; lineIds: string[]; primaryMode: TransitMode; departure: string; arrival: string } | null = null;
   let providerIssue = false;
 
   if (token && preferredMode !== "taxi" && preferredMode !== "walk") {
     try {
-      const [fromResult, toResult] = await Promise.all([
-        primRequest("places?q=" + encodeURIComponent(originInput + ", Paris") + "&count=3", token),
-        primRequest("places?q=" + encodeURIComponent(destinationInput + ", Paris") + "&count=3", token),
-      ]);
-      const fromCandidates = (fromResult as { places?: PrimPlace[] }).places ?? [];
-      const toCandidates = (toResult as { places?: PrimPlace[] }).places ?? [];
-      const from = fromCandidates.find((place) => {
-        const coords = primCoordinates(place);
-        return !coords || isInsideParis(coords);
-      });
-      const to = toCandidates.find((place) => {
-        const coords = primCoordinates(place);
-        return !coords || isInsideParis(coords);
-      });
+      const fromResult = await primRequest("places?q=" + encodeURIComponent(originInput + ", Paris") + "&count=3", token) as { places?: PrimPlace[] };
+      const toResult = await primRequest("places?q=" + encodeURIComponent(destinationInput + ", Paris") + "&count=3", token) as { places?: PrimPlace[] };
+      const from = (fromResult.places ?? []).find((place) => { const coords = primCoordinates(place); return !coords || isInsideParis(coords); });
+      const to = (toResult.places ?? []).find((place) => { const coords = primCoordinates(place); return !coords || isInsideParis(coords); });
 
       if (from?.id && to?.id) {
-        const fromCoords = primCoordinates(from);
-        const toCoords = primCoordinates(to);
-        if (fromCoords && toCoords && haversineKm(fromCoords, toCoords) > MAX_LOCAL_DISTANCE_KM) {
-          throw new Error("Journey outside Paris NOW area");
-        }
-
-        const data = await primRequest("journeys?from=" + encodeURIComponent(from.id) + "&to=" + encodeURIComponent(to.id) + "&count=5", token);
-        const journeys = ((data as { journeys?: PrimJourney[] }).journeys ?? [])
-          .filter((candidate) => (candidate.duration ?? 0) > 0 && (candidate.duration ?? 0) <= 7200);
-        const requestedTransitMode = preferredMode && preferredMode !== "taxi" && preferredMode !== "walk" ? preferredMode : null;
-        const journey = requestedTransitMode
-          ? journeys.find((candidate) => journeyUsesMode(candidate, requestedTransitMode)) ?? journeys[0]
-          : journeys[0];
+        const data = await primRequest("journeys?from=" + encodeURIComponent(from.id) + "&to=" + encodeURIComponent(to.id) + "&count=5", token) as { journeys?: PrimJourney[] };
+        const journeys = (data.journeys ?? []).filter((candidate) => (candidate.duration ?? 0) > 0 && (candidate.duration ?? 0) <= 7200);
+        const wanted = requestedTransitMode(preferredMode);
+        const journey = wanted ? (journeys.find((candidate) => journeyUsesMode(candidate, wanted)) || null) : (journeys[0] || null);
         const primaryMode = journey ? journeyPrimaryMode(journey) : null;
 
         if (journey?.duration && primaryMode) {
@@ -332,8 +281,8 @@ export async function POST(request: Request) {
           liveJourney = {
             minutes: Math.max(1, Math.round(journey.duration / 60)),
             transfers: journey.nb_transfers ?? 0,
-            lines: sections.map((section) => [section.display_informations?.commercial_mode, section.display_informations?.code].filter(Boolean).join(" ")).filter(Boolean),
-            lineIds: [...new Set(sections.map((section) => section.display_informations?.uris?.line).filter((value): value is string => Boolean(value)))],
+            lines: sections.map((section) => [section.display_informations?.commercial_mode, section.display_informations?.code].filter(Boolean).join(" ")).filter((value) => value.length > 0),
+            lineIds: collectLineIds(sections),
             primaryMode,
             departure: primLabel(from, origin),
             arrival: primLabel(to, destination),
@@ -345,26 +294,23 @@ export async function POST(request: Request) {
     }
   }
 
-  const traffic = token && liveJourney?.lineIds.length
-    ? await getLineTraffic(liveJourney.lineIds, token)
-    : { checked: false, providerIssue: false, active: [] as Array<{ id: string; severity: string; message: string }> };
+  let traffic: TrafficResult = { checked: false, providerIssue: false, active: [] };
+  if (token && liveJourney && liveJourney.lineIds.length > 0) traffic = await getLineTraffic(liveJourney.lineIds, token);
 
-  const distanceKm = resolvedOrigin?.coordinates && resolvedDestination?.coordinates
-    ? haversineKm(resolvedOrigin.coordinates, resolvedDestination.coordinates)
-    : null;
+  const distanceKm = resolvedOrigin?.coordinates && resolvedDestination?.coordinates ? haversineKm(resolvedOrigin.coordinates, resolvedDestination.coordinates) : null;
+  const activeJourney = liveJourney;
 
-  const options = (Object.entries(modes) as [Mode, typeof modes[Mode]][]).map(([id, mode]) => {
-    const live = Boolean(liveJourney && id === liveJourney.primaryMode);
+  const options = (Object.entries(modes) as Array<[Mode, { label: string; minutes: number; detail: string }]>).map(([id, mode]) => {
     let minutes = mode.minutes;
     let detail = mode.detail;
     let source: "official" | "estimated" = "estimated";
     let transfers: number | null = null;
 
-    if (live && liveJourney) {
-      minutes = liveJourney.minutes;
-      detail = liveJourney.lines.join(" · ") || "Official Île-de-France Mobilités journey";
+    if (activeJourney && id === activeJourney.primaryMode) {
+      minutes = activeJourney.minutes;
+      detail = activeJourney.lines.join(" · ") || "Official Île-de-France Mobilités journey";
       source = "official";
-      transfers = liveJourney.transfers;
+      transfers = activeJourney.transfers;
     } else if (distanceKm !== null && id === "walk") {
       minutes = estimatedWalkMinutes(distanceKm);
       detail = distanceKm <= 3 ? `${distanceKm.toFixed(1)} km · direct pedestrian estimate` : `${distanceKm.toFixed(1)} km · walking is possible but not recommended for this connection`;
@@ -379,10 +325,10 @@ export async function POST(request: Request) {
   const provider = {
     name: "Île-de-France Mobilités · PRIM",
     connected: Boolean(token),
-    live: Boolean(liveJourney),
-    issue: providerIssue,
-    primaryMode: liveJourney?.primaryMode ?? null,
-    lineIds: liveJourney?.lineIds ?? [],
+    live: Boolean(activeJourney),
+    issue: providerIssue || traffic.providerIssue,
+    primaryMode: activeJourney?.primaryMode ?? null,
+    lineIds: activeJourney?.lineIds ?? [],
     trafficChecked: traffic.checked,
     trafficProviderIssue: traffic.providerIssue,
   };
@@ -403,7 +349,7 @@ export async function POST(request: Request) {
     },
     health,
     geocoding: { source: "Base Adresse Nationale", originResolved: Boolean(resolvedOrigin), destinationResolved: Boolean(resolvedDestination) },
-    disclaimer: liveJourney
+    disclaimer: activeJourney
       ? "Public transport data supplied by Île-de-France Mobilités. The official time is attached only to the transport mode actually used by the returned journey. Active line disruptions are checked separately through PRIM traffic information when line identifiers are available. Walking and taxi times remain estimates."
       : "Paris-local planning only. Walking and taxi times are estimated; live public transport requires an available PRIM response.",
   }, { headers: { "Cache-Control": "no-store" } });
