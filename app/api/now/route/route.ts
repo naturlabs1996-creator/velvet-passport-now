@@ -359,7 +359,7 @@ export async function POST(request: Request) {
   const ticketTime = normalized.ticket?.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(normalized.ticket.time) ? normalized.ticket.time : "16:30";
   const transport = normalized.transport ?? null;
   const remainingAfterTransport = transport ? availableMinutes - transport.minutes : availableMinutes;
-  if (transport && remainingAfterTransport < 15) {
+  if (transport && remainingAfterTransport < 20) {
     return Response.json({
       error: "The connection consumes too much of the available time to build a safe Paris NOW route.",
       code: "INSUFFICIENT_TIME_AFTER_TRANSPORT",
