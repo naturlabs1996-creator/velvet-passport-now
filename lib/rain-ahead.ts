@@ -28,7 +28,8 @@ function isRain(symbol: string, precipitationMm: number) {
 }
 
 function roundedMinutes(value: number) {
-  if (value <= 10) return 10;
+  if (value <= 2) return 0;
+  if (value <= 10) return 5;
   return Math.max(10, Math.round(value / 5) * 5);
 }
 
@@ -40,7 +41,7 @@ export async function getRainAhead(point: Coordinates): Promise<RainAhead> {
         "User-Agent": "VelvetPassportNOW/1.0 https://github.com/naturlabs1996-creator/velvet-passport-now",
         Accept: "application/json",
       },
-      next: { revalidate: 600 },
+      next: { revalidate: 120 },
       signal: AbortSignal.timeout(6000),
     });
     if (!response.ok) throw new Error("MET unavailable");
@@ -72,16 +73,17 @@ export async function getRainAhead(point: Coordinates): Promise<RainAhead> {
     const minutesUntil = roundedMinutes(minutesUntilRaw);
     const strongSignal = rainy.precipitationMm >= 0.5 || /heavyrain|thunder/.test(rainy.symbol.toLowerCase());
     const confidence: RainAhead["confidence"] = strongSignal ? "high" : rainy.precipitationMm >= 0.2 ? "moderate" : "low";
+    const alert = minutesUntilRaw <= 60 && confidence !== "low";
 
     return {
       available: true,
-      alert: minutesUntilRaw <= 60,
+      alert,
       minutesUntil,
       precipitationMm: rainy.precipitationMm,
       confidence,
       source: "MET Norway",
-      message: minutesUntilRaw <= 60 ? `Rain is likely in about ${minutesUntil} minutes.` : undefined,
-      action: minutesUntilRaw <= 60 ? "offer-route-adjustment" : undefined,
+      message: alert ? (minutesUntil === 0 ? "Rain is likely now." : `Rain is likely in about ${minutesUntil} minutes.`) : undefined,
+      action: alert ? "offer-route-adjustment" : undefined,
     };
   } catch {
     return { available: false, alert: false, confidence: "none", source: "MET Norway" };
