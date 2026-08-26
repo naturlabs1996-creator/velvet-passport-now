@@ -143,5 +143,5 @@ export async function POST(request: Request) {
       ...(process.env.FOURSQUARE_API_KEY ? ["Foursquare · fallback provider"] : []),
     ],
     generatedAt: new Date().toISOString(),
-  }, { headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=900" } });
+  }, { headers: { "Cache-Control": "private, no-store" } });
 }
