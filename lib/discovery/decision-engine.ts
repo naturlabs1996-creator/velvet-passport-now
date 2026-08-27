@@ -35,6 +35,7 @@ export type VelvetDecision = {
   searchConfirmed: boolean;
   buyConfirmed: boolean;
   operationalNeed: boolean;
+  operationalEvidenceCount: number;
   reasons: string[];
   nextStep: string;
 };
@@ -60,13 +61,14 @@ const GUIDE_FRIENDLY_THEMES = new Set([
   "beyond-the-classics",
 ]);
 
-const operationalCuePattern = /\b(today|tonight|now|right now|currently|open now|closed|weather|rain|raining|heat|hot|cold|route|metro|rer|train|traffic|strike|delay|reservation|ticket|sold out|availability|near me|nearby|this evening|ce soir|aujourd'hui|maintenant|météo|pluie|ouvert|fermé|trajet|grève|retard|billet|disponibilit[eé])\b/i;
+const operationalCuePattern = /\b(today|tonight|right now|currently|open now|closed now|weather|raining|heatwave|route now|metro delay|rer delay|traffic|strike|delay|sold out|availability|near me|this evening|ce soir|aujourd'hui|maintenant|météo|pluie|grève|retard|disponibilit[eé])\b/i;
 
 function commercialStatus(theme: string, signals: NormalizedRadarObservation[], buyHealth: BuySourceHealth[]): CommercialValidation {
   if (signals.some((signal) => signal.sourceType === "BUY")) return "CONFIRMED";
   const healthyBuySources = buyHealth.filter((source) => source.available);
-  if (healthyBuySources.length === 0) return "UNVERIFIED";
   if (healthyBuySources.some((source) => source.matchedThemes?.includes(theme))) return "CONFIRMED";
+  // One accessible marketplace is not enough negative evidence to declare a market absent.
+  if (healthyBuySources.length < 2) return "UNVERIFIED";
   return "NOT_CONFIRMED";
 }
 
@@ -129,7 +131,7 @@ function nextStepFor(action: DecisionAction, theme: string, commercialValidation
       return `Keep ${theme} in the watch list until another independent source or stronger first-party behavior appears.`;
     default:
       return commercialValidation === "NOT_CONFIRMED"
-        ? `Do not invest in ${theme} yet; accessible commercial evidence did not confirm it.`
+        ? `Do not invest in ${theme} yet; multiple accessible commercial sources did not confirm it.`
         : `Ignore ${theme} unless new evidence materially changes the signal.`;
   }
 }
@@ -148,10 +150,12 @@ export function buildVelvetDecisions(
     const avgOpportunity = average(themed.map((signal) => signal.velvetOpportunityScore ?? 0));
     const avgVelvetFit = average(themed.map((signal) => signal.velvetFit ?? 0));
     const avgTravelerIntent = average(themed.map((signal) => signal.travelerIntentScore ?? 0));
-    const askConfirmed = themed.some((signal) => signal.sourceType === "ASK");
+    const askSignals = themed.filter((signal) => signal.sourceType === "ASK");
+    const askConfirmed = askSignals.length > 0;
     const searchConfirmed = themed.some((signal) => signal.sourceType === "SEARCH");
     const buyConfirmed = themed.some((signal) => signal.sourceType === "BUY");
-    const operationalNeed = OPERATIONAL_THEMES.has(theme) || themed.some((signal) => operationalCuePattern.test(signal.text));
+    const operationalEvidenceCount = askSignals.filter((signal) => operationalCuePattern.test(signal.text)).length;
+    const operationalNeed = OPERATIONAL_THEMES.has(theme) || operationalEvidenceCount >= 2;
     const commercialValidation = commercialStatus(theme, themed, buyHealth);
 
     const action = chooseAction({
@@ -191,9 +195,11 @@ export function buildVelvetDecisions(
     if (askConfirmed) reasons.push("Traveler need appears in ASK behavior.");
     if (searchConfirmed) reasons.push("Search demand independently confirms the theme.");
     if (buyConfirmed) reasons.push("A BUY source directly confirms commercial presence.");
-    if (commercialValidation === "UNVERIFIED") reasons.push("Commercial demand is unverified because no BUY source is currently accessible; this is not treated as zero demand.");
-    if (commercialValidation === "NOT_CONFIRMED") reasons.push("Accessible BUY sources were checked but did not confirm this theme.");
-    if (operationalNeed) reasons.push("The language or theme contains a live-context need suited to NOW.");
+    if (commercialValidation === "UNVERIFIED") reasons.push("Commercial demand remains unverified because fewer than two independent BUY sources are currently accessible; this is not treated as zero demand.");
+    if (commercialValidation === "NOT_CONFIRMED") reasons.push("Multiple accessible BUY sources were checked but did not confirm this theme.");
+    if (operationalNeed) reasons.push(OPERATIONAL_THEMES.has(theme)
+      ? "The theme is inherently live-context and suited to NOW."
+      : `Repeated ASK evidence (${operationalEvidenceCount} signals) shows a live-context need suited to NOW.`);
     if (avgVelvetFit >= 75) reasons.push("Strong fit with the Velvet rare/local/atmospheric discovery layer.");
 
     return {
@@ -214,6 +220,7 @@ export function buildVelvetDecisions(
       searchConfirmed,
       buyConfirmed,
       operationalNeed,
+      operationalEvidenceCount,
       reasons,
       nextStep: nextStepFor(action, theme, commercialValidation),
     };
