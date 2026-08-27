@@ -82,7 +82,7 @@ export async function collectReddit(): Promise<CollectorResult> {
 }
 
 async function collectPublicSearchSource(options: {
-  source: "tripadvisor" | "atlas" | "wanderlog" | "substack";
+  source: "tripadvisor" | "wanderlog" | "substack";
   sourceType: "ASK" | "SAVE" | "DISCOVER";
   site: string;
   confidence: number;
@@ -129,8 +129,74 @@ export function collectTripadvisor() {
   return collectPublicSearchSource({ source: "tripadvisor", sourceType: "ASK", site: "tripadvisor.com/ShowTopic", confidence: 82, velocity: 45, commercialIntent: 35 });
 }
 
-export function collectAtlas() {
-  return collectPublicSearchSource({ source: "atlas", sourceType: "SAVE", site: "atlasobscura.com", confidence: 78, velocity: 42, commercialIntent: 40, limit: 14 });
+export async function collectAtlas(): Promise<CollectorResult> {
+  const url = "https://www.atlasobscura.com/things-to-do/paris-france";
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": "VelvetPassportRadar/1.0 (+https://velvetpassport.com)" },
+      cache: "no-store",
+    });
+    if (!response.ok) return { source: "atlas", ok: false, observations: [], normalized: [], note: `http_${response.status}` };
+
+    const html = await response.text();
+    const text = stripTags(html);
+    const observations: RawRadarObservation[] = [];
+
+    const pageSignals = [
+      "Cool, Hidden, and Unusual Things to Do in Paris",
+      "leaving the beaten path",
+      "Unusual Attractions in Paris",
+      "non-touristy things to do in Paris",
+      "hidden gem",
+      "go beyond the tropes and the tourist traps",
+    ].filter((phrase) => text.toLowerCase().includes(phrase.toLowerCase()));
+
+    for (const phrase of pageSignals) {
+      observations.push({
+        source: "atlas",
+        sourceType: "SAVE",
+        text: `${phrase}. Paris discovery interest on Atlas Obscura.`,
+        query: phrase,
+        observedAt: new Date().toISOString(),
+        volumeScore: 52,
+        velocityScore: 48,
+        sourceConfidence: 84,
+        commercialIntent: 42,
+        competitionPressure: 48,
+        sourceUrl: url,
+      });
+    }
+
+    const wantsToGo = [...text.matchAll(/wants to go to\s+([^.!?]{2,100})/gi)].slice(0, 20);
+    for (const match of wantsToGo) {
+      const place = match[1]?.trim();
+      if (!place) continue;
+      observations.push({
+        source: "atlas",
+        sourceType: "SAVE",
+        text: `Traveler wants to go to ${place} in Paris`,
+        query: `Paris ${place}`,
+        observedAt: new Date().toISOString(),
+        volumeScore: 38,
+        velocityScore: 52,
+        sourceConfidence: 82,
+        commercialIntent: 38,
+        competitionPressure: 40,
+        sourceUrl: url,
+      });
+    }
+
+    const normalized = observations.flatMap(normalizeRadarObservation);
+    return {
+      source: "atlas",
+      ok: observations.length > 0,
+      observations,
+      normalized,
+      note: observations.length ? undefined : "direct_page_no_signals",
+    };
+  } catch {
+    return { source: "atlas", ok: false, observations: [], normalized: [], note: "direct_fetch_failed" };
+  }
 }
 
 export function collectWanderlog() {
