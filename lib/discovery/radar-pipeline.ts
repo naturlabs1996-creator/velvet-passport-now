@@ -26,9 +26,14 @@ export type NormalizedRadarObservation = RawRadarObservation & {
   travelerIntentScore: number;
   buyIntent: IntentStrength;
   buyIntentScore: number;
+  travelSpendIntent: IntentStrength;
+  travelSpendIntentScore: number;
+  velvetIntent: IntentStrength;
+  velvetIntentScore: number;
   purchaseCategory: PurchaseCategory;
   travelerCues: string[];
   buyCues: string[];
+  velvetCues: string[];
 };
 
 const allowedSources: Record<RadarSourceType, Set<string>> = {
@@ -75,24 +80,17 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
   const source = raw.source.trim().toLowerCase();
   if (!allowedSources[raw.sourceType]?.has(source)) return [];
 
-  // Reddit is used as a live demand source. Search APIs can occasionally surface stale posts even with
-  // a recent-time query, so enforce freshness independently before any scoring or theme matching.
   if (source === "reddit" && !isFreshEnough(raw.observedAt, 30)) return [];
 
-  // Theme classification and intent classification must come from observed content only.
-  // Search queries are provenance and must never manufacture intent.
   const observedText = raw.text.trim();
   if (!observedText) return [];
 
   const intent = classifyRadarIntent(observedText);
-
-  // ASK sources represent people asking for help. Require evidence that the post is actually about travel/planning,
-  // otherwise generic Paris chatter, photography, schools, news, etc. must not enter the demand radar.
   if (raw.sourceType === "ASK" && intent.travelerIntentScore < 20) return [];
 
   const matches = findSeedMatches(observedText);
   const baseCommercialIntent = clampScore(raw.commercialIntent, raw.sourceType === "BUY" ? 75 : 35);
-  const enrichedCommercialIntent = Math.max(baseCommercialIntent, intent.buyIntentScore);
+  const enrichedCommercialIntent = Math.max(baseCommercialIntent, intent.travelSpendIntentScore);
 
   return matches.map(({ seed, hits }) => ({
     ...raw,
@@ -113,9 +111,14 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
     travelerIntentScore: intent.travelerIntentScore,
     buyIntent: intent.buyIntent,
     buyIntentScore: intent.buyIntentScore,
+    travelSpendIntent: intent.travelSpendIntent,
+    travelSpendIntentScore: intent.travelSpendIntentScore,
+    velvetIntent: intent.velvetIntent,
+    velvetIntentScore: intent.velvetIntentScore,
     purchaseCategory: intent.purchaseCategory,
     travelerCues: intent.travelerCues,
     buyCues: intent.buyCues,
+    velvetCues: intent.velvetCues,
   }));
 }
 
