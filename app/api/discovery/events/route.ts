@@ -10,6 +10,9 @@ const allowedEvents = new Set([
   "now_interest",
 ]);
 
+const supabaseUrl = "https://kbceicncyhjbegdbjhxl.supabase.co";
+const supabasePublishableKey = "sb_publishable_QcO_SHeSjxJqu88Cw36gVw_xtKFB-hl";
+
 type DiscoveryEvent = {
   event?: string;
   page?: string;
@@ -39,22 +42,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_event" }, { status: 400 });
   }
 
-  const record = {
-    event,
-    city: "Paris",
-    page: clean(body.page),
-    theme: clean(body.theme),
-    source: clean(body.source),
-    campaign: clean(body.campaign),
-    asset: clean(body.asset),
-    store: clean(body.store, 40),
-    product: clean(body.product, 80),
-    occurredAt: new Date().toISOString(),
+  const payload = {
+    p_event_type: event,
+    p_page: clean(body.page) ?? null,
+    p_theme: clean(body.theme) ?? null,
+    p_source: clean(body.source) ?? null,
+    p_campaign: clean(body.campaign) ?? null,
+    p_asset: clean(body.asset) ?? null,
+    p_store: clean(body.store, 40) ?? null,
+    p_product: clean(body.product, 80) ?? null,
+    p_session_id: null,
   };
 
-  // V1 collector: keeps the client/API contract stable while persistent storage
-  // is connected in the next MVP step. Vercel function logs retain the event now.
-  console.info("VELVET_DISCOVERY_EVENT", JSON.stringify(record));
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/vp_ingest_discovery_event`, {
+      method: "POST",
+      headers: {
+        apikey: supabasePublishableKey,
+        authorization: `Bearer ${supabasePublishableKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error("VELVET_DISCOVERY_PERSIST_FAILED", response.status, await response.text());
+      return NextResponse.json({ ok: false, error: "storage_failed" }, { status: 503 });
+    }
+  } catch (error) {
+    console.error("VELVET_DISCOVERY_PERSIST_FAILED", error);
+    return NextResponse.json({ ok: false, error: "storage_unavailable" }, { status: 503 });
+  }
 
   return new NextResponse(null, { status: 204 });
 }
