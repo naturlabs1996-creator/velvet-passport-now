@@ -30,6 +30,8 @@ export type NormalizedRadarObservation = RawRadarObservation & {
   travelSpendIntentScore: number;
   velvetIntent: IntentStrength;
   velvetIntentScore: number;
+  velvetOpportunity: IntentStrength;
+  velvetOpportunityScore: number;
   purchaseCategory: PurchaseCategory;
   travelerCues: string[];
   buyCues: string[];
@@ -68,6 +70,13 @@ const sourceConfidenceDefaults: Record<string, number> = {
 const clampScore = (value: number | undefined, fallback: number) =>
   Math.round(Math.max(0, Math.min(100, Number.isFinite(value) ? Number(value) : fallback)));
 
+const intentStrength = (score: number): IntentStrength => {
+  if (score >= 75) return "STRONG";
+  if (score >= 45) return "MEDIUM";
+  if (score >= 20) return "WEAK";
+  return "NONE";
+};
+
 const isFreshEnough = (observedAt: string | undefined, maxAgeDays: number) => {
   if (!observedAt) return false;
   const timestamp = Date.parse(observedAt);
@@ -92,34 +101,51 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
   const baseCommercialIntent = clampScore(raw.commercialIntent, raw.sourceType === "BUY" ? 75 : 35);
   const enrichedCommercialIntent = Math.max(baseCommercialIntent, intent.travelSpendIntentScore);
 
-  return matches.map(({ seed, hits }) => ({
-    ...raw,
-    source,
-    text: observedText.slice(0, 1200),
-    query: raw.query?.trim().slice(0, 300),
-    observedAt: raw.observedAt ?? new Date().toISOString(),
-    volumeScore: clampScore(raw.volumeScore, 35),
-    velocityScore: clampScore(raw.velocityScore, 25),
-    sourceConfidence: clampScore(raw.sourceConfidence, sourceConfidenceDefaults[source] ?? 60),
-    commercialIntent: enrichedCommercialIntent,
-    competitionPressure: clampScore(raw.competitionPressure, 50),
-    sourceUrl: raw.sourceUrl?.trim().slice(0, 1000),
-    theme: seed.theme,
-    velvetFit: seed.velvetFit,
-    matchedPhrases: hits,
-    travelerIntent: intent.travelerIntent,
-    travelerIntentScore: intent.travelerIntentScore,
-    buyIntent: intent.buyIntent,
-    buyIntentScore: intent.buyIntentScore,
-    travelSpendIntent: intent.travelSpendIntent,
-    travelSpendIntentScore: intent.travelSpendIntentScore,
-    velvetIntent: intent.velvetIntent,
-    velvetIntentScore: intent.velvetIntentScore,
-    purchaseCategory: intent.purchaseCategory,
-    travelerCues: intent.travelerCues,
-    buyCues: intent.buyCues,
-    velvetCues: intent.velvetCues,
-  }));
+  return matches.map(({ seed, hits }) => {
+    let velvetOpportunityScore = Math.round(
+      seed.velvetFit * 0.5 +
+      intent.travelerIntentScore * 0.25 +
+      intent.velvetIntentScore * 0.25
+    );
+
+    // A hotel/transport purchase can coexist with a Velvet discovery need, but must not look like direct product demand.
+    if ((intent.purchaseCategory === "LODGING" || intent.purchaseCategory === "TRANSPORT") && intent.velvetIntentScore < 20) {
+      velvetOpportunityScore -= 18;
+    }
+    if (hits.length >= 2) velvetOpportunityScore += 6;
+    velvetOpportunityScore = clampScore(velvetOpportunityScore, 0);
+
+    return {
+      ...raw,
+      source,
+      text: observedText.slice(0, 1200),
+      query: raw.query?.trim().slice(0, 300),
+      observedAt: raw.observedAt ?? new Date().toISOString(),
+      volumeScore: clampScore(raw.volumeScore, 35),
+      velocityScore: clampScore(raw.velocityScore, 25),
+      sourceConfidence: clampScore(raw.sourceConfidence, sourceConfidenceDefaults[source] ?? 60),
+      commercialIntent: enrichedCommercialIntent,
+      competitionPressure: clampScore(raw.competitionPressure, 50),
+      sourceUrl: raw.sourceUrl?.trim().slice(0, 1000),
+      theme: seed.theme,
+      velvetFit: seed.velvetFit,
+      matchedPhrases: hits,
+      travelerIntent: intent.travelerIntent,
+      travelerIntentScore: intent.travelerIntentScore,
+      buyIntent: intent.buyIntent,
+      buyIntentScore: intent.buyIntentScore,
+      travelSpendIntent: intent.travelSpendIntent,
+      travelSpendIntentScore: intent.travelSpendIntentScore,
+      velvetIntent: intent.velvetIntent,
+      velvetIntentScore: intent.velvetIntentScore,
+      velvetOpportunity: intentStrength(velvetOpportunityScore),
+      velvetOpportunityScore,
+      purchaseCategory: intent.purchaseCategory,
+      travelerCues: intent.travelerCues,
+      buyCues: intent.buyCues,
+      velvetCues: intent.velvetCues,
+    };
+  });
 }
 
 export function toRadarSignal(observation: NormalizedRadarObservation): RadarSignal {
