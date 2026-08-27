@@ -71,8 +71,10 @@ function parseNeed(value: unknown): NowNeedConstraint | null {
 }
 
 export function normalizeNowRequest(input: Record<string, unknown>, legacyScenario?: NowScenario): NowComposableRequest {
+  // Reservation rescue must preserve the real remaining time. Never inflate a
+  // critical 6-minute window into the previous 15-minute minimum.
   const availableMinutes = typeof input.availableMinutes === "number" && Number.isFinite(input.availableMinutes)
-    ? Math.max(15, Math.min(480, input.availableMinutes))
+    ? Math.max(1, Math.min(480, input.availableMinutes))
     : 90;
   const ticketTime = typeof input.ticketTime === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.ticketTime) ? input.ticketTime : undefined;
   const rawTicket = input.ticket && typeof input.ticket === "object" ? input.ticket as Record<string, unknown> : null;
@@ -107,7 +109,7 @@ export function normalizeNowRequest(input: Record<string, unknown>, legacyScenar
     ticket: {
       time: typeof rawTicket?.time === "string" ? rawTicket.time : ticketTime,
       venue: typeof rawTicket?.venue === "string" ? rawTicket.venue.slice(0, 160) : undefined,
-      protectedMarginMinutes: Number.isFinite(Number(rawTicket?.protectedMarginMinutes)) ? Math.max(10, Math.min(90, Number(rawTicket?.protectedMarginMinutes))) : 15,
+      protectedMarginMinutes: Number.isFinite(Number(rawTicket?.protectedMarginMinutes)) ? Math.max(3, Math.min(90, Number(rawTicket?.protectedMarginMinutes))) : 15,
     },
     transport,
     weather: {
