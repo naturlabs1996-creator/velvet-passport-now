@@ -5,7 +5,7 @@ const supabaseUrl = "https://kbceicncyhjbegdbjhxl.supabase.co";
 const supabaseKey = "sb_publishable_QcO_SHeSjxJqu88Cw36gVw_xtKFB-hl";
 
 async function persistSignal(signal: any) {
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/vp_record_radar_signal`, {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/vp_ingest_radar_signal`, {
     method: "POST",
     headers: {
       apikey: supabaseKey,
@@ -16,8 +16,8 @@ async function persistSignal(signal: any) {
       p_theme: signal.theme,
       p_source: signal.source,
       p_source_type: signal.sourceType,
-      p_text: signal.text,
-      p_query: signal.query ?? null,
+      p_query_text: signal.query ?? null,
+      p_signal_text: signal.text ?? null,
       p_observed_at: signal.observedAt,
       p_volume_score: signal.volumeScore,
       p_velocity_score: signal.velocityScore,
@@ -26,7 +26,7 @@ async function persistSignal(signal: any) {
       p_commercial_intent: signal.commercialIntent,
       p_competition_pressure: signal.competitionPressure,
       p_source_url: signal.sourceUrl ?? null,
-      p_matched_phrases: signal.matchedPhrases ?? [],
+      p_metadata: { matchedPhrases: signal.matchedPhrases ?? [] },
     }),
     cache: "no-store",
   });
