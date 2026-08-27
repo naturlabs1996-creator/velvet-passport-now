@@ -1,4 +1,5 @@
 import { findSeedMatches, parisRadarSeeds } from "./radar-seeds";
+import { classifyRadarIntent, type IntentStrength, type PurchaseCategory } from "./radar-intent";
 import type { RadarSignal } from "./radar";
 
 export type RadarSourceType = "ASK" | "SEARCH" | "SAVE" | "DISCOVER" | "BUY";
@@ -21,6 +22,13 @@ export type NormalizedRadarObservation = RawRadarObservation & {
   theme: string;
   velvetFit: number;
   matchedPhrases: string[];
+  travelerIntent: IntentStrength;
+  travelerIntentScore: number;
+  buyIntent: IntentStrength;
+  buyIntentScore: number;
+  purchaseCategory: PurchaseCategory;
+  travelerCues: string[];
+  buyCues: string[];
 };
 
 const allowedSources: Record<RadarSourceType, Set<string>> = {
@@ -59,12 +67,21 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
   const source = raw.source.trim().toLowerCase();
   if (!allowedSources[raw.sourceType]?.has(source)) return [];
 
-  // Theme classification must come from what the traveler/content actually says.
-  // The search query is retained only as provenance and must never force a match.
+  // Theme classification and intent classification must come from observed content only.
+  // Search queries are provenance and must never manufacture intent.
   const observedText = raw.text.trim();
   if (!observedText) return [];
 
+  const intent = classifyRadarIntent(observedText);
+
+  // ASK sources represent people asking for help. Require evidence that the post is actually about travel/planning,
+  // otherwise generic Paris chatter, photography, schools, news, etc. must not enter the demand radar.
+  if (raw.sourceType === "ASK" && intent.travelerIntentScore < 20) return [];
+
   const matches = findSeedMatches(observedText);
+  const baseCommercialIntent = clampScore(raw.commercialIntent, raw.sourceType === "BUY" ? 75 : 35);
+  const enrichedCommercialIntent = Math.max(baseCommercialIntent, intent.buyIntentScore);
+
   return matches.map(({ seed, hits }) => ({
     ...raw,
     source,
@@ -74,12 +91,19 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
     volumeScore: clampScore(raw.volumeScore, 35),
     velocityScore: clampScore(raw.velocityScore, 25),
     sourceConfidence: clampScore(raw.sourceConfidence, sourceConfidenceDefaults[source] ?? 60),
-    commercialIntent: clampScore(raw.commercialIntent, raw.sourceType === "BUY" ? 75 : 35),
+    commercialIntent: enrichedCommercialIntent,
     competitionPressure: clampScore(raw.competitionPressure, 50),
     sourceUrl: raw.sourceUrl?.trim().slice(0, 1000),
     theme: seed.theme,
     velvetFit: seed.velvetFit,
     matchedPhrases: hits,
+    travelerIntent: intent.travelerIntent,
+    travelerIntentScore: intent.travelerIntentScore,
+    buyIntent: intent.buyIntent,
+    buyIntentScore: intent.buyIntentScore,
+    purchaseCategory: intent.purchaseCategory,
+    travelerCues: intent.travelerCues,
+    buyCues: intent.buyCues,
   }));
 }
 
