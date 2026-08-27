@@ -1,8 +1,8 @@
 import { isNowPassPlan, planDurationMs } from "./stripe-now";
 
 const EXPECTED_AMOUNTS = { "72h": 1490, "7d": 2290 } as const;
-const cache = new Map<string, { active: boolean; checkedAt: number; expiresAt?: number }>();
-const CACHE_MS = 2 * 60 * 1000;
+const cache = new Map<string, { active: false; checkedAt: number }>();
+const INACTIVE_CACHE_MS = 2 * 60 * 1000;
 const STATE_RANK: Record<string, number> = { pending: 0, active: 1, revoked: 2 };
 
 function secret() {
@@ -163,14 +163,12 @@ export async function activateStripeNowSession(sessionId: string) {
 export async function isStripePassEntitlementActive(sessionId: string) {
   const now = Date.now();
   const cached = cache.get(sessionId);
-  if (
-    cached
-    && now - cached.checkedAt < CACHE_MS
-    && (!cached.active || (typeof cached.expiresAt === "number" && cached.expiresAt > now))
-  ) {
-    return cached.active;
-  }
+  if (cached && now - cached.checkedAt < INACTIVE_CACHE_MS) return false;
 
+  // Positive access is never trusted from process-local memory. Serverless
+  // instances do not share caches, so a refund/dispute handled by another
+  // instance could otherwise leave a short stale-access window. Active Passes
+  // are therefore revalidated against Stripe on every entitlement check.
   const checkout = await session(sessionId);
   const validated = validatePaidSession(checkout);
   const intent = typeof checkout.payment_intent === "object" ? checkout.payment_intent : null;
@@ -184,6 +182,8 @@ export async function isStripePassEntitlementActive(sessionId: string) {
     && expiresAt > activatedAt
     && expiresAt > now
   );
-  cache.set(sessionId, { active, checkedAt: now, expiresAt: Number.isFinite(expiresAt) ? expiresAt : undefined });
+
+  if (!active) cache.set(sessionId, { active: false, checkedAt: now });
+  else cache.delete(sessionId);
   return active;
 }
