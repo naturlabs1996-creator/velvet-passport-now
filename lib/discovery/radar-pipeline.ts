@@ -59,14 +59,16 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
   const source = raw.source.trim().toLowerCase();
   if (!allowedSources[raw.sourceType]?.has(source)) return [];
 
-  const text = `${raw.query ?? ""} ${raw.text}`.trim();
-  if (!text) return [];
+  // Theme classification must come from what the traveler/content actually says.
+  // The search query is retained only as provenance and must never force a match.
+  const observedText = raw.text.trim();
+  if (!observedText) return [];
 
-  const matches = findSeedMatches(text);
+  const matches = findSeedMatches(observedText);
   return matches.map(({ seed, hits }) => ({
     ...raw,
     source,
-    text: raw.text.trim().slice(0, 1200),
+    text: observedText.slice(0, 1200),
     query: raw.query?.trim().slice(0, 300),
     observedAt: raw.observedAt ?? new Date().toISOString(),
     volumeScore: clampScore(raw.volumeScore, 35),
