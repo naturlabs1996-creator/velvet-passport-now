@@ -73,6 +73,24 @@ function liveScenario(type: NowNeedConstraint["type"]): LiveNeedScenario | null 
   return ["food", "pharmacy", "water", "restroom", "sitdown"].includes(type) ? type as LiveNeedScenario : null;
 }
 
+function needPriority(need: NowNeedConstraint) {
+  // Explicit deadlines are hard constraints and always outrank comfort/curation.
+  if (need.withinMinutes !== undefined) return Math.max(0, need.withinMinutes);
+  if (need.type === "pharmacy") return 300;
+  if (need.type === "water" || need.type === "restroom") return 400;
+  if (need.type === "medication" || need.type === "glucose") return 450;
+  if (need.type === "sitdown" || need.type === "battery") return 700;
+  if (need.type === "food") return 900;
+  return 800;
+}
+
+function orderedNeeds(needs: NowNeedConstraint[]) {
+  return needs
+    .map((need, index) => ({ need, index }))
+    .sort((a, b) => needPriority(a.need) - needPriority(b.need) || a.index - b.index)
+    .map(({ need }) => need);
+}
+
 export async function planComposableRequest(request: NowComposableRequest): Promise<ConstraintPlan> {
   const zone = routeZone(request.routeId);
   let location = request.location;
@@ -80,16 +98,24 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
   const protectedMarginMinutes = request.ticket?.protectedMarginMinutes ?? 15;
   let elapsed = transportMinutes;
   const needs: PlannedNeed[] = [];
-  const factors = ["available time", "protected ticket margin"];
+  const factors = ["available time", "protected ticket margin", "hard-deadline priority"];
   const healthSignals: NowHealthSignal[] = [];
   if (transportMinutes) factors.push("transport connection");
 
-  for (const need of request.needs) {
+  const prioritizedNeeds = orderedNeeds(request.needs);
+
+  for (const need of prioritizedNeeds) {
     const scenario = liveScenario(need.type);
     if (!scenario) {
       const service = serviceMinutes(need.type);
+      const protectsOverallTime = elapsed + service + protectedMarginMinutes <= request.availableMinutes;
+      const protectsNeedDeadline = !need.withinMinutes || elapsed + service <= need.withinMinutes;
+      if (!protectsOverallTime || !protectsNeedDeadline) {
+        factors.push(`${need.type} could not be safely inserted — request rejected rather than shown as a fake stop`);
+        continue;
+      }
       elapsed += service;
-      needs.push({ type: need.type, cuisine: need.cuisine, selected: null, choices: [], travelMinutes: 0, serviceMinutes: service, totalMinutes: service, withinMinutes: need.withinMinutes, deadlineProtected: !need.withinMinutes || elapsed <= need.withinMinutes });
+      needs.push({ type: need.type, cuisine: need.cuisine, selected: null, choices: [], travelMinutes: 0, serviceMinutes: service, totalMinutes: service, withinMinutes: need.withinMinutes, deadlineProtected: true, timeFeasible: true });
       continue;
     }
 
@@ -112,10 +138,6 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
       return true;
     });
 
-    // Hard constraints outrank curation/source ranking. Every live need must still fit
-    // the protected overall budget, and a stated deadline (for example pharmacy in
-    // 30 minutes) must be satisfied by the selected choice rather than merely reported
-    // as missed after selection. Commercial venues also need confirmed current hours.
     const feasibleChoices = openChoices.filter((choice) => {
       const arrivalAndService = elapsed + choiceTravelMinutes(choice) + service;
       const protectsOverallTime = arrivalAndService + protectedMarginMinutes <= request.availableMinutes;
@@ -124,43 +146,41 @@ export async function planComposableRequest(request: NowComposableRequest): Prom
     });
 
     const timeFeasible = feasibleChoices.length > 0;
-    const selectableChoices = feasibleChoices;
-    const selected = selectableChoices[0] ?? null;
-    const travelMinutes = selected ? choiceTravelMinutes(selected) : 0;
-    const effectiveService = selected ? service : 0;
-    const totalMinutes = travelMinutes + effectiveService;
+    if (!timeFeasible) {
+      if (need.cuisine && !preferenceMatched) {
+        factors.push(`${need.cuisine} cuisine unavailable — no substitute presented`);
+      } else {
+        factors.push(`${need.cuisine ? `${need.cuisine} ` : ""}${need.type} options are not safely verifiable within the protected constraints — request rejected, no fake stop`);
+      }
+      continue;
+    }
+
+    const selected = feasibleChoices[0];
+    const travelMinutes = choiceTravelMinutes(selected);
+    const totalMinutes = travelMinutes + service;
     elapsed += totalMinutes;
-    const deadlineProtected = !need.withinMinutes || (selected !== null && elapsed <= need.withinMinutes);
 
     needs.push({
       type: need.type,
       cuisine: need.cuisine,
       selected,
-      choices: selectableChoices.slice(0, need.type === "food" ? 3 : 5),
+      choices: feasibleChoices.slice(0, need.type === "food" ? 3 : 5),
       travelMinutes,
-      serviceMinutes: effectiveService,
+      serviceMinutes: service,
       totalMinutes,
       withinMinutes: need.withinMinutes,
-      deadlineProtected,
+      deadlineProtected: true,
       preferenceMatched,
-      timeFeasible,
+      timeFeasible: true,
     });
 
-    if (selected) location = { lat: selected.lat, lon: selected.lon };
-    if (need.cuisine && !preferenceMatched) {
-      factors.push(`${need.cuisine} cuisine unavailable — no substitute presented`);
-    } else if (!timeFeasible) {
-      factors.push(`${need.cuisine ? `${need.cuisine} ` : ""}${need.type} options are not safely verifiable within the protected constraints — no unsafe substitution`);
-    } else {
-      factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference matched`] : []), ...(need.withinMinutes ? [`${need.type} deadline protected`] : []));
-    }
+    location = { lat: selected.lat, lon: selected.lon };
+    factors.push(`${need.type} inserted`, ...(need.cuisine ? [`${need.cuisine} cuisine preference matched`] : []), ...(need.withinMinutes ? [`${need.type} deadline protected`] : []));
   }
 
   const totalCommittedMinutes = elapsed;
   const remainingMinutes = Math.max(0, request.availableMinutes - totalCommittedMinutes);
-  const ticketProtected = remainingMinutes >= protectedMarginMinutes
-    && needs.every((need) => need.deadlineProtected)
-    && needs.every((need) => need.timeFeasible !== false);
+  const ticketProtected = remainingMinutes >= protectedMarginMinutes;
 
   return {
     routeId: request.routeId,
