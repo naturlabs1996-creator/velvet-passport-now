@@ -18,9 +18,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const availableMinutes = Math.max(15, Math.min(480, Number(body.availableMinutes) || 90));
+  // Reservation rescue must preserve the real remaining clock. Never inflate a
+  // 6-minute obligation window into a synthetic 15-minute shopping window.
+  const availableRaw = Number(body.availableMinutes);
+  const availableMinutes = Number.isFinite(availableRaw)
+    ? Math.max(1, Math.min(480, availableRaw))
+    : 90;
   const elapsedMinutes = Math.max(0, Math.min(480, Number(body.elapsedMinutes) || 0));
-  const protectedMarginMinutes = Math.max(10, Math.min(90, Number(body.protectedMarginMinutes) || 15));
+  const marginRaw = Number(body.protectedMarginMinutes);
+  const protectedMarginMinutes = Number.isFinite(marginRaw)
+    ? Math.max(3, Math.min(90, marginRaw))
+    : 15;
   const nextObligationRaw = Number(body.nextObligationInMinutes);
   const nextObligationInMinutes = Number.isFinite(nextObligationRaw)
     ? Math.max(0, Math.min(480, nextObligationRaw))
