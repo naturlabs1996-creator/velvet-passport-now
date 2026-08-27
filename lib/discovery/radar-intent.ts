@@ -74,33 +74,33 @@ const velvetStrong = [
 
 const velvetMedium = [
   "hidden gems", "non touristy", "non touristy paris", "local spots", "secret paris", "unusual paris",
-  "second time in paris", "returning to paris", "been to paris before", "beyond the tourist", "less crowded",
-  "quiet paris", "rainy day paris", "itinerary help", "itinerary review", "recommendations for paris",
+  "second time in paris", "third time in paris", "returning to paris", "already been to paris", "already visited paris",
+  "beyond the tourist", "less crowded", "quiet paris", "rainy day paris", "itinerary help", "itinerary review",
+  "recommendations for paris",
 ];
 
-// These cues describe the actual problem Velvet is good at solving, even when the traveler is not shopping for a guide yet.
 const velvetNeedStrong = [
   "away from tourist crowds", "avoid tourist crowds", "avoid the touristy", "avoid tourist traps",
   "hidden gems", "hidden places", "secret places", "secret spots", "local spots", "where locals go",
   "less touristy", "non touristy", "off the beaten path", "off beaten path", "overlooked places",
-  "places tourists miss", "private spot", "private place", "quiet spot", "quiet place",
-  "something unusual", "unusual places", "unique places", "special place", "atmospheric",
+  "places tourists miss", "private spot", "private place", "private proposal", "more private proposal",
+  "secluded spot", "secluded place", "intimate spot", "intimate place", "not crowded",
+  "quiet spot", "quiet place", "something unusual", "unusual places", "unique places", "special place", "atmospheric",
   "romantic hidden", "hidden garden", "secret garden", "hidden bookshop", "independent bookshop",
   "deja fait les classiques", "loin des touristes", "endroits caches", "endroits secrets", "endroit calme",
 ];
 
 const velvetNeedMedium = [
-  "second time in paris", "third time in paris", "returning to paris", "been to paris before",
-  "already been to paris", "already visited paris", "something different", "different things to do",
-  "recommendations for paris", "looking for recommendations", "looking for advice", "itinerary help",
-  "itinerary review", "rainy day", "few hours", "only a few hours", "evening in paris",
-  "night in paris", "book lover", "literary", "historic neighborhood", "local neighborhood",
+  "second time in paris", "third time in paris", "returning to paris", "already been to paris", "already visited paris",
+  "something different", "different things to do", "recommendations for paris", "looking for recommendations",
+  "looking for advice", "itinerary help", "itinerary review", "rainy day", "few hours", "only a few hours",
+  "evening in paris", "night in paris", "book lover", "literary", "historic neighborhood", "local neighborhood",
   "retour a paris", "deja visite paris", "quelque chose de different", "recommandations paris",
 ];
 
-// Pure logistics can be useful to NOW later, but should not masquerade as discovery demand by itself.
 const logisticsStrong = [
   "when to buy flights", "buy paris flights", "flight price", "flight prices", "airfare", "airport transfer",
+  "ryanair flight", "beauvais airport", "early flight", "flight out", "departure flight",
   "where should i stay", "hotel recommendations", "which hotel", "hotel help", "best hotel",
   "is it safe", "how safe", "safety in paris", "safe for tourists", "metro safety",
   "train tickets", "eurostar tickets", "visa", "passport", "luggage storage",
