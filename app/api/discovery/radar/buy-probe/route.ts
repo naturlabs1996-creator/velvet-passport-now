@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { collectBuyRadarSources } from "@/lib/discovery/radar-buy-collectors";
+import { collectGooglePlayBooksBuy } from "@/lib/discovery/radar-books-buy";
 
 const safeSample = (value: unknown, max = 220) => String(value ?? "")
   .replace(/\s+/g, " ")
@@ -8,7 +9,11 @@ const safeSample = (value: unknown, max = 220) => String(value ?? "")
 
 export async function GET() {
   try {
-    const results = await collectBuyRadarSources();
+    const [marketplaces, books] = await Promise.all([
+      collectBuyRadarSources(),
+      collectGooglePlayBooksBuy(),
+    ]);
+    const results = [...marketplaces, books];
     const signals = results.flatMap((result) => result.normalized);
 
     const convergence = [...new Set(signals.map((signal) => signal.theme))].map((theme) => {
