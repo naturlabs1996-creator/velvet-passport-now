@@ -9,21 +9,17 @@ export type BuyCollectorResult = {
 };
 
 const stripTags = (value: string) => value
+  .replace(/<script[\s\S]*?<\/script>/gi, " ")
+  .replace(/<style[\s\S]*?<\/style>/gi, " ")
   .replace(/<[^>]*>/g, " ")
   .replace(/&amp;/g, "&")
   .replace(/&quot;/g, '"')
-  .replace(/&#39;/g, "'")
+  .replace(/&#39;|&#x27;/g, "'")
   .replace(/&lt;/g, "<")
   .replace(/&gt;/g, ">")
+  .replace(/&nbsp;/g, " ")
   .replace(/\s+/g, " ")
   .trim();
-
-const extract = (xml: string, tag: string) =>
-  [...xml.matchAll(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "gi"))]
-    .map((match) => stripTags(match[1] ?? ""));
-
-const itemBlocks = (xml: string) =>
-  [...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)].map((match) => match[1] ?? "");
 
 const uniqueBy = <T>(items: T[], key: (item: T) => string) => {
   const seen = new Set<string>();
@@ -36,124 +32,133 @@ const uniqueBy = <T>(items: T[], key: (item: T) => string) => {
 };
 
 const ACTIVITY_QUERIES = [
-  "Paris hidden gems tour",
-  "Paris off the beaten path tour",
-  "Paris secret places tour",
-  "Paris unusual tour",
-  "Paris local walking tour",
-  "Paris private hidden gems",
+  "Paris hidden gems",
+  "Paris off the beaten path",
+  "Paris secret places",
+  "Paris unusual",
 ];
 
 const GUIDE_QUERIES = [
   "Paris hidden gems travel guide",
   "Paris travel guide PDF hidden gems",
-  "Paris insider guide digital download",
   "Paris off the beaten path guide",
   "Paris secret places guide",
-  "Paris itinerary digital guide",
 ];
 
-async function collectIndexedBuySource(options: {
+function surroundingText(html: string, index: number, radius = 650) {
+  return stripTags(html.slice(Math.max(0, index - radius), Math.min(html.length, index + radius)));
+}
+
+function buildObservation(options: {
   source: "viator" | "etsy" | "amazon";
-  domain: string;
-  queries: string[];
+  query: string;
+  text: string;
+  url: string;
   confidence: number;
   commercialIntent: number;
   competitionPressure: number;
-  requiredUrlPattern?: RegExp;
-}): Promise<BuyCollectorResult> {
-  const observations: RawRadarObservation[] = [];
-  let httpFailures = 0;
-
-  for (const query of options.queries) {
-    const searchUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(`site:${options.domain} ${query}`)}`;
-    try {
-      const response = await fetch(searchUrl, {
-        headers: { "user-agent": "Mozilla/5.0 VelvetPassportRadar/1.0" },
-        next: { revalidate: 1800 },
-      });
-      if (!response.ok) {
-        httpFailures += 1;
-        continue;
-      }
-
-      const xml = await response.text();
-      for (const item of itemBlocks(xml).slice(0, 8)) {
-        const title = extract(item, "title")[0] ?? "";
-        const description = extract(item, "description")[0] ?? "";
-        const link = extract(item, "link")[0] ?? "";
-        if (!title && !description) continue;
-        if (!link.includes(options.domain)) continue;
-        if (options.requiredUrlPattern && !options.requiredUrlPattern.test(link)) continue;
-
-        const text = `${title} ${description}`.replace(/\s+/g, " ").trim();
-        if (text.length < 35 || !/\bparis\b/i.test(text + " " + link)) continue;
-
-        observations.push({
-          source: options.source,
-          sourceType: "BUY",
-          text: text.slice(0, 1200),
-          query,
-          observedAt: new Date().toISOString(),
-          volumeScore: 58,
-          velocityScore: 46,
-          sourceConfidence: options.confidence,
-          commercialIntent: options.commercialIntent,
-          competitionPressure: options.competitionPressure,
-          sourceUrl: link,
-        });
-      }
-    } catch {
-      httpFailures += 1;
-    }
-  }
-
-  const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? item.text.slice(0, 180).toLowerCase());
-  const normalized = deduped.flatMap(normalizeRadarObservation);
-
+}): RawRadarObservation | null {
+  if (!/\bparis\b/i.test(`${options.text} ${options.query}`)) return null;
+  const text = `${options.query} ${options.text}`.replace(/\s+/g, " ").trim();
+  if (text.length < 35) return null;
   return {
     source: options.source,
-    ok: deduped.length > 0,
-    observations: deduped,
-    normalized,
-    note: deduped.length ? undefined : httpFailures === options.queries.length ? "search_provider_unavailable" : "no_relevant_indexed_products",
+    sourceType: "BUY",
+    text: text.slice(0, 1200),
+    query: options.query,
+    observedAt: new Date().toISOString(),
+    volumeScore: 58,
+    velocityScore: 46,
+    sourceConfidence: options.confidence,
+    commercialIntent: options.commercialIntent,
+    competitionPressure: options.competitionPressure,
+    sourceUrl: options.url,
   };
 }
 
-export function collectViatorBuy() {
-  return collectIndexedBuySource({
-    source: "viator",
-    domain: "viator.com",
-    queries: ACTIVITY_QUERIES,
-    confidence: 90,
-    commercialIntent: 88,
-    competitionPressure: 74,
-    requiredUrlPattern: /viator\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?tours\/Paris\//i,
+async function fetchMarketplace(url: string) {
+  const response = await fetch(url, {
+    headers: {
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36",
+      accept: "text/html,application/xhtml+xml",
+      "accept-language": "en-US,en;q=0.9",
+    },
+    next: { revalidate: 1800 },
   });
+  return { response, html: response.ok ? await response.text() : "" };
 }
 
-export function collectEtsyBuy() {
-  return collectIndexedBuySource({
-    source: "etsy",
-    domain: "etsy.com",
-    queries: GUIDE_QUERIES,
-    confidence: 90,
-    commercialIntent: 92,
-    competitionPressure: 72,
-    requiredUrlPattern: /etsy\.com\/listing\//i,
-  });
+export async function collectViatorBuy(): Promise<BuyCollectorResult> {
+  const observations: RawRadarObservation[] = [];
+  let blocked = 0;
+  for (const query of ACTIVITY_QUERIES) {
+    const searchUrl = `https://www.viator.com/searchResults/all?text=${encodeURIComponent(query)}`;
+    try {
+      const { response, html } = await fetchMarketplace(searchUrl);
+      if (!response.ok) { blocked += 1; continue; }
+      const regex = /(?:https?:\/\/www\.viator\.com)?((?:\/[a-z]{2}-[A-Z]{2})?\/tours\/Paris\/[^"'<>\s?#]+)/g;
+      for (const match of html.matchAll(regex)) {
+        const path = match[1];
+        if (!path) continue;
+        const index = match.index ?? 0;
+        const text = surroundingText(html, index);
+        const url = `https://www.viator.com${path}`;
+        const observation = buildObservation({ source: "viator", query, text, url, confidence: 90, commercialIntent: 90, competitionPressure: 74 });
+        if (observation) observations.push(observation);
+      }
+    } catch { blocked += 1; }
+  }
+  const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? "").slice(0, 40);
+  return { source: "viator", ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : blocked === ACTIVITY_QUERIES.length ? "marketplace_fetch_blocked" : "no_product_links_found" };
 }
 
-export function collectAmazonBuy() {
-  return collectIndexedBuySource({
-    source: "amazon",
-    domain: "amazon.com",
-    queries: GUIDE_QUERIES,
-    confidence: 82,
-    commercialIntent: 84,
-    competitionPressure: 78,
-    requiredUrlPattern: /amazon\.com\/.+\/(?:dp|gp\/product)\//i,
-  });
+export async function collectEtsyBuy(): Promise<BuyCollectorResult> {
+  const observations: RawRadarObservation[] = [];
+  let blocked = 0;
+  for (const query of GUIDE_QUERIES) {
+    const searchUrl = `https://www.etsy.com/search?q=${encodeURIComponent(query)}&digital=true`;
+    try {
+      const { response, html } = await fetchMarketplace(searchUrl);
+      if (!response.ok) { blocked += 1; continue; }
+      const regex = /(?:https?:\/\/www\.etsy\.com)?(\/listing\/\d+\/[^"'<>\s?#]+)/g;
+      for (const match of html.matchAll(regex)) {
+        const path = match[1];
+        if (!path) continue;
+        const index = match.index ?? 0;
+        const text = surroundingText(html, index);
+        const url = `https://www.etsy.com${path}`;
+        const observation = buildObservation({ source: "etsy", query, text, url, confidence: 92, commercialIntent: 94, competitionPressure: 72 });
+        if (observation) observations.push(observation);
+      }
+    } catch { blocked += 1; }
+  }
+  const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? "").slice(0, 40);
+  return { source: "etsy", ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : blocked === GUIDE_QUERIES.length ? "marketplace_fetch_blocked" : "no_listing_links_found" };
+}
+
+export async function collectAmazonBuy(): Promise<BuyCollectorResult> {
+  const observations: RawRadarObservation[] = [];
+  let blocked = 0;
+  for (const query of GUIDE_QUERIES) {
+    const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(query)}&i=stripbooks`;
+    try {
+      const { response, html } = await fetchMarketplace(searchUrl);
+      if (!response.ok || /robot check|enter the characters you see below/i.test(html)) { blocked += 1; continue; }
+      const regex = /href=["']([^"']*\/dp\/[A-Z0-9]{10}[^"']*)["']/g;
+      for (const match of html.matchAll(regex)) {
+        const href = match[1];
+        if (!href) continue;
+        const index = match.index ?? 0;
+        const text = surroundingText(html, index);
+        const path = href.startsWith("http") ? new URL(href).pathname : href;
+        const url = `https://www.amazon.com${path.split("?")[0]}`;
+        const observation = buildObservation({ source: "amazon", query, text, url, confidence: 82, commercialIntent: 86, competitionPressure: 78 });
+        if (observation) observations.push(observation);
+      }
+    } catch { blocked += 1; }
+  }
+  const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? "").slice(0, 40);
+  return { source: "amazon", ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : blocked === GUIDE_QUERIES.length ? "marketplace_fetch_blocked" : "no_product_links_found" };
 }
 
 export async function collectBuyRadarSources() {
