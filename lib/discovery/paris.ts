@@ -6,6 +6,13 @@ export type StoreOption = {
   url?: string;
 };
 
+const existingLinks = {
+  etsyShop: "https://www.etsy.com/shop/velvetpassportparis/",
+  amazon: "https://a.co/d/0ePwRNrR",
+  miniGuide:
+    "https://8535df6d.sibforms.com/serve/MUIFADnjH529wnW6USoQOc-uNGX-e7kkxtaU-uO7iWktvCxweugq1IOi7L4ExsQ6L95LjaFAZcP5D2UDq2vPNBzS4jqqZHE7WTxUAAi38jpJN441MEwhyESyfeDELdga47o_B8N8_4vcTNIhsW-OXbOuRCztGB5Au2KELO6oFMjBVocbnHk37qcnflYcgi_2U1TMWsAxZohL8HVyug==",
+};
+
 export const parisDiscovery = {
   city: "Paris",
   product: {
@@ -16,12 +23,12 @@ export const parisDiscovery = {
       {
         key: "etsy",
         label: "Etsy",
-        url: process.env.NEXT_PUBLIC_PARIS_UNCOVERED_ETSY_URL,
+        url: process.env.NEXT_PUBLIC_PARIS_UNCOVERED_ETSY_URL || existingLinks.etsyShop,
       },
       {
         key: "amazon",
         label: "Amazon Kindle",
-        url: process.env.NEXT_PUBLIC_PARIS_UNCOVERED_AMAZON_URL,
+        url: process.env.NEXT_PUBLIC_PARIS_UNCOVERED_AMAZON_URL || existingLinks.amazon,
       },
       {
         key: "google-play",
@@ -30,7 +37,7 @@ export const parisDiscovery = {
       },
     ] satisfies StoreOption[],
   },
-  miniGuideUrl: process.env.NEXT_PUBLIC_PARIS_MINI_GUIDE_URL,
+  miniGuideUrl: process.env.NEXT_PUBLIC_PARIS_MINI_GUIDE_URL || existingLinks.miniGuide,
   answerPages: {
     hiddenBookshops: {
       id: "paris-hidden-bookshops",
