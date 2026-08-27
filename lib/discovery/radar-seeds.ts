@@ -154,7 +154,7 @@ export const parisRadarSeeds: RadarSeed[] = [
       "secret places paris", "unexpected paris", "obscure places paris", "overlooked paris", "alternative paris", "curious paris",
     ],
     conceptGroups: [
-      ["second", "time", "paris"], ["been", "before", "paris"], ["repeat", "visitor"], ["beyond", "classic"],
+      ["second", "time", "paris"], ["repeat", "visitor"], ["beyond", "classic"],
       ["main", "attraction", "after"], ["hidden", "gem"], ["lesser", "known"], ["different", "thing"],
       ["unique", "experience"], ["unexpected", "place"], ["alternative", "paris"],
     ],
@@ -170,7 +170,8 @@ const normalizeText = (value: string) => value
   .trim();
 
 const singularize = (token: string) => token.length > 4 && token.endsWith("s") ? token.slice(0, -1) : token;
-const tokensOf = (value: string) => new Set(normalizeText(value).split(" ").filter(Boolean).map(singularize));
+const orderedTokensOf = (value: string) => normalizeText(value).split(" ").filter(Boolean).map(singularize);
+const tokensOf = (value: string) => new Set(orderedTokensOf(value));
 const STOPWORDS = new Set(["paris", "france", "the", "a", "an", "and", "or", "to", "of", "in", "for", "at", "on", "what", "do", "i", "see"]);
 
 function phraseSimilarity(textTokens: Set<string>, phrase: string) {
@@ -180,25 +181,87 @@ function phraseSimilarity(textTokens: Set<string>, phrase: string) {
   return matched / phraseTokens.length;
 }
 
+function phraseProximity(text: string, phrase: string, maxWindow = 14) {
+  const textTokens = orderedTokensOf(text);
+  const phraseTokens = orderedTokensOf(phrase).filter((token) => !STOPWORDS.has(token));
+  if (phraseTokens.length < 2) return true;
+  const positions = phraseTokens.map((token) => textTokens.reduce<number[]>((acc, current, index) => {
+    if (current === token) acc.push(index);
+    return acc;
+  }, []));
+  if (positions.some((group) => group.length === 0)) return false;
+
+  let bestSpan = Number.POSITIVE_INFINITY;
+  const walk = (depth: number, chosen: number[]) => {
+    if (depth === positions.length) {
+      const span = Math.max(...chosen) - Math.min(...chosen);
+      bestSpan = Math.min(bestSpan, span);
+      return;
+    }
+    for (const position of positions[depth]) {
+      if (bestSpan <= maxWindow) return;
+      walk(depth + 1, [...chosen, position]);
+    }
+  };
+  walk(0, []);
+  return bestSpan <= maxWindow;
+}
+
 function conceptGroupHit(textTokens: Set<string>, group: string[]) {
   const normalized = group.map(singularize);
   if (normalized.length <= 2) return normalized.every((token) => textTokens.has(token));
 
-  // Large groups encode a noun + one-of-many scent words.
   const anchor = normalized[0];
   return textTokens.has(anchor) && normalized.slice(1).some((token) => textTokens.has(token));
+}
+
+function authorRepeatVisitorSignal(normalized: string) {
+  const positive = [
+    /\b(i|we|my partner and i|my family and i)\s+(have\s+)?(already\s+)?(been|visited|traveled|travelled)\s+to\s+paris\b/,
+    /\b(i|we)\s+(have\s+)?been\s+in\s+paris\s+before\b/,
+    /\b(i|we)\s+(am|are|'m|'re)?\s*(returning|going back|back)\s+to\s+paris\b/,
+    /\b(my|our)\s+(second|third|fourth|fifth)\s+(trip|visit|time)\s+(to|in)\s+paris\b/,
+    /\b(second|third|fourth|fifth)\s+time\s+(visiting|in|to)\s+paris\b/,
+  ];
+  return positive.some((pattern) => pattern.test(normalized));
+}
+
+function suppressRepeatVisitorFalsePositive(normalized: string) {
+  const adviceFromOthers = [
+    /\bpeople who have (already )?been to paris\b/,
+    /\bothers who have (already )?been to paris\b/,
+    /\banyone who has (already )?been to paris\b/,
+    /\bpeople who have visited paris\b/,
+    /\bfrom people who (have )?know paris\b/,
+  ];
+  return adviceFromOthers.some((pattern) => pattern.test(normalized)) && !authorRepeatVisitorSignal(normalized);
 }
 
 export function findSeedMatches(text: string) {
   const normalized = normalizeText(text);
   const textTokens = tokensOf(normalized);
+  const repeatVisitor = authorRepeatVisitorSignal(normalized);
+  const suppressRepeat = suppressRepeatVisitorFalsePositive(normalized);
 
   return parisRadarSeeds
     .map((seed) => {
-      const exactHits = seed.phrases.filter((phrase) => normalized.includes(normalizeText(phrase)));
+      const exactHits = seed.phrases.filter((phrase) => {
+        const normalizedPhrase = normalizeText(phrase);
+        if (!normalized.includes(normalizedPhrase)) return false;
+        if (seed.theme === "beyond-the-classics" && normalizedPhrase.includes("been to paris before") && !repeatVisitor) return false;
+        return true;
+      });
+
       const fuzzyHits = seed.phrases
-        .filter((phrase) => !exactHits.includes(phrase) && phraseSimilarity(textTokens, phrase) >= 0.72)
+        .filter((phrase) => {
+          if (exactHits.includes(phrase)) return false;
+          if (phraseSimilarity(textTokens, phrase) < 0.72) return false;
+          if (!phraseProximity(normalized, phrase)) return false;
+          if (seed.theme === "beyond-the-classics" && /been to paris before|second time in paris/i.test(phrase) && (!repeatVisitor || suppressRepeat)) return false;
+          return true;
+        })
         .map((phrase) => `~${phrase}`);
+
       const conceptHits = (seed.conceptGroups ?? [])
         .filter((group) => conceptGroupHit(textTokens, group))
         .map((group) => `#${group.slice(0, 3).join("+")}`);
