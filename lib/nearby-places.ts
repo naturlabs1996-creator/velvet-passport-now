@@ -46,6 +46,34 @@ function normalizedName(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function refreshOpeningStatus(item: NearbyPlace): NearbyPlace {
+  if (!item.openingHours) {
+    return {
+      ...item,
+      openStatus: "unknown",
+      openLabel: "Hours not confirmed",
+      closesInMinutes: undefined,
+    };
+  }
+  const opening = evaluateOpeningHours(item.openingHours);
+  return {
+    ...item,
+    openStatus: opening.status,
+    openLabel: opening.label,
+    closesInMinutes: opening.closesInMinutes,
+  };
+}
+
+function refreshCachedGroups(groups: NearbyPlaceGroups): NearbyPlaceGroups {
+  return {
+    pharmacies: sortByOpenStatus(groups.pharmacies.map(refreshOpeningStatus)),
+    restaurants: sortByOpenStatus(groups.restaurants.map(refreshOpeningStatus)),
+    cafes: sortByOpenStatus(groups.cafes.map(refreshOpeningStatus)),
+    providersUsed: [...groups.providersUsed],
+    cacheHit: true,
+  };
+}
+
 function mergePlaces(groups: NearbyPlaceGroups, key: "pharmacies" | "restaurants" | "cafes", incoming: NearbyPlace[]) {
   const existing = groups[key];
   for (const item of incoming) {
@@ -199,7 +227,7 @@ async function fromFoursquare(centre: Coordinates, radiusMeters: number) {
 export async function getNearbyPlaces(centre: Coordinates, radiusMeters: number): Promise<NearbyPlaceGroups> {
   const key = cacheKey(centre, radiusMeters);
   const cached = memoryCache.get(key);
-  if (cached && cached.expiresAt > Date.now()) return { ...cached.value, cacheHit: true };
+  if (cached && cached.expiresAt > Date.now()) return refreshCachedGroups(cached.value);
   if (cached) memoryCache.delete(key);
 
   const groups: NearbyPlaceGroups = { pharmacies: [], restaurants: [], cafes: [], providersUsed: [], cacheHit: false };
