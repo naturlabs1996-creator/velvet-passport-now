@@ -26,7 +26,16 @@ async function persistSignal(signal: any) {
       p_commercial_intent: signal.commercialIntent,
       p_competition_pressure: signal.competitionPressure,
       p_source_url: signal.sourceUrl ?? null,
-      p_metadata: { matchedPhrases: signal.matchedPhrases ?? [] },
+      p_metadata: {
+        matchedPhrases: signal.matchedPhrases ?? [],
+        travelerIntent: signal.travelerIntent ?? "NONE",
+        travelerIntentScore: signal.travelerIntentScore ?? 0,
+        travelerCues: signal.travelerCues ?? [],
+        buyIntent: signal.buyIntent ?? "NONE",
+        buyIntentScore: signal.buyIntentScore ?? 0,
+        buyCues: signal.buyCues ?? [],
+        purchaseCategory: signal.purchaseCategory ?? "NONE",
+      },
     }),
     cache: "no-store",
   });
@@ -48,6 +57,12 @@ async function runCollector() {
   for (const signal of signals.slice(0, 250)) {
     if (await persistSignal(signal)) persisted += 1;
   }
+
+  const buyIntentSummary = signals.reduce<Record<string, number>>((acc, signal: any) => {
+    const key = `${signal.buyIntent ?? "NONE"}:${signal.purchaseCategory ?? "NONE"}`;
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return {
     ok: true,
@@ -75,6 +90,24 @@ async function runCollector() {
     })),
     matched: signals.length,
     persisted,
+    travelerIntent: {
+      strong: signals.filter((signal: any) => signal.travelerIntent === "STRONG").length,
+      medium: signals.filter((signal: any) => signal.travelerIntent === "MEDIUM").length,
+      weak: signals.filter((signal: any) => signal.travelerIntent === "WEAK").length,
+    },
+    buyIntentSummary,
+    strongestBuySignals: signals
+      .filter((signal: any) => (signal.buyIntentScore ?? 0) >= 45)
+      .sort((a: any, b: any) => (b.buyIntentScore ?? 0) - (a.buyIntentScore ?? 0))
+      .slice(0, 5)
+      .map((signal: any) => ({
+        source: signal.source,
+        theme: signal.theme,
+        buyIntent: signal.buyIntent,
+        buyIntentScore: signal.buyIntentScore,
+        purchaseCategory: signal.purchaseCategory,
+        text: safeSample(signal.text, 220),
+      })),
   };
 }
 
