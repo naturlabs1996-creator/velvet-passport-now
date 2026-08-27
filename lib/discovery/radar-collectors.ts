@@ -40,13 +40,13 @@ export async function collectGoogleTrends(): Promise<CollectorResult> {
   return { source: "google-trends", ok: true, observations, normalized: observations.flatMap(normalizeRadarObservation) };
 }
 
-function redditQueries() {
-  return parisRadarSeeds.flatMap((seed) => seed.phrases.slice(0, 2)).slice(0, 20);
+function radarQueries(limit = 20) {
+  return parisRadarSeeds.flatMap((seed) => seed.phrases.slice(0, 2)).slice(0, limit);
 }
 
 export async function collectReddit(): Promise<CollectorResult> {
   const observations: RawRadarObservation[] = [];
-  for (const query of redditQueries()) {
+  for (const query of radarQueries()) {
     const url = `https://www.reddit.com/search.rss?q=${encodeURIComponent(`${query} Paris`)}&sort=new&t=month`;
     try {
       const response = await fetch(url, { headers: { "user-agent": "VelvetPassportRadar/1.0 (+https://velvetpassport.com)" }, cache: "no-store" });
@@ -81,6 +81,42 @@ export async function collectReddit(): Promise<CollectorResult> {
   return { source: "reddit", ok: observations.length > 0, observations, normalized, note: observations.length ? undefined : "no_public_feed_results" };
 }
 
+export async function collectTripadvisor(): Promise<CollectorResult> {
+  const observations: RawRadarObservation[] = [];
+  for (const query of radarQueries(16)) {
+    const searchUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(`site:tripadvisor.com/ShowTopic Paris ${query}`)}`;
+    try {
+      const response = await fetch(searchUrl, { headers: { "user-agent": "VelvetPassportRadar/1.0" }, cache: "no-store" });
+      if (!response.ok) continue;
+      const xml = await response.text();
+      for (const item of itemBlocks(xml).slice(0, 8)) {
+        const title = extract(item, "title")[0] ?? "";
+        const description = extract(item, "description")[0] ?? "";
+        const link = extract(item, "link")[0] ?? "";
+        if (!title && !description) continue;
+        if (link && !/tripadvisor\./i.test(link)) continue;
+        observations.push({
+          source: "tripadvisor",
+          sourceType: "ASK",
+          text: `${title} ${description}`.slice(0, 1200),
+          query,
+          observedAt: new Date().toISOString(),
+          volumeScore: 32,
+          velocityScore: 45,
+          sourceConfidence: 82,
+          commercialIntent: 35,
+          competitionPressure: 45,
+          sourceUrl: link || undefined,
+        });
+      }
+    } catch {
+      // Search-provider or Tripadvisor blocking must not stop the full radar cycle.
+    }
+  }
+  const normalized = observations.flatMap(normalizeRadarObservation);
+  return { source: "tripadvisor", ok: observations.length > 0, observations, normalized, note: observations.length ? undefined : "no_public_search_results" };
+}
+
 export async function collectPinterest(): Promise<CollectorResult> {
   const token = process.env.PINTEREST_ACCESS_TOKEN;
   if (!token) return { source: "pinterest", ok: false, observations: [], normalized: [], note: "token_required" };
@@ -107,5 +143,5 @@ export async function collectPinterest(): Promise<CollectorResult> {
 }
 
 export async function collectFirstRadarSources() {
-  return Promise.all([collectGoogleTrends(), collectReddit(), collectPinterest()]);
+  return Promise.all([collectGoogleTrends(), collectReddit(), collectTripadvisor(), collectPinterest()]);
 }
