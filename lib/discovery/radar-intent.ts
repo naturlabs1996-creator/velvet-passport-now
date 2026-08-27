@@ -23,15 +23,22 @@ const findCues = (text: string, cues: string[]) => cues.filter((cue) => text.inc
 
 const travelerStrong = [
   "planning a trip", "planning my trip", "visiting paris", "going to paris", "trip to paris",
-  "staying in paris", "first time in paris", "second time in paris", "returning to paris",
+  "staying in paris", "first time in paris", "second time in paris", "third time in paris",
+  "returning to paris", "been to paris before", "been in paris before", "back to paris",
+  "already been to paris", "already visited paris", "few days in paris", "couple days in paris",
   "itinerary", "where should i stay", "where to stay", "what should i do", "things to do",
   "what to see", "where should i go", "recommendations for paris", "recommendation for paris",
+  "looking for recommendations", "looking for advice", "looking for hidden gems", "looking for places",
+  "already done the touristy", "done the touristy", "avoid the touristy", "avoid tourist crowds",
   "how many days", "day trip", "weekend in paris", "days in paris", "nights in paris",
   "voyage a paris", "visiter paris", "sejour a paris", "itineraire paris", "que faire a paris",
+  "retour a paris", "deja visite paris", "recommandations paris", "cherche des endroits",
 ];
 
 const travelerMedium = [
-  "travel", "travelling", "traveling", "visit", "visitor", "tourist", "vacation", "holiday",
+  "travel", "travelling", "traveling", "visit", "visited", "visitor", "tourist", "touristy", "vacation", "holiday",
+  "recommend", "recommendation", "recommendations", "advice", "suggestions", "looking for",
+  "hidden gems", "local spots", "lowkey", "less crowded", "quiet place", "quiet places", "calm place", "calm places",
   "hotel", "hostel", "airbnb", "flight", "train", "metro", "museum", "restaurant", "cafe",
   "neighborhood", "neighbourhood", "attraction", "reservation", "booking", "ticket", "pass",
   "guidebook", "travel guide", "city guide", "tour", "walk", "excursion",
