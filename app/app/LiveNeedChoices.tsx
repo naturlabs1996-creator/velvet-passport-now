@@ -17,7 +17,7 @@ export type LiveNeedChoice = {
 };
 
 type Props = {
-  kind: "food" | "pharmacy";
+  kind: "food" | "pharmacy" | "sitdown";
   choices: LiveNeedChoice[];
   selected?: LiveNeedChoice | null;
   busy: boolean;
@@ -39,16 +39,22 @@ export default function LiveNeedChoices({ kind, choices, selected, busy, onSelec
   const visible = choices.slice(0, 3);
   if (!visible.length) return null;
 
+  const eyebrow = kind === "food" ? "NOW TABLE CHOICES" : kind === "pharmacy" ? "NOW PHARMACY CHOICES" : "VELVET QUIET STOPS";
+  const heading = kind === "food" ? "Choose your table." : kind === "pharmacy" ? "Choose your pharmacy." : "Choose a quiet place to pause.";
+  const intro = kind === "sitdown"
+    ? "NOW has filtered these for calm fit, walking time and verified opening margin. Selecting one recalculates your protected route."
+    : "NOW has already filtered these for distance and timing. Selecting one recalculates your protected route.";
+
   return (
     <section style={{ margin: "0 15px 20px", background: "#fff", border: "1px solid #ddd4c2", padding: "20px 16px" }} aria-live="polite">
       <span style={{ display: "block", color: "#a2802d", fontSize: 9, letterSpacing: ".19em", fontWeight: 700 }}>
-        {kind === "food" ? "NOW TABLE CHOICES" : "NOW PHARMACY CHOICES"}
+        {eyebrow}
       </span>
       <h2 style={{ margin: "8px 0 6px", font: "28px/1.05 Georgia,serif", color: "#211e19" }}>
-        {kind === "food" ? "Choose your table." : "Choose your pharmacy."}
+        {heading}
       </h2>
       <p style={{ margin: "0 0 15px", color: "#746f67", fontSize: 12, lineHeight: 1.45 }}>
-        NOW has already filtered these for distance and timing. Selecting one recalculates your protected route.
+        {intro}
       </p>
 
       <div style={{ display: "grid", gap: 9 }}>
