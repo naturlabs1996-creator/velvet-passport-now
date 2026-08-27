@@ -32,10 +32,14 @@ export type NormalizedRadarObservation = RawRadarObservation & {
   velvetIntentScore: number;
   velvetOpportunity: IntentStrength;
   velvetOpportunityScore: number;
+  velvetNeedScore: number;
+  logisticsDominanceScore: number;
   purchaseCategory: PurchaseCategory;
   travelerCues: string[];
   buyCues: string[];
   velvetCues: string[];
+  velvetNeedCues: string[];
+  logisticsCues: string[];
 };
 
 const allowedSources: Record<RadarSourceType, Set<string>> = {
@@ -88,7 +92,6 @@ const isFreshEnough = (observedAt: string | undefined, maxAgeDays: number) => {
 export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedRadarObservation[] {
   const source = raw.source.trim().toLowerCase();
   if (!allowedSources[raw.sourceType]?.has(source)) return [];
-
   if (source === "reddit" && !isFreshEnough(raw.observedAt, 30)) return [];
 
   const observedText = raw.text.trim();
@@ -102,17 +105,29 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
   const enrichedCommercialIntent = Math.max(baseCommercialIntent, intent.travelSpendIntentScore);
 
   return matches.map(({ seed, hits }) => {
+    // Opportunity is now driven by an actual Velvet-solvable need, not merely by a high-fit theme match.
     let velvetOpportunityScore = Math.round(
-      seed.velvetFit * 0.5 +
-      intent.travelerIntentScore * 0.25 +
-      intent.velvetIntentScore * 0.25
+      seed.velvetFit * 0.30 +
+      intent.travelerIntentScore * 0.15 +
+      intent.velvetNeedScore * 0.45 +
+      intent.velvetIntentScore * 0.10
     );
 
-    // A hotel/transport purchase can coexist with a Velvet discovery need, but must not look like direct product demand.
-    if ((intent.purchaseCategory === "LODGING" || intent.purchaseCategory === "TRANSPORT") && intent.velvetIntentScore < 20) {
-      velvetOpportunityScore -= 18;
+    if (hits.length >= 2 && intent.velvetNeedScore >= 20) velvetOpportunityScore += 5;
+    if (intent.velvetNeedScore === 0) velvetOpportunityScore -= 18;
+
+    // Pure logistics should stay low unless the same post contains a genuine discovery/experience need.
+    if (intent.logisticsDominanceScore >= 55 && intent.velvetNeedScore < 35) velvetOpportunityScore -= 28;
+    else if (intent.logisticsDominanceScore >= 25 && intent.velvetNeedScore < 20) velvetOpportunityScore -= 16;
+
+    if ((intent.purchaseCategory === "LODGING" || intent.purchaseCategory === "TRANSPORT") && intent.velvetNeedScore < 20) {
+      velvetOpportunityScore -= 12;
     }
-    if (hits.length >= 2) velvetOpportunityScore += 6;
+
+    // Do not allow a generic traveler post to become STRONG without at least one meaningful Velvet need cue.
+    if (intent.velvetNeedScore < 20) velvetOpportunityScore = Math.min(velvetOpportunityScore, 44);
+    if (intent.velvetNeedScore < 35) velvetOpportunityScore = Math.min(velvetOpportunityScore, 64);
+
     velvetOpportunityScore = clampScore(velvetOpportunityScore, 0);
 
     return {
@@ -140,10 +155,14 @@ export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedR
       velvetIntentScore: intent.velvetIntentScore,
       velvetOpportunity: intentStrength(velvetOpportunityScore),
       velvetOpportunityScore,
+      velvetNeedScore: intent.velvetNeedScore,
+      logisticsDominanceScore: intent.logisticsDominanceScore,
       purchaseCategory: intent.purchaseCategory,
       travelerCues: intent.travelerCues,
       buyCues: intent.buyCues,
       velvetCues: intent.velvetCues,
+      velvetNeedCues: intent.velvetNeedCues,
+      logisticsCues: intent.logisticsCues,
     };
   });
 }
