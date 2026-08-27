@@ -279,9 +279,24 @@ export async function getLiveNeedChoices(zone: string, scenario: LiveNeedScenari
     const choices = await parisPublicPlaces("sanisettesparis", centre, 900);
     return (await applyWalkingRoutes(centre, choices)).sort((a, b) => (a.travelMinutes ?? 999) - (b.travelMinutes ?? 999)).slice(0, 5);
   }
-  if (scenario === "sitdown") return parisPublicPlaces("espaces_verts", centre, 800);
 
   const places = await getNearbyPlaces(centre, 900);
+
+  if (scenario === "sitdown") {
+    const curated = await internalChoices(routeId, zone, "cafe", centre, places.cafes);
+    const external = commercialChoices(places.cafes);
+    const routed = await applyWalkingRoutes(centre, dedupe([...curated, ...external]).slice(0, 8));
+    const contextual = routed.map((choice) => applyContextualAvailability(choice, scenario));
+    const verifiedCafes = prioritizeChoices(contextual).filter((choice) => choice.openStatus === "open").slice(0, 5);
+    if (verifiedCafes.length) return verifiedCafes;
+
+    const fallback = await parisPublicPlaces("espaces_verts", centre, 800);
+    return (await applyWalkingRoutes(centre, fallback)).map((choice) => ({
+      ...choice,
+      detail: `${choice.detail} · Quiet outdoor fallback; café availability could not be verified.`,
+    })).slice(0, 5);
+  }
+
   const category: InternalPoiCategory = scenario === "pharmacy" ? "pharmacy" : "restaurant";
   const providerCandidates = scenario === "pharmacy" ? places.pharmacies : places.restaurants;
   const curated = await internalChoices(routeId, zone, category, centre, providerCandidates);
