@@ -5,10 +5,15 @@ export const runtime = "nodejs";
 type GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
 
 const allowedLevels: GuardianLevel[] = ["checkin", "assistance", "medical", "emergency"];
+const OFFICIAL_SERVICES = [
+  { label: "European emergency", number: "112", purpose: "Police, fire or medical emergency" },
+  { label: "SAMU — medical emergency", number: "15", purpose: "Urgent medical assistance in France" },
+  { label: "Police or gendarmerie", number: "17", purpose: "Immediate danger or police assistance" },
+  { label: "Fire and rescue", number: "18", purpose: "Fire, accident or rescue" },
+  { label: "Emergency by text", number: "114", purpose: "Accessible emergency contact by text" },
+];
 
 export async function POST(request: Request) {
-  const access = await getPassAccess();
-  if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
   let body: unknown;
 
   try {
@@ -25,8 +30,18 @@ export async function POST(request: Request) {
   const level = typeof input.level === "string" && allowedLevels.includes(input.level as GuardianLevel)
     ? input.level as GuardianLevel
     : "checkin";
+  const safetyCritical = level === "medical" || level === "emergency";
+  const access = await getPassAccess();
 
-  const consent = input.hotelConsent === true;
+  // Official emergency information must never disappear because commerce or
+  // entitlement revalidation is temporarily unavailable. Premium Guardian
+  // assistance remains protected by the Pass.
+  if (!access.allowed && !safetyCritical) {
+    return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const requestedConsent = input.hotelConsent === true;
+  const consent = Boolean(access.allowed && requestedConsent);
   const area = "Louvre & Opéra";
   const situation = level === "emergency"
     ? "reported an urgent safety situation"
@@ -39,14 +54,8 @@ export async function POST(request: Request) {
   return Response.json({
     level,
     routePaused: level !== "checkin",
-    priority: level === "emergency" || level === "medical" ? "urgent" : "standard",
-    officialServices: [
-      { label: "European emergency", number: "112", purpose: "Police, fire or medical emergency" },
-      { label: "SAMU — medical emergency", number: "15", purpose: "Urgent medical assistance in France" },
-      { label: "Police or gendarmerie", number: "17", purpose: "Immediate danger or police assistance" },
-      { label: "Fire and rescue", number: "18", purpose: "Fire, accident or rescue" },
-      { label: "Emergency by text", number: "114", purpose: "Accessible emergency contact by text" },
-    ],
+    priority: safetyCritical ? "urgent" : "standard",
+    officialServices: OFFICIAL_SERVICES,
     hotelContact: {
       status: consent ? "preview_only" : "consent_required",
       consent,
@@ -55,13 +64,15 @@ export async function POST(request: Request) {
         : null,
       deliveryAvailable: false,
     },
+    passVerified: access.allowed,
+    safetyAccess: safetyCritical && !access.allowed ? "emergency-services-only" : "pass-verified",
     disclaimer: "Guardian does not replace official emergency services or medical advice.",
     mode: "prepared",
     generatedAt: new Date().toISOString(),
   }, {
     headers: {
       "Cache-Control": "no-store",
-      "X-NOW-Data-Mode": "prepared",
+      "X-NOW-Data-Mode": safetyCritical && !access.allowed ? "emergency-services-only" : "prepared",
     },
   });
 }
