@@ -64,7 +64,7 @@ type Stop = {
 };
 
 type LiveNeedState = {
-  scenario: "food" | "pharmacy" | string;
+  scenario: "food" | "pharmacy" | "sitdown" | string;
   choices: LiveNeedChoice[];
   selected: LiveNeedChoice;
   selectedStatus?: string;
@@ -92,12 +92,13 @@ const emptyRoute: RouteView = {
   ],
 };
 
-const LOCATION_AWARE_NEEDS = new Set<Need>(["food", "pharmacy", "water", "restroom"]);
+const LOCATION_AWARE_NEEDS = new Set<Need>(["food", "pharmacy", "water", "restroom", "sitdown"]);
 const WEATHER_NEEDS = new Set<Need>(["route", "rain", "heat", "cold", "snow"]);
 const LOCATION_FRESH_MS = 2 * 60 * 1000;
 const LOCATION_REFRESH_MS = 2 * 60 * 1000;
 const LOCATION_MOVE_THRESHOLD_METERS = 120;
 const WEATHER_REFRESH_MS = 15 * 60 * 1000;
+const HOTEL_STORAGE_KEY = "paris_now_hotel";
 const ZONE_CENTRES: Record<string, { lat: number; lon: number }> = {
   "Louvre & Opéra": { lat: 48.8662, lon: 2.3371 },
   "Le Marais": { lat: 48.8590, lon: 2.3622 },
@@ -136,6 +137,10 @@ function weatherIcon(weather: WeatherState | null) {
   if (weather.scenario === "heat") return "☀";
   if (weather.scenario === "cold") return "❄";
   return /cloud/.test(weather.symbol ?? "") ? "☁" : "☀";
+}
+
+function looksLikeCoordinates(value: string) {
+  return /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(value.trim());
 }
 
 const needs: { id: Need; label: string; icon: string }[] = [
@@ -189,6 +194,8 @@ export default function ParisNowApp() {
   const [hotelConsent, setHotelConsent] = useState(false);
   const [guardianAssessment, setGuardianAssessment] = useState<GuardianAssessment | null>(null);
   const [transportOrigin, setTransportOrigin] = useState("");
+  const [hotelAddress, setHotelAddress] = useState("");
+  const [returningToHotel, setReturningToHotel] = useState(false);
   const [transportMode, setTransportMode] = useState<TransportMode>("metro");
   const [transportResult, setTransportResult] = useState<TransportResult | null>(null);
   const [transportLoading, setTransportLoading] = useState(false);
@@ -205,6 +212,13 @@ export default function ParisNowApp() {
 
   function weatherLocation() {
     return routeLocation() ?? ZONE_CENTRES[selectedZone] ?? ZONE_CENTRES["Louvre & Opéra"];
+  }
+
+  function rememberHotel(value: string) {
+    const hotel = value.trim();
+    if (hotel.length < 3 || looksLikeCoordinates(hotel)) return;
+    setHotelAddress(hotel);
+    try { window.localStorage.setItem(HOTEL_STORAGE_KEY, hotel); } catch { /* privacy mode */ }
   }
 
   function commitTravelerLocation(current: TravelerLocation, recalculateOnMove: boolean) {
@@ -270,6 +284,7 @@ export default function ParisNowApp() {
     setTransportLoading(true);
     setTransportError("");
     setTransportApplied(null);
+    setReturningToHotel(false);
     try {
       const response = await fetch("/api/now/transport", {
         method: "POST",
@@ -281,9 +296,53 @@ export default function ParisNowApp() {
       const result = data as TransportResult;
       setTransportResult(result);
       setTransportOrigin(result.origin);
+      if (!hotelAddress && !looksLikeCoordinates(transportOrigin)) rememberHotel(result.origin);
     } catch (error) {
       setTransportError(error instanceof Error ? error.message : "Transport options unavailable");
     } finally { setTransportLoading(false); }
+  }
+
+  async function findReturnToHotel(mode: TransportMode = transportMode) {
+    if (!hotelAddress) { setTransportError("Save your hotel first so NOW knows where to bring you back."); setActive("transport"); return; }
+    if (!networkOnline) { setTransportError("Return routing needs a connection so NOW can verify the safest current option."); setActive("transport"); return; }
+
+    const run = async (origin: string) => {
+      setActive("transport");
+      setReturningToHotel(true);
+      setTransportLoading(true);
+      setTransportError("");
+      setTransportApplied(null);
+      try {
+        const response = await fetch("/api/now/transport", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ origin, destination: hotelAddress, mode }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Return options unavailable");
+        setTransportResult(data as TransportResult);
+      } catch (error) {
+        setTransportError(error instanceof Error ? error.message : "Return options unavailable");
+        setReturningToHotel(false);
+      } finally { setTransportLoading(false); }
+    };
+
+    const fresh = routeLocation();
+    if (fresh) {
+      await run(`${fresh.lat.toFixed(5)}, ${fresh.lon.toFixed(5)}`);
+      return;
+    }
+    if (!navigator.geolocation) { setTransportError("Current location is required for a one-tap hotel return."); setActive("transport"); return; }
+    setTransportLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const current: TravelerLocation = { lat: position.coords.latitude, lon: position.coords.longitude, accuracy: position.coords.accuracy, capturedAt: Date.now() };
+        commitTravelerLocation(current, true);
+        void run(`${current.lat.toFixed(5)}, ${current.lon.toFixed(5)}`);
+      },
+      () => { setTransportLoading(false); setTransportError("NOW could not verify your current location. Use the transport panel and enter your starting point."); setActive("transport"); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 },
+    );
   }
 
   async function applyTransport(option: TransportOption) {
@@ -291,6 +350,25 @@ export default function ParisNowApp() {
     setTransportLoading(true);
     setTransportError("");
     try {
+      if (returningToHotel) {
+        const returnRoute: RouteView = {
+          eyebrow: `NOW RETURN · ${option.label.toUpperCase()}`,
+          title: `Back to ${hotelAddress}`,
+          meta: `${option.minutes} min · ${option.source === "official" ? "official transport time" : "verified local estimate"}`,
+          note: `NOW rebuilt the return from your current position to your saved hotel. ${option.source === "official" ? "Public transport timing comes from Île-de-France Mobilités." : "This connection is an estimate and remains clearly labelled as such."}`,
+          stops: [
+            { time: "NOW", duration: `${option.minutes} min`, title: transportResult.origin, detail: `${option.label} · ${option.detail}`, state: "current" },
+            { time: `+${String(option.minutes).padStart(2, "0")}`, duration: "—", title: hotelAddress, detail: "Saved hotel · end of this return", state: "destination" },
+          ],
+          ticket,
+          liveNeed: null,
+        };
+        setServerRoute(returnRoute);
+        setTransportApplied(option.id);
+        window.setTimeout(() => document.getElementById("protected-route-heading")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+        return;
+      }
+
       const response = await fetch("/api/now/route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -323,7 +401,7 @@ export default function ParisNowApp() {
   }
 
   async function selectLiveNeedChoice(choice: LiveNeedChoice) {
-    if (active !== "food" && active !== "pharmacy") return;
+    if (active !== "food" && active !== "pharmacy" && active !== "sitdown") return;
     setChoiceBusy(true);
     setRebuilding(true);
     try {
@@ -385,6 +463,13 @@ export default function ParisNowApp() {
     const target = section === "day" ? "my-day-section" : section === "tickets" ? "ticket-protection-section" : "now-route-section";
     window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
+
+  useEffect(() => {
+    try {
+      const storedHotel = window.localStorage.getItem(HOTEL_STORAGE_KEY)?.trim() ?? "";
+      if (storedHotel) setHotelAddress(storedHotel);
+    } catch { /* privacy mode */ }
+  }, []);
 
   useEffect(() => {
     const setFromBrowser = () => {
@@ -490,7 +575,7 @@ export default function ParisNowApp() {
     fetch("/api/now/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scenario: active, ticketTime: "16:30", routeId: selectedRouteId, availableMinutes, location: routeLocation() }),
+      body: JSON.stringify({ scenario: active, ticketTime: ticket.time, routeId: selectedRouteId, availableMinutes, location: routeLocation() }),
       signal: controller.signal,
     })
       .then((response) => {
@@ -513,7 +598,7 @@ export default function ParisNowApp() {
       window.clearTimeout(rebuild);
       window.clearInterval(timer);
     };
-  }, [active, selectedRouteId, availableMinutes, locationRevision, networkOnline, networkRevision]);
+  }, [active, selectedRouteId, availableMinutes, locationRevision, networkOnline, networkRevision, ticket.time]);
 
   useEffect(() => {
     if (active !== "guardian") return;
@@ -539,8 +624,8 @@ export default function ParisNowApp() {
     return () => controller.abort();
   }, [active, guardianLevel, hotelConsent, networkRevision]);
 
-  const status = useMemo(() => !networkOnline ? "Connection paused" : active === "blocked" ? "Reroute active" : active === "guardian" ? "Route paused" : "Live route", [active, networkOnline]);
-  const selectableLiveNeed = (active === "food" || active === "pharmacy") && route.liveNeed ? route.liveNeed : null;
+  const status = useMemo(() => !networkOnline ? "Connection paused" : active === "blocked" ? "Reroute active" : active === "guardian" ? "Route paused" : returningToHotel ? "Return ready" : "Live route", [active, networkOnline, returningToHotel]);
+  const selectableLiveNeed = (active === "food" || active === "pharmacy" || active === "sitdown") && route.liveNeed ? route.liveNeed : null;
 
   return (
     <main className={styles.shell}>
@@ -587,6 +672,14 @@ export default function ParisNowApp() {
         <div><span>{locationStatus === "locating" ? "LOCATING" : locationStatus === "live" ? "LIVE LOCATION" : "TIME AVAILABLE"}</span><strong>{locationStatus === "locating" ? "Finding you…" : locationStatus === "live" ? `GPS · ±${Math.round(travelerLocation?.accuracy ?? 0)} m` : `${availableMinutes} min`}</strong></div>
         <button onClick={() => setAvailableMinutes((minutes) => minutes === 90 ? 60 : minutes === 60 ? 120 : 90)} aria-label="Change available time">Adjust</button>
       </section>
+
+      {hotelAddress && (
+        <section className={styles.journeyContext} aria-label="Saved hotel">
+          <div><span>YOUR HOTEL</span><strong>{hotelAddress}</strong></div>
+          <div><span>RETURN</span><strong>From your current location</strong></div>
+          <button type="button" onClick={() => void findReturnToHotel()} disabled={transportLoading}>Return →</button>
+        </section>
+      )}
 
       <section id="now-route-section" className={styles.liveCard}>
         <div className={styles.liveTop}>
@@ -640,12 +733,12 @@ export default function ParisNowApp() {
           <div className={styles.catalogHeading}><span>YOUR CONFIDENTIAL PARIS</span><h2>Choose your neighbourhood.</h2><p>Thirty discreet routes, each with a protected alternative.</p></div>
           <div className={styles.zoneRail}>
             {Array.from(new Set(catalogRoutes.map((item) => item.zone))).map((zone) => (
-              <button key={zone} className={selectedZone === zone ? styles.selectedZone : ""} onClick={() => { setSelectedZone(zone); setSelectedRouteId(null); setActive("route"); }}>{zone}</button>
+              <button key={zone} className={selectedZone === zone ? styles.selectedZone : ""} onClick={() => { setSelectedZone(zone); setSelectedRouteId(null); setActive("route"); setReturningToHotel(false); }}>{zone}</button>
             ))}
           </div>
           <div className={styles.routeList}>
             {catalogRoutes.filter((item) => item.zone === selectedZone).map((item) => (
-              <button key={item.id} className={selectedRouteId === item.id ? styles.selectedRoute : ""} onClick={() => { setSelectedRouteId(item.id); setActive("route"); }}>
+              <button key={item.id} className={selectedRouteId === item.id ? styles.selectedRoute : ""} onClick={() => { setSelectedRouteId(item.id); setActive("route"); setReturningToHotel(false); }}>
                 <strong>{item.title}</strong><span>{item.durationMinutes} min · {item.stopCount} confidential stops</span><b>{selectedRouteId === item.id ? "SELECTED ✓" : "EXPLORE →"}</b>
               </button>
             ))}
@@ -659,6 +752,8 @@ export default function ParisNowApp() {
           <button onClick={() => activateNeed("food")}><span>◈</span><strong>Find a table</strong><small>Places worth your time</small></button>
           <button onClick={() => activateNeed("water")}><span>◉</span><strong>Water nearby</strong><small>A stop on your way</small></button>
           <button onClick={() => activateNeed("restroom")}><span>◇</span><strong>Restroom</strong><small>Practical, close access</small></button>
+          <button onClick={() => activateNeed("sitdown")}><span>◡</span><strong>Quiet pause</strong><small>A calm Velvet stop</small></button>
+          {hotelAddress && <button onClick={() => void findReturnToHotel()}><span>⌂</span><strong>Return to hotel</strong><small>{hotelAddress}</small></button>}
           <button onClick={() => openSection("guardian")}><span>✚</span><strong>Need help?</strong><small>Guardian is here</small></button>
         </div>
       </section>
@@ -666,11 +761,11 @@ export default function ParisNowApp() {
       <section className={styles.needs}>
         <div className={styles.sectionTitle}>
           <span>ADAPT YOUR DAY</span>
-          <button onClick={() => setActive("route")}>Reset route</button>
+          <button onClick={() => { setActive("route"); setReturningToHotel(false); }}>Reset route</button>
         </div>
         <div className={styles.needRail}>
           {needs.map((need) => (
-            <button key={need.id} className={active === need.id ? styles.activeNeed : ""} onClick={() => activateNeed(need.id)}>
+            <button key={need.id} className={active === need.id ? styles.activeNeed : ""} onClick={() => { setReturningToHotel(false); activateNeed(need.id); }}>
               <span>{need.icon}</span>{need.label}
             </button>
           ))}
@@ -679,7 +774,7 @@ export default function ParisNowApp() {
 
       {selectableLiveNeed && (
         <LiveNeedChoices
-          kind={active as "food" | "pharmacy"}
+          kind={active as "food" | "pharmacy" | "sitdown"}
           choices={selectableLiveNeed.choices}
           selected={selectableLiveNeed.selected}
           busy={choiceBusy || rebuilding}
@@ -690,23 +785,30 @@ export default function ParisNowApp() {
       {active === "transport" && (
         <section className={styles.transportPanel} aria-live="polite">
           <div className={styles.transportHeading}>
-            <span>NOW CONNECTION · YOUR WAY THERE</span>
-            <h2>Start where you actually are.</h2>
-            <p>Your hotel, current location or any Paris address — connected to {selectedCatalogRoute?.title ?? selectedZone}.</p>
+            <span>{returningToHotel ? "NOW RETURN · BACK TO YOUR HOTEL" : "NOW CONNECTION · YOUR WAY THERE"}</span>
+            <h2>{returningToHotel ? "Let’s get you back comfortably." : "Start where you actually are."}</h2>
+            <p>{returningToHotel ? `Current position → ${hotelAddress}.` : `Your hotel, current location or any Paris address — connected to ${selectedCatalogRoute?.title ?? selectedZone}.`}</p>
           </div>
-          <label className={styles.transportLabel} htmlFor="transport-origin">YOUR STARTING POINT</label>
-          <div className={styles.transportOrigin}>
-            <input id="transport-origin" value={transportOrigin} onChange={(event) => { setTransportOrigin(event.target.value); setTransportError(""); }} placeholder="Hotel, address or station" autoComplete="street-address" />
-            <button type="button" onClick={useCurrentLocation} aria-label="Use my current location">⌖</button>
-          </div>
+          {!returningToHotel && (
+            <>
+              <label className={styles.transportLabel} htmlFor="transport-origin">YOUR STARTING POINT</label>
+              <div className={styles.transportOrigin}>
+                <input id="transport-origin" value={transportOrigin} onChange={(event) => { setTransportOrigin(event.target.value); setTransportError(""); }} placeholder="Hotel, address or station" autoComplete="street-address" />
+                <button type="button" onClick={useCurrentLocation} aria-label="Use my current location">⌖</button>
+              </div>
+              <button className={styles.transportSearch} type="button" onClick={() => rememberHotel(transportOrigin)} disabled={looksLikeCoordinates(transportOrigin) || transportOrigin.trim().length < 3}>
+                {hotelAddress ? "UPDATE MY HOTEL" : "SAVE AS MY HOTEL"}
+              </button>
+            </>
+          )}
           <span className={styles.transportLabel}>PREFERRED CONNECTION</span>
           <div className={styles.transportModes}>
             {([["metro", "Métro"], ["rer", "RER"], ["bus", "Bus"], ["tram", "Tram"], ["taxi", "Taxi"], ["walk", "Walk"]] as const).map(([id, label]) => (
               <button key={id} type="button" className={transportMode === id ? styles.transportModeActive : ""} onClick={() => { setTransportMode(id); setTransportApplied(null); }}>{label}</button>
             ))}
           </div>
-          <button className={styles.transportSearch} type="button" onClick={() => findTransport()} disabled={transportLoading}>
-            {transportLoading ? "CHECKING YOUR CONNECTION…" : "FIND MY BEST CONNECTION →"}
+          <button className={styles.transportSearch} type="button" onClick={() => returningToHotel ? void findReturnToHotel() : void findTransport()} disabled={transportLoading}>
+            {transportLoading ? "CHECKING YOUR CONNECTION…" : returningToHotel ? "REFRESH MY RETURN →" : "FIND MY BEST CONNECTION →"}
           </button>
           {transportError && <p className={styles.transportError}>{transportError}</p>}
           {transportResult && (
@@ -716,7 +818,7 @@ export default function ParisNowApp() {
                 <button key={option.id} type="button" className={transportApplied === option.id ? styles.transportOptionApplied : transportMode === option.id ? styles.transportOptionPreferred : ""} onClick={() => applyTransport(option)}>
                   <span><strong>{option.label}</strong><small>{option.detail}</small></span>
                   <b>{option.minutes} min</b>
-                  <em>{transportApplied === option.id ? "ADDED ✓" : "ADD TO ROUTE →"}</em>
+                  <em>{transportApplied === option.id ? "SELECTED ✓" : returningToHotel ? "TAKE ME BACK →" : "ADD TO ROUTE →"}</em>
                 </button>
               ))}
               <small className={styles.transportDisclaimer}>{transportResult.disclaimer}</small>
