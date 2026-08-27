@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { normalizeRadarObservation, type RawRadarObservation } from "@/lib/discovery/radar-pipeline";
 
-const SUBREDDITS = ["ParisTravelGuide", "travel"] as const;
-const QUERIES = [
-  "hidden gems Paris",
-  "non touristy Paris",
-  "second time Paris",
-  "returning to Paris",
-  "Paris guide",
-] as const;
+const FEED_URL = "https://www.reddit.com/r/ParisTravelGuide/new/.rss?limit=50";
 
 const stripTags = (value: string) => value
   .replace(/<[^>]*>/g, " ")
@@ -36,52 +29,50 @@ function safe(value: unknown, max = 280) {
 
 export async function GET() {
   const observations: RawRadarObservation[] = [];
-  const rejectedStale: Array<{ subreddit: string; updated: string; title: string }> = [];
-  const sourceStatus: Array<{ subreddit: string; query: string; status: number }> = [];
+  const rejectedStale: Array<{ updated: string; title: string }> = [];
 
-  for (const subreddit of SUBREDDITS) {
-    for (const query of QUERIES) {
-      const url = `https://www.reddit.com/r/${subreddit}/search.rss?q=${encodeURIComponent(query)}&restrict_sr=on&sort=new&t=month`;
-      try {
-        const response = await fetch(url, {
-          headers: { "user-agent": "VelvetPassportRadar/1.0 (+https://velvetpassport.com)" },
-          next: { revalidate: 1800 },
-        });
-        sourceStatus.push({ subreddit, query, status: response.status });
-        if (!response.ok) continue;
-
-        const xml = await response.text();
-        const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/gi)].map((match) => match[1] ?? "");
-        for (const entry of entries.slice(0, 8)) {
-          const title = extract(entry, "title")[0] ?? "";
-          const content = extract(entry, "content")[0] ?? "";
-          const updated = extract(entry, "updated")[0] ?? "";
-          const link = entry.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1];
-          if (!link || !new RegExp(`reddit\\.com/r/${subreddit}/comments/`, "i").test(link)) continue;
-          if (!isFresh(updated)) {
-            rejectedStale.push({ subreddit, updated, title: safe(title, 120) });
-            continue;
-          }
-          const text = `${title} ${content}`.replace(/\[link\]/gi, " ").replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
-          if (text.length < 40) continue;
-          observations.push({
-            source: "reddit",
-            sourceType: "ASK",
-            text: text.slice(0, 1200),
-            query,
-            observedAt: updated,
-            volumeScore: subreddit === "ParisTravelGuide" ? 44 : 36,
-            velocityScore: 60,
-            sourceConfidence: subreddit === "ParisTravelGuide" ? 92 : 84,
-            commercialIntent: 30,
-            competitionPressure: 45,
-            sourceUrl: link,
-          });
-        }
-      } catch {
-        sourceStatus.push({ subreddit, query, status: 0 });
-      }
+  let status = 0;
+  try {
+    const response = await fetch(FEED_URL, {
+      headers: { "user-agent": "VelvetPassportRadar/1.0 (+https://velvetpassport.com)" },
+      next: { revalidate: 1800 },
+    });
+    status = response.status;
+    if (!response.ok) {
+      return NextResponse.json({ ok: false, rawRecent: 0, matched: 0, sourceStatus: [{ source: "ParisTravelGuide/new", status }] });
     }
+
+    const xml = await response.text();
+    const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/gi)].map((match) => match[1] ?? "");
+
+    for (const entry of entries.slice(0, 50)) {
+      const title = extract(entry, "title")[0] ?? "";
+      const content = extract(entry, "content")[0] ?? "";
+      const updated = extract(entry, "updated")[0] ?? "";
+      const link = entry.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1];
+      if (!link || !/reddit\.com\/r\/ParisTravelGuide\/comments\//i.test(link)) continue;
+      if (!isFresh(updated)) {
+        rejectedStale.push({ updated, title: safe(title, 120) });
+        continue;
+      }
+      const text = `${title} ${content}`.replace(/\[link\]/gi, " ").replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
+      if (text.length < 40) continue;
+      observations.push({
+        source: "reddit",
+        sourceType: "ASK",
+        text: text.slice(0, 1200),
+        query: "r/ParisTravelGuide/new",
+        observedAt: updated,
+        volumeScore: 44,
+        velocityScore: 60,
+        sourceConfidence: 92,
+        commercialIntent: 30,
+        competitionPressure: 45,
+        sourceUrl: link,
+      });
+    }
+  } catch {
+    return NextResponse.json({ ok: false, rawRecent: 0, matched: 0, sourceStatus: [{ source: "ParisTravelGuide/new", status: 0 }] });
   }
 
   const seen = new Set<string>();
@@ -91,10 +82,12 @@ export async function GET() {
     seen.add(key);
     return true;
   });
+
   const normalized = deduped.flatMap(normalizeRadarObservation);
 
   return NextResponse.json({
     ok: true,
+    sourceStatus: [{ source: "ParisTravelGuide/new", status }],
     rawRecent: deduped.length,
     matched: normalized.length,
     staleRejected: rejectedStale.length,
@@ -107,32 +100,39 @@ export async function GET() {
       acc[item.travelSpendIntent] = (acc[item.travelSpendIntent] ?? 0) + 1;
       return acc;
     }, {}),
-    velvetIntent: normalized.reduce<Record<string, number>>((acc, item) => {
+    explicitVelvetIntent: normalized.reduce<Record<string, number>>((acc, item) => {
       acc[item.velvetIntent] = (acc[item.velvetIntent] ?? 0) + 1;
       return acc;
     }, {}),
-    matches: normalized.slice(0, 12).map((item) => ({
-      theme: item.theme,
-      travelerIntent: item.travelerIntent,
-      travelerIntentScore: item.travelerIntentScore,
-      travelSpendIntent: item.travelSpendIntent,
-      travelSpendIntentScore: item.travelSpendIntentScore,
-      velvetIntent: item.velvetIntent,
-      velvetIntentScore: item.velvetIntentScore,
-      purchaseCategory: item.purchaseCategory,
-      text: safe(item.text),
-      observedAt: item.observedAt,
-      sourceUrl: item.sourceUrl,
-      matchedPhrases: item.matchedPhrases,
-      velvetCues: item.velvetCues,
-    })),
+    velvetOpportunity: normalized.reduce<Record<string, number>>((acc, item) => {
+      acc[item.velvetOpportunity] = (acc[item.velvetOpportunity] ?? 0) + 1;
+      return acc;
+    }, {}),
+    matches: normalized
+      .sort((a, b) => b.velvetOpportunityScore - a.velvetOpportunityScore)
+      .slice(0, 15)
+      .map((item) => ({
+        theme: item.theme,
+        travelerIntent: item.travelerIntent,
+        travelerIntentScore: item.travelerIntentScore,
+        travelSpendIntent: item.travelSpendIntent,
+        travelSpendIntentScore: item.travelSpendIntentScore,
+        explicitVelvetIntent: item.velvetIntent,
+        explicitVelvetIntentScore: item.velvetIntentScore,
+        velvetOpportunity: item.velvetOpportunity,
+        velvetOpportunityScore: item.velvetOpportunityScore,
+        purchaseCategory: item.purchaseCategory,
+        text: safe(item.text),
+        observedAt: item.observedAt,
+        sourceUrl: item.sourceUrl,
+        matchedPhrases: item.matchedPhrases,
+        velvetCues: item.velvetCues,
+      })),
     unmatchedRecent: deduped.filter((observation) => !normalized.some((item) => item.sourceUrl === observation.sourceUrl)).slice(0, 8).map((item) => ({
-      query: item.query,
       observedAt: item.observedAt,
       text: safe(item.text),
       sourceUrl: item.sourceUrl,
     })),
     staleSamples: rejectedStale.slice(0, 5),
-    sourceStatus: sourceStatus.filter((item) => item.status !== 200).slice(0, 12),
   });
 }
