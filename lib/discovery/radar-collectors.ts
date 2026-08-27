@@ -13,6 +13,13 @@ const uniqueBy = <T>(items: T[], key: (item: T) => string) => {
     return true;
   });
 };
+const freshWithin = (value: string | undefined, days: number) => {
+  if (!value) return false;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return false;
+  const age = Date.now() - timestamp;
+  return age >= 0 && age <= days * 86400000;
+};
 
 export type CollectorResult = {
   source: string;
@@ -66,15 +73,13 @@ export async function collectReddit(): Promise<CollectorResult> {
     if (!response.ok) return { source: "reddit", ok: false, observations: [], normalized: [], note: `http_${response.status}` };
     const xml = await response.text();
     const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/gi)].map((m) => m[1] ?? "");
-    const now = Date.now();
     const observations: RawRadarObservation[] = [];
     for (const entry of entries.slice(0, 50)) {
       const title = extract(entry, "title")[0] ?? "";
       const content = extract(entry, "content")[0] ?? "";
       const updated = extract(entry, "updated")[0] ?? "";
       const link = entry.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1];
-      const timestamp = Date.parse(updated);
-      if (!link || !Number.isFinite(timestamp) || timestamp > now + 300000 || now - timestamp > 30 * 86400000) continue;
+      if (!link || !freshWithin(updated, 30)) continue;
       const text = `${title} ${content}`.replace(/\[link\]/gi, " ").replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
       if (text.length < 40) continue;
       observations.push({ source: "reddit", sourceType: "ASK", text: text.slice(0, 1200), query: "ParisTravelGuide/new", observedAt: updated, volumeScore: 44, velocityScore: 60, sourceConfidence: 92, commercialIntent: 30, competitionPressure: 45, sourceUrl: link });
@@ -86,8 +91,9 @@ export async function collectReddit(): Promise<CollectorResult> {
   }
 }
 
-async function collectBingSiteSource(options: { source: "tripadvisor" | "wanderlog" | "substack" | "getyourguide"; sourceType: "ASK" | "SAVE" | "DISCOVER" | "BUY"; siteQuery: string; domain: string; confidence: number; velocity: number; commercialIntent: number; limit?: number; requiredUrlPattern?: RegExp }): Promise<CollectorResult> {
+async function collectBingSiteSource(options: { source: "tripadvisor" | "wanderlog" | "substack" | "getyourguide"; sourceType: "ASK" | "SAVE" | "DISCOVER" | "BUY"; siteQuery: string; domain: string; confidence: number; velocity: number; commercialIntent: number; limit?: number; requiredUrlPattern?: RegExp; requireFreshPubDate?: boolean }): Promise<CollectorResult> {
   const observations: RawRadarObservation[] = [];
+  let rejectedUndated = 0;
   for (const query of radarQueries(options.limit ?? 8)) {
     const searchUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(`site:${options.siteQuery} ${query}`)}`;
     try {
@@ -98,25 +104,28 @@ async function collectBingSiteSource(options: { source: "tripadvisor" | "wanderl
         const title = extract(item, "title")[0] ?? "";
         const description = extract(item, "description")[0] ?? "";
         const link = extract(item, "link")[0] ?? "";
+        const pubDate = extract(item, "pubDate")[0];
         if (!title && !description) continue;
         if (link && !link.includes(options.domain)) continue;
         if (options.requiredUrlPattern && !options.requiredUrlPattern.test(link)) continue;
+        if (options.requireFreshPubDate && !freshWithin(pubDate, 30)) { rejectedUndated += 1; continue; }
         const text = `${title} ${description}`.replace(/\s+/g, " ").trim();
         if (text.length < 35 || !/\bparis\b/i.test(text + " " + link)) continue;
-        observations.push({ source: options.source, sourceType: options.sourceType, text: text.slice(0, 1200), query, observedAt: new Date().toISOString(), volumeScore: options.sourceType === "BUY" ? 52 : 38, velocityScore: options.velocity, sourceConfidence: options.confidence, commercialIntent: options.commercialIntent, competitionPressure: options.sourceType === "BUY" ? 62 : 45, sourceUrl: link || undefined });
+        observations.push({ source: options.source, sourceType: options.sourceType, text: text.slice(0, 1200), query, observedAt: pubDate && Number.isFinite(Date.parse(pubDate)) ? new Date(pubDate).toISOString() : new Date().toISOString(), volumeScore: options.sourceType === "BUY" ? 52 : 38, velocityScore: options.velocity, sourceConfidence: options.confidence, commercialIntent: options.commercialIntent, competitionPressure: options.sourceType === "BUY" ? 62 : 45, sourceUrl: link || undefined });
       }
     } catch {}
   }
   const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? item.text.slice(0, 180).toLowerCase());
-  return { source: options.source, ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : "no_relevant_public_search_results" };
+  const note = deduped.length ? undefined : rejectedUndated ? "no_fresh_dated_public_results" : "no_relevant_public_search_results";
+  return { source: options.source, ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note };
 }
 
 export function collectTripadvisor() {
-  return collectBingSiteSource({ source: "tripadvisor", sourceType: "ASK", siteQuery: "tripadvisor.com/ShowTopic", domain: "tripadvisor.com", confidence: 86, velocity: 48, commercialIntent: 38, limit: 8, requiredUrlPattern: /tripadvisor\.com\/ShowTopic/i });
+  return collectBingSiteSource({ source: "tripadvisor", sourceType: "ASK", siteQuery: "tripadvisor.com", domain: "tripadvisor.com", confidence: 86, velocity: 48, commercialIntent: 38, limit: 8, requiredUrlPattern: /tripadvisor\.com\/ShowTopic/i, requireFreshPubDate: true });
 }
 
 export function collectGetYourGuide() {
-  return collectBingSiteSource({ source: "getyourguide", sourceType: "BUY", siteQuery: "getyourguide.com/paris", domain: "getyourguide.com", confidence: 88, velocity: 52, commercialIntent: 78, limit: 8 });
+  return collectBingSiteSource({ source: "getyourguide", sourceType: "BUY", siteQuery: "getyourguide.com", domain: "getyourguide.com", confidence: 88, velocity: 52, commercialIntent: 78, limit: 8, requiredUrlPattern: /getyourguide\.com\//i });
 }
 
 export async function collectAtlas(): Promise<CollectorResult> {
