@@ -53,9 +53,45 @@ const SCENARIO_PROTECTION_WEIGHT: Record<WeatherScenario, number> = {
   snow: 4,
 };
 
+const WEATHER_MAX_PAST_MINUTES = 120;
+const WEATHER_MAX_FUTURE_MINUTES = 90;
+
 function finite(value: unknown): number | undefined {
   const number = Number(value);
   return Number.isFinite(number) ? number : undefined;
+}
+
+function parisWallClockEpoch(now = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now).map((part) => [part.type, part.value]));
+  return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second));
+}
+
+function observedAtEpoch(value?: string) {
+  if (!value) return null;
+  if (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  const local = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!local) return null;
+  return Date.UTC(Number(local[1]), Number(local[2]) - 1, Number(local[3]), Number(local[4]), Number(local[5]), Number(local[6] ?? 0));
+}
+
+function readingIsFresh(reading: WeatherReading, now = new Date()) {
+  const observed = observedAtEpoch(reading.observedAt);
+  if (observed === null) return false;
+  const nowEpoch = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(reading.observedAt ?? "") ? now.getTime() : parisWallClockEpoch(now);
+  const ageMinutes = (nowEpoch - observed) / 60_000;
+  return ageMinutes <= WEATHER_MAX_PAST_MINUTES && ageMinutes >= -WEATHER_MAX_FUTURE_MINUTES;
 }
 
 export function classifyWeatherRegion(point: Coordinates): WeatherRegion {
@@ -200,7 +236,8 @@ function chooseScenario(readings: WeatherReading[], priority: WeatherModelId[]):
 export async function getWeatherIntelligence(point: Coordinates): Promise<WeatherIntelligence> {
   const region = classifyWeatherRegion(point);
   const priority = MODEL_PRIORITY[region];
-  const readings = await Promise.all(priority.map((model) => model === "met" ? fetchMet(point) : fetchOfficialModel(model, point)));
+  const rawReadings = await Promise.all(priority.map((model) => model === "met" ? fetchMet(point) : fetchOfficialModel(model, point)));
+  const readings = rawReadings.map((reading) => reading.available && !readingIsFresh(reading) ? { ...reading, available: false } : reading);
   const available = readings.filter((reading) => reading.available);
   const decision = chooseScenario(available, priority);
   const primaryModel = priority.find((model) => available.some((reading) => reading.model === model)) ?? null;
