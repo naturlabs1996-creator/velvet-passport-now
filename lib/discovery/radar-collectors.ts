@@ -53,9 +53,7 @@ export async function collectGoogleSuggest(): Promise<CollectorResult> {
         if (!/\bparis\b/i.test(suggestion)) continue;
         observations.push({ source: "google-suggest", sourceType: "SEARCH", text: suggestion, query, observedAt: new Date().toISOString(), volumeScore: 48, velocityScore: 58, sourceConfidence: 90, commercialIntent: 38, competitionPressure: 55, sourceUrl: `https://www.google.com/search?q=${encodeURIComponent(suggestion)}` });
       }
-    } catch {
-      // One autocomplete failure must not stop the cycle.
-    }
+    } catch {}
   }
   const deduped = uniqueBy(observations, (item) => item.text.toLowerCase());
   return { source: "google-suggest", ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : "no_paris_suggestions" };
@@ -107,9 +105,7 @@ async function collectBingSiteSource(options: { source: "tripadvisor" | "wanderl
         if (text.length < 35 || !/\bparis\b/i.test(text + " " + link)) continue;
         observations.push({ source: options.source, sourceType: options.sourceType, text: text.slice(0, 1200), query, observedAt: new Date().toISOString(), volumeScore: options.sourceType === "BUY" ? 52 : 38, velocityScore: options.velocity, sourceConfidence: options.confidence, commercialIntent: options.commercialIntent, competitionPressure: options.sourceType === "BUY" ? 62 : 45, sourceUrl: link || undefined });
       }
-    } catch {
-      // Search-provider blocking must not stop the full radar cycle.
-    }
+    } catch {}
   }
   const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? item.text.slice(0, 180).toLowerCase());
   return { source: options.source, ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : "no_relevant_public_search_results" };
@@ -120,7 +116,7 @@ export function collectTripadvisor() {
 }
 
 export function collectGetYourGuide() {
-  return collectBingSiteSource({ source: "getyourguide", sourceType: "BUY", siteQuery: "getyourguide.com/paris", domain: "getyourguide.com", confidence: 88, velocity: 52, commercialIntent: 78, competitionPressure: undefined as never, limit: 8 });
+  return collectBingSiteSource({ source: "getyourguide", sourceType: "BUY", siteQuery: "getyourguide.com/paris", domain: "getyourguide.com", confidence: 88, velocity: 52, commercialIntent: 78, limit: 8 });
 }
 
 export async function collectAtlas(): Promise<CollectorResult> {
