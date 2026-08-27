@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 import { normalizeRadarObservation, type RawRadarObservation } from "@/lib/discovery/radar-pipeline";
 
-const SUBREDDITS = ["ParisTravelGuide", "travel", "solotravel"] as const;
+const SUBREDDITS = ["ParisTravelGuide", "travel"] as const;
 const QUERIES = [
   "hidden gems Paris",
   "non touristy Paris",
-  "quiet Paris",
-  "secret Paris",
-  "unusual Paris",
-  "local Paris recommendations",
   "second time Paris",
   "returning to Paris",
-  "Paris rainy day",
   "Paris guide",
 ] as const;
 
@@ -50,7 +45,7 @@ export async function GET() {
       try {
         const response = await fetch(url, {
           headers: { "user-agent": "VelvetPassportRadar/1.0 (+https://velvetpassport.com)" },
-          cache: "no-store",
+          next: { revalidate: 1800 },
         });
         sourceStatus.push({ subreddit, query, status: response.status });
         if (!response.ok) continue;
@@ -108,21 +103,28 @@ export async function GET() {
       medium: normalized.filter((item) => item.travelerIntent === "MEDIUM").length,
       weak: normalized.filter((item) => item.travelerIntent === "WEAK").length,
     },
-    buyIntent: normalized.reduce<Record<string, number>>((acc, item) => {
-      acc[item.buyIntent] = (acc[item.buyIntent] ?? 0) + 1;
+    travelSpendIntent: normalized.reduce<Record<string, number>>((acc, item) => {
+      acc[item.travelSpendIntent] = (acc[item.travelSpendIntent] ?? 0) + 1;
+      return acc;
+    }, {}),
+    velvetIntent: normalized.reduce<Record<string, number>>((acc, item) => {
+      acc[item.velvetIntent] = (acc[item.velvetIntent] ?? 0) + 1;
       return acc;
     }, {}),
     matches: normalized.slice(0, 12).map((item) => ({
       theme: item.theme,
       travelerIntent: item.travelerIntent,
       travelerIntentScore: item.travelerIntentScore,
-      buyIntent: item.buyIntent,
-      buyIntentScore: item.buyIntentScore,
+      travelSpendIntent: item.travelSpendIntent,
+      travelSpendIntentScore: item.travelSpendIntentScore,
+      velvetIntent: item.velvetIntent,
+      velvetIntentScore: item.velvetIntentScore,
       purchaseCategory: item.purchaseCategory,
       text: safe(item.text),
       observedAt: item.observedAt,
       sourceUrl: item.sourceUrl,
       matchedPhrases: item.matchedPhrases,
+      velvetCues: item.velvetCues,
     })),
     unmatchedRecent: deduped.filter((observation) => !normalized.some((item) => item.sourceUrl === observation.sourceUrl)).slice(0, 8).map((item) => ({
       query: item.query,
