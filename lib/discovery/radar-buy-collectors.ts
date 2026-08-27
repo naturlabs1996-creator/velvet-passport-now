@@ -58,13 +58,16 @@ function buildObservation(options: {
   commercialIntent: number;
   competitionPressure: number;
 }): RawRadarObservation | null {
-  if (!/\bparis\b/i.test(`${options.text} ${options.query}`)) return null;
-  const text = `${options.query} ${options.text}`.replace(/\s+/g, " ").trim();
-  if (text.length < 35) return null;
+  const observedText = options.text.replace(/\s+/g, " ").trim();
+  // Classification must be based only on observed marketplace content.
+  // The query is provenance and must never create a theme match by itself.
+  if (!/\bparis\b/i.test(observedText)) return null;
+  if (observedText.length < 35) return null;
+
   return {
     source: options.source,
     sourceType: "BUY",
-    text: text.slice(0, 1200),
+    text: observedText.slice(0, 1200),
     query: options.query,
     observedAt: new Date().toISOString(),
     volumeScore: 58,
@@ -74,6 +77,29 @@ function buildObservation(options: {
     competitionPressure: options.competitionPressure,
     sourceUrl: options.url,
   };
+}
+
+function normalizeBuyProducts(observations: RawRadarObservation[]) {
+  return observations.flatMap((observation) => {
+    const normalized = normalizeRadarObservation(observation);
+    const strongestByTheme = new Map<string, NormalizedRadarObservation>();
+
+    for (const signal of normalized) {
+      const current = strongestByTheme.get(signal.theme);
+      if (!current || signal.velvetOpportunityScore > current.velvetOpportunityScore) {
+        strongestByTheme.set(signal.theme, signal);
+      }
+    }
+
+    return [...strongestByTheme.values()]
+      .sort((a, b) => {
+        if (b.matchedPhrases.length !== a.matchedPhrases.length) {
+          return b.matchedPhrases.length - a.matchedPhrases.length;
+        }
+        return b.velvetOpportunityScore - a.velvetOpportunityScore;
+      })
+      .slice(0, 2);
+  });
 }
 
 async function fetchMarketplace(url: string) {
@@ -109,7 +135,7 @@ export async function collectViatorBuy(): Promise<BuyCollectorResult> {
     } catch { blocked += 1; }
   }
   const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? "").slice(0, 40);
-  return { source: "viator", ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : blocked === ACTIVITY_QUERIES.length ? "marketplace_fetch_blocked" : "no_product_links_found" };
+  return { source: "viator", ok: deduped.length > 0, observations: deduped, normalized: normalizeBuyProducts(deduped), note: deduped.length ? undefined : blocked === ACTIVITY_QUERIES.length ? "marketplace_fetch_blocked" : "no_product_links_found" };
 }
 
 export async function collectEtsyBuy(): Promise<BuyCollectorResult> {
@@ -133,7 +159,7 @@ export async function collectEtsyBuy(): Promise<BuyCollectorResult> {
     } catch { blocked += 1; }
   }
   const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? "").slice(0, 40);
-  return { source: "etsy", ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : blocked === GUIDE_QUERIES.length ? "marketplace_fetch_blocked" : "no_listing_links_found" };
+  return { source: "etsy", ok: deduped.length > 0, observations: deduped, normalized: normalizeBuyProducts(deduped), note: deduped.length ? undefined : blocked === GUIDE_QUERIES.length ? "marketplace_fetch_blocked" : "no_listing_links_found" };
 }
 
 export async function collectAmazonBuy(): Promise<BuyCollectorResult> {
@@ -158,7 +184,7 @@ export async function collectAmazonBuy(): Promise<BuyCollectorResult> {
     } catch { blocked += 1; }
   }
   const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? "").slice(0, 40);
-  return { source: "amazon", ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note: deduped.length ? undefined : blocked === GUIDE_QUERIES.length ? "marketplace_fetch_blocked" : "no_product_links_found" };
+  return { source: "amazon", ok: deduped.length > 0, observations: deduped, normalized: normalizeBuyProducts(deduped), note: deduped.length ? undefined : blocked === GUIDE_QUERIES.length ? "marketplace_fetch_blocked" : "no_product_links_found" };
 }
 
 export async function collectBuyRadarSources() {
