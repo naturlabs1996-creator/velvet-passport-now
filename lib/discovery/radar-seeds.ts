@@ -263,7 +263,11 @@ export function findSeedMatches(text: string) {
         .map((phrase) => `~${phrase}`);
 
       const conceptHits = (seed.conceptGroups ?? [])
-        .filter((group) => conceptGroupHit(textTokens, group))
+        .filter((group) => {
+          const normalizedGroup = group.map(singularize);
+          if (seed.theme === "beyond-the-classics" && normalizedGroup[0] === "second" && normalizedGroup.includes("time") && !repeatVisitor) return false;
+          return conceptGroupHit(textTokens, group);
+        })
         .map((group) => `#${group.slice(0, 3).join("+")}`);
 
       const hits = [...exactHits, ...fuzzyHits, ...conceptHits];
