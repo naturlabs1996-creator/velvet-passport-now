@@ -70,6 +70,14 @@ function serviceMinutes(scenario: LiveNeedScenario) {
   return 8;
 }
 
+function serviceLabel(scenario: LiveNeedScenario) {
+  if (scenario === "food") return "meal window";
+  if (scenario === "pharmacy") return "pharmacy stop";
+  if (scenario === "water") return "water stop";
+  if (scenario === "restroom") return "restroom stop";
+  return "quiet pause";
+}
+
 function retimeStops(stops: RoutePlan["stops"]) {
   let elapsed = 0;
   return stops.map((stop, index) => {
@@ -94,7 +102,7 @@ function recalculatePoiTiming(
   targetIndex: number,
   availableMinutes: number,
 ) {
-  if (!["food", "pharmacy", "water", "restroom"].includes(scenario)) return plan;
+  if (!["food", "pharmacy", "water", "restroom", "sitdown"].includes(scenario)) return plan;
 
   const walk = effectiveWalkingMinutes(primary);
   const service = serviceMinutes(scenario);
@@ -106,7 +114,7 @@ function recalculatePoiTiming(
   let stops = plan.stops.map((stop, index) => index === targetIndex ? {
     ...stop,
     duration: `${actualPoiMinutes} min`,
-    detail: `${stop.detail} · ${walk} min ${primary.walkingSource === "valhalla" ? "street-routed walk" : "walk estimate"} · ${service} min ${scenario === "food" ? "meal window" : scenario === "pharmacy" ? "pharmacy stop" : scenario === "water" ? "water stop" : "restroom stop"}`,
+    detail: `${stop.detail} · ${walk} min ${primary.walkingSource === "valhalla" ? "street-routed walk" : "walk estimate"} · ${service} min ${serviceLabel(scenario)}`,
   } : stop);
 
   const removed: string[] = [];
@@ -281,19 +289,21 @@ async function enrichLiveNeed(
   }
 
   const targetIndex = selectedRoute && plan.stops.length > 1 ? 1 : Math.max(0, plan.stops.findIndex((stop) => stop.state === "current"));
-  const choices = scenario === "food"
+  const timingProtectedScenario = scenario === "food" || scenario === "sitdown";
+  const choices = timingProtectedScenario
     ? safeRawChoices.filter((choice) => recalculatePoiTiming(plan, choice, scenario, targetIndex, availableMinutes).ticket.protected)
     : safeRawChoices;
 
   if (choices.length === 0) {
+    const label = scenario === "sitdown" ? "quiet stop" : scenario;
     return {
       plan: {
         ...plan,
-        note: `${plan.note} NOW found food options nearby, but none can be inserted safely without reducing the protected ticket margin below 15 minutes. The current route remains unchanged.`,
+        note: `${plan.note} NOW found ${label} options nearby, but none can be inserted safely without reducing the protected ticket margin below 15 minutes. The current route remains unchanged.`,
         calculation: {
           ...plan.calculation,
           generatedAt: new Date().toISOString(),
-          factors: [...plan.calculation.factors, "legacy food prevalidation", "ticket-safe restaurant filtering", "no unsafe food substitution"],
+          factors: [...plan.calculation.factors, `${label} prevalidation`, "ticket-safe live-need filtering", "no unsafe substitution"],
         },
       },
       choices: [],
@@ -320,14 +330,14 @@ async function enrichLiveNeed(
   return {
     plan: {
       ...selectedPlan,
-      note: `${selectedPlan.note} ${scenario === "food" ? `NOW prevalidated ${choices.length} ticket-safe restaurant option${choices.length === 1 ? "" : "s"}. ` : ""}${manuallySelected ? `You selected ${primary.name}; NOW rebuilt timing, stop order and ticket margin around that choice.` : alternativeSelected ? "NOW avoided a less suitable timing option and selected the stronger available alternative." : `NOW selected ${primary.name} from the internal-first nearby catalog.`} Alternatives remain available so it can switch without another broad search.`,
+      note: `${selectedPlan.note} ${scenario === "food" ? `NOW prevalidated ${choices.length} ticket-safe restaurant option${choices.length === 1 ? "" : "s"}. ` : scenario === "sitdown" ? `NOW prevalidated ${choices.length} quiet stop${choices.length === 1 ? "" : "s"} against your reservation margin. ` : ""}${manuallySelected ? `You selected ${primary.name}; NOW rebuilt timing, stop order and ticket margin around that choice.` : alternativeSelected ? "NOW avoided a less suitable timing option and selected the stronger available alternative." : `NOW selected ${primary.name} from the internal-first nearby catalog.`} Alternatives remain available so it can switch without another broad search.`,
       calculation: {
         ...selectedPlan.calculation,
         generatedAt: new Date().toISOString(),
-        factors: [...selectedPlan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route", "open-now status", "contextual closing margin", ...(scenario === "food" ? ["legacy food prevalidation", "ticket-safe restaurant filtering"] : []), ...(manuallySelected ? ["traveler-selected POI"] : [])],
+        factors: [...selectedPlan.calculation.factors, "internal POI catalog", "cached provider fallback", "distance from active Paris route", "open-now status", "contextual closing margin", ...(scenario === "food" ? ["legacy food prevalidation", "ticket-safe restaurant filtering"] : []), ...(scenario === "sitdown" ? ["quiet-stop prevalidation", "reservation-safe pause filtering"] : []), ...(manuallySelected ? ["traveler-selected POI"] : [])],
       },
     },
-    choices: scenario === "food" ? choices.slice(0, 3) : choices,
+    choices: timingProtectedScenario ? choices.slice(0, 3) : choices,
     selected: primary,
     manuallySelected,
   };
