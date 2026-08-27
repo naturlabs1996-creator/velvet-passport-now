@@ -1,9 +1,18 @@
 import { normalizeRadarObservation, type NormalizedRadarObservation, type RawRadarObservation } from "./radar-pipeline";
 import { parisRadarSeeds } from "./radar-seeds";
 
-const stripTags = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
+const stripTags = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\s+/g, " ").trim();
 const extract = (xml: string, tag: string) => [...xml.matchAll(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "gi"))].map((m) => stripTags(m[1] ?? ""));
 const itemBlocks = (xml: string) => [...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)].map((m) => m[1] ?? "");
+const uniqueBy = <T>(items: T[], key: (item: T) => string) => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const value = key(item);
+    if (!value || seen.has(value)) return false;
+    seen.add(value);
+    return true;
+  });
+};
 
 export type CollectorResult = {
   source: string;
@@ -53,21 +62,24 @@ export async function collectReddit(): Promise<CollectorResult> {
       if (!response.ok) continue;
       const xml = await response.text();
       const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/gi)].map((m) => m[1] ?? "");
-      for (const entry of entries.slice(0, 8)) {
+      for (const entry of entries.slice(0, 10)) {
         const title = extract(entry, "title")[0] ?? "";
         const content = extract(entry, "content")[0] ?? "";
         const link = entry.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1];
         const updated = extract(entry, "updated")[0];
         if (!title && !content) continue;
+        if (!link || !/reddit\.com\/r\/[^/]+\/comments\//i.test(link)) continue;
+        const text = `${title} ${content}`.replace(/\[link\]/gi, " ").replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
+        if (text.length < 40) continue;
         observations.push({
           source: "reddit",
           sourceType: "ASK",
-          text: `${title} ${content}`.slice(0, 1200),
+          text: text.slice(0, 1200),
           query,
           observedAt: updated || new Date().toISOString(),
           volumeScore: 35,
           velocityScore: 55,
-          sourceConfidence: 82,
+          sourceConfidence: 84,
           commercialIntent: 30,
           competitionPressure: 45,
           sourceUrl: link,
@@ -77,8 +89,9 @@ export async function collectReddit(): Promise<CollectorResult> {
       // One blocked query must not stop the full radar cycle.
     }
   }
-  const normalized = observations.flatMap(normalizeRadarObservation);
-  return { source: "reddit", ok: observations.length > 0, observations, normalized, note: observations.length ? undefined : "no_public_feed_results" };
+  const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? item.text.slice(0, 180).toLowerCase());
+  const normalized = deduped.flatMap(normalizeRadarObservation);
+  return { source: "reddit", ok: deduped.length > 0, observations: deduped, normalized, note: deduped.length ? undefined : "no_relevant_public_posts" };
 }
 
 async function collectPublicSearchSource(options: {
@@ -89,6 +102,7 @@ async function collectPublicSearchSource(options: {
   velocity: number;
   commercialIntent: number;
   limit?: number;
+  requiredUrlPattern?: RegExp;
 }): Promise<CollectorResult> {
   const observations: RawRadarObservation[] = [];
   for (const query of radarQueries(options.limit ?? 16)) {
@@ -103,10 +117,13 @@ async function collectPublicSearchSource(options: {
         const link = extract(item, "link")[0] ?? "";
         if (!title && !description) continue;
         if (link && !link.includes(options.site.split("/")[0])) continue;
+        if (options.requiredUrlPattern && !options.requiredUrlPattern.test(link)) continue;
+        const text = `${title} ${description}`.replace(/\s+/g, " ").trim();
+        if (text.length < 35) continue;
         observations.push({
           source: options.source,
           sourceType: options.sourceType,
-          text: `${title} ${description}`.slice(0, 1200),
+          text: text.slice(0, 1200),
           query,
           observedAt: new Date().toISOString(),
           volumeScore: 34,
@@ -121,12 +138,21 @@ async function collectPublicSearchSource(options: {
       // Search-provider blocking must not stop the full radar cycle.
     }
   }
-  const normalized = observations.flatMap(normalizeRadarObservation);
-  return { source: options.source, ok: observations.length > 0, observations, normalized, note: observations.length ? undefined : "no_public_search_results" };
+  const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? item.text.slice(0, 180).toLowerCase());
+  const normalized = deduped.flatMap(normalizeRadarObservation);
+  return { source: options.source, ok: deduped.length > 0, observations: deduped, normalized, note: deduped.length ? undefined : "no_relevant_public_search_results" };
 }
 
 export function collectTripadvisor() {
-  return collectPublicSearchSource({ source: "tripadvisor", sourceType: "ASK", site: "tripadvisor.com/ShowTopic", confidence: 82, velocity: 45, commercialIntent: 35 });
+  return collectPublicSearchSource({
+    source: "tripadvisor",
+    sourceType: "ASK",
+    site: "tripadvisor.com/ShowTopic",
+    confidence: 84,
+    velocity: 45,
+    commercialIntent: 35,
+    requiredUrlPattern: /tripadvisor\.com\/ShowTopic/i,
+  });
 }
 
 export async function collectAtlas(): Promise<CollectorResult> {
@@ -141,13 +167,15 @@ export async function collectAtlas(): Promise<CollectorResult> {
     const xml = await response.text();
     const observations: RawRadarObservation[] = [];
 
-    for (const item of itemBlocks(xml).slice(0, 80)) {
+    for (const item of itemBlocks(xml).slice(0, 100)) {
       const title = extract(item, "title")[0] ?? "";
       const description = extract(item, "description")[0] ?? "";
       const link = extract(item, "link")[0] ?? "";
       const pubDate = extract(item, "pubDate")[0];
-      const text = `${title} ${description}`.trim();
-      if (!/\bparis\b/i.test(text) && !/paris-france/i.test(link)) continue;
+      const text = `${title} ${description}`.replace(/\s+/g, " ").trim();
+      const parisMentions = (text.match(/\bparis\b/gi) ?? []).length;
+      const parisCentric = /\bparis\b/i.test(title) || /paris-france/i.test(link) || parisMentions >= 2;
+      if (!parisCentric) continue;
       observations.push({
         source: "atlas",
         sourceType: "SAVE",
@@ -156,20 +184,21 @@ export async function collectAtlas(): Promise<CollectorResult> {
         observedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
         volumeScore: 46,
         velocityScore: 48,
-        sourceConfidence: 86,
+        sourceConfidence: 88,
         commercialIntent: 42,
         competitionPressure: 45,
         sourceUrl: link || feedUrl,
       });
     }
 
-    const normalized = observations.flatMap(normalizeRadarObservation);
+    const deduped = uniqueBy(observations, (item) => item.sourceUrl ?? item.text.slice(0, 180).toLowerCase());
+    const normalized = deduped.flatMap(normalizeRadarObservation);
     return {
       source: "atlas",
       ok: true,
-      observations,
+      observations: deduped,
       normalized,
-      note: observations.length ? undefined : "rss_no_paris_items",
+      note: deduped.length ? undefined : "rss_no_paris_centric_items",
     };
   } catch {
     return { source: "atlas", ok: false, observations: [], normalized: [], note: "rss_fetch_failed" };
