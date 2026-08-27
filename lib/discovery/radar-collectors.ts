@@ -81,10 +81,18 @@ export async function collectReddit(): Promise<CollectorResult> {
   return { source: "reddit", ok: observations.length > 0, observations, normalized, note: observations.length ? undefined : "no_public_feed_results" };
 }
 
-export async function collectTripadvisor(): Promise<CollectorResult> {
+async function collectPublicSearchSource(options: {
+  source: "tripadvisor" | "atlas" | "wanderlog" | "substack";
+  sourceType: "ASK" | "SAVE" | "DISCOVER";
+  site: string;
+  confidence: number;
+  velocity: number;
+  commercialIntent: number;
+  limit?: number;
+}): Promise<CollectorResult> {
   const observations: RawRadarObservation[] = [];
-  for (const query of radarQueries(16)) {
-    const searchUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(`site:tripadvisor.com/ShowTopic Paris ${query}`)}`;
+  for (const query of radarQueries(options.limit ?? 16)) {
+    const searchUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(`site:${options.site} Paris ${query}`)}`;
     try {
       const response = await fetch(searchUrl, { headers: { "user-agent": "VelvetPassportRadar/1.0" }, cache: "no-store" });
       if (!response.ok) continue;
@@ -94,27 +102,43 @@ export async function collectTripadvisor(): Promise<CollectorResult> {
         const description = extract(item, "description")[0] ?? "";
         const link = extract(item, "link")[0] ?? "";
         if (!title && !description) continue;
-        if (link && !/tripadvisor\./i.test(link)) continue;
+        if (link && !link.includes(options.site.split("/")[0])) continue;
         observations.push({
-          source: "tripadvisor",
-          sourceType: "ASK",
+          source: options.source,
+          sourceType: options.sourceType,
           text: `${title} ${description}`.slice(0, 1200),
           query,
           observedAt: new Date().toISOString(),
-          volumeScore: 32,
-          velocityScore: 45,
-          sourceConfidence: 82,
-          commercialIntent: 35,
+          volumeScore: 34,
+          velocityScore: options.velocity,
+          sourceConfidence: options.confidence,
+          commercialIntent: options.commercialIntent,
           competitionPressure: 45,
           sourceUrl: link || undefined,
         });
       }
     } catch {
-      // Search-provider or Tripadvisor blocking must not stop the full radar cycle.
+      // Search-provider blocking must not stop the full radar cycle.
     }
   }
   const normalized = observations.flatMap(normalizeRadarObservation);
-  return { source: "tripadvisor", ok: observations.length > 0, observations, normalized, note: observations.length ? undefined : "no_public_search_results" };
+  return { source: options.source, ok: observations.length > 0, observations, normalized, note: observations.length ? undefined : "no_public_search_results" };
+}
+
+export function collectTripadvisor() {
+  return collectPublicSearchSource({ source: "tripadvisor", sourceType: "ASK", site: "tripadvisor.com/ShowTopic", confidence: 82, velocity: 45, commercialIntent: 35 });
+}
+
+export function collectAtlas() {
+  return collectPublicSearchSource({ source: "atlas", sourceType: "SAVE", site: "atlasobscura.com", confidence: 78, velocity: 42, commercialIntent: 40, limit: 14 });
+}
+
+export function collectWanderlog() {
+  return collectPublicSearchSource({ source: "wanderlog", sourceType: "SAVE", site: "wanderlog.com", confidence: 80, velocity: 44, commercialIntent: 48, limit: 14 });
+}
+
+export function collectSubstack() {
+  return collectPublicSearchSource({ source: "substack", sourceType: "DISCOVER", site: "substack.com", confidence: 74, velocity: 48, commercialIntent: 38, limit: 14 });
 }
 
 export async function collectPinterest(): Promise<CollectorResult> {
@@ -143,5 +167,13 @@ export async function collectPinterest(): Promise<CollectorResult> {
 }
 
 export async function collectFirstRadarSources() {
-  return Promise.all([collectGoogleTrends(), collectReddit(), collectTripadvisor(), collectPinterest()]);
+  return Promise.all([
+    collectGoogleTrends(),
+    collectReddit(),
+    collectTripadvisor(),
+    collectAtlas(),
+    collectWanderlog(),
+    collectSubstack(),
+    collectPinterest(),
+  ]);
 }
