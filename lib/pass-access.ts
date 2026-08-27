@@ -5,7 +5,7 @@ import { isStripePassEntitlementActive } from "./stripe-entitlement";
 export type PassAccess =
   | { allowed: true; state: "active"; pass: PassPayload; degraded?: boolean }
   | { allowed: true; state: "preview"; pass: null }
-  | { allowed: false; state: "inactive"; pass: null };
+  | { allowed: false; state: "inactive"; pass: null; degraded?: boolean; reason?: string };
 
 export async function getPassAccess(): Promise<PassAccess> {
   const secret = process.env.PARIS_NOW_PASS_SECRET;
@@ -17,10 +17,16 @@ export async function getPassAccess(): Promise<PassAccess> {
       try {
         const active = await isStripePassEntitlementActive(pass.passId);
         if (active) return { allowed: true, state: "active", pass };
-        return { allowed: false, state: "inactive", pass: null };
+        return { allowed: false, state: "inactive", pass: null, reason: "entitlement-inactive" };
       } catch (error) {
         console.error("NOW Stripe entitlement revalidation unavailable", error);
-        return { allowed: true, state: "active", pass, degraded: true };
+        return {
+          allowed: false,
+          state: "inactive",
+          pass: null,
+          degraded: true,
+          reason: "entitlement-revalidation-unavailable",
+        };
       }
     }
   }
@@ -29,5 +35,5 @@ export async function getPassAccess(): Promise<PassAccess> {
     return { allowed: true, state: "preview", pass: null };
   }
 
-  return { allowed: false, state: "inactive", pass: null };
+  return { allowed: false, state: "inactive", pass: null, reason: "no-valid-pass" };
 }
