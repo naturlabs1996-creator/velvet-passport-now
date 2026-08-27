@@ -130,72 +130,49 @@ export function collectTripadvisor() {
 }
 
 export async function collectAtlas(): Promise<CollectorResult> {
-  const url = "https://www.atlasobscura.com/things-to-do/paris-france";
+  const feedUrl = "https://www.atlasobscura.com/feeds/latest";
   try {
-    const response = await fetch(url, {
-      headers: { "user-agent": "VelvetPassportRadar/1.0 (+https://velvetpassport.com)" },
+    const response = await fetch(feedUrl, {
+      headers: { "user-agent": "VelvetPassportRadar/1.0 (+https://velvetpassport.com)", accept: "application/rss+xml, application/xml, text/xml" },
       cache: "no-store",
     });
-    if (!response.ok) return { source: "atlas", ok: false, observations: [], normalized: [], note: `http_${response.status}` };
+    if (!response.ok) return { source: "atlas", ok: false, observations: [], normalized: [], note: `rss_http_${response.status}` };
 
-    const html = await response.text();
-    const text = stripTags(html);
+    const xml = await response.text();
     const observations: RawRadarObservation[] = [];
 
-    const pageSignals = [
-      "Cool, Hidden, and Unusual Things to Do in Paris",
-      "leaving the beaten path",
-      "Unusual Attractions in Paris",
-      "non-touristy things to do in Paris",
-      "hidden gem",
-      "go beyond the tropes and the tourist traps",
-    ].filter((phrase) => text.toLowerCase().includes(phrase.toLowerCase()));
-
-    for (const phrase of pageSignals) {
+    for (const item of itemBlocks(xml).slice(0, 80)) {
+      const title = extract(item, "title")[0] ?? "";
+      const description = extract(item, "description")[0] ?? "";
+      const link = extract(item, "link")[0] ?? "";
+      const pubDate = extract(item, "pubDate")[0];
+      const text = `${title} ${description}`.trim();
+      if (!/\bparis\b/i.test(text) && !/paris-france/i.test(link)) continue;
       observations.push({
         source: "atlas",
         sourceType: "SAVE",
-        text: `${phrase}. Paris discovery interest on Atlas Obscura.`,
-        query: phrase,
-        observedAt: new Date().toISOString(),
-        volumeScore: 52,
+        text: text.slice(0, 1200),
+        query: title || "Paris Atlas Obscura",
+        observedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+        volumeScore: 46,
         velocityScore: 48,
-        sourceConfidence: 84,
+        sourceConfidence: 86,
         commercialIntent: 42,
-        competitionPressure: 48,
-        sourceUrl: url,
-      });
-    }
-
-    const wantsToGo = [...text.matchAll(/wants to go to\s+([^.!?]{2,100})/gi)].slice(0, 20);
-    for (const match of wantsToGo) {
-      const place = match[1]?.trim();
-      if (!place) continue;
-      observations.push({
-        source: "atlas",
-        sourceType: "SAVE",
-        text: `Traveler wants to go to ${place} in Paris`,
-        query: `Paris ${place}`,
-        observedAt: new Date().toISOString(),
-        volumeScore: 38,
-        velocityScore: 52,
-        sourceConfidence: 82,
-        commercialIntent: 38,
-        competitionPressure: 40,
-        sourceUrl: url,
+        competitionPressure: 45,
+        sourceUrl: link || feedUrl,
       });
     }
 
     const normalized = observations.flatMap(normalizeRadarObservation);
     return {
       source: "atlas",
-      ok: observations.length > 0,
+      ok: true,
       observations,
       normalized,
-      note: observations.length ? undefined : "direct_page_no_signals",
+      note: observations.length ? undefined : "rss_no_paris_items",
     };
   } catch {
-    return { source: "atlas", ok: false, observations: [], normalized: [], note: "direct_fetch_failed" };
+    return { source: "atlas", ok: false, observations: [], normalized: [], note: "rss_fetch_failed" };
   }
 }
 
