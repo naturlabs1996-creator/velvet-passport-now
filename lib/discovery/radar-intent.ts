@@ -10,10 +10,14 @@ export type RadarIntentProfile = {
   travelSpendIntentScore: number;
   velvetIntent: IntentStrength;
   velvetIntentScore: number;
+  velvetNeedScore: number;
+  logisticsDominanceScore: number;
   purchaseCategory: PurchaseCategory;
   travelerCues: string[];
   buyCues: string[];
   velvetCues: string[];
+  velvetNeedCues: string[];
+  logisticsCues: string[];
 };
 
 const normalize = (value: string) => value
@@ -74,6 +78,39 @@ const velvetMedium = [
   "quiet paris", "rainy day paris", "itinerary help", "itinerary review", "recommendations for paris",
 ];
 
+// These cues describe the actual problem Velvet is good at solving, even when the traveler is not shopping for a guide yet.
+const velvetNeedStrong = [
+  "away from tourist crowds", "avoid tourist crowds", "avoid the touristy", "avoid tourist traps",
+  "hidden gems", "hidden places", "secret places", "secret spots", "local spots", "where locals go",
+  "less touristy", "non touristy", "off the beaten path", "off beaten path", "overlooked places",
+  "places tourists miss", "private spot", "private place", "quiet spot", "quiet place",
+  "something unusual", "unusual places", "unique places", "special place", "atmospheric",
+  "romantic hidden", "hidden garden", "secret garden", "hidden bookshop", "independent bookshop",
+  "deja fait les classiques", "loin des touristes", "endroits caches", "endroits secrets", "endroit calme",
+];
+
+const velvetNeedMedium = [
+  "second time in paris", "third time in paris", "returning to paris", "been to paris before",
+  "already been to paris", "already visited paris", "something different", "different things to do",
+  "recommendations for paris", "looking for recommendations", "looking for advice", "itinerary help",
+  "itinerary review", "rainy day", "few hours", "only a few hours", "evening in paris",
+  "night in paris", "book lover", "literary", "historic neighborhood", "local neighborhood",
+  "retour a paris", "deja visite paris", "quelque chose de different", "recommandations paris",
+];
+
+// Pure logistics can be useful to NOW later, but should not masquerade as discovery demand by itself.
+const logisticsStrong = [
+  "when to buy flights", "buy paris flights", "flight price", "flight prices", "airfare", "airport transfer",
+  "where should i stay", "hotel recommendations", "which hotel", "hotel help", "best hotel",
+  "is it safe", "how safe", "safety in paris", "safe for tourists", "metro safety",
+  "train tickets", "eurostar tickets", "visa", "passport", "luggage storage",
+];
+
+const logisticsMedium = [
+  "flight", "flights", "airport", "hotel", "hostel", "airbnb", "accommodation", "room",
+  "train", "eurostar", "metro", "transport", "taxi", "uber", "booking accommodation",
+];
+
 const categoryCues: Array<{ category: PurchaseCategory; cues: string[] }> = [
   { category: "GUIDE", cues: ["travel guide", "city guide", "guidebook", "ebook", "pdf guide", "download guide", "paris guide", "digital guide"] },
   { category: "PASS", cues: ["city pass", "paris pass", "museum pass", "travel pass", "metro pass", "pass"] },
@@ -98,6 +135,10 @@ export function classifyRadarIntent(value: string): RadarIntentProfile {
   const spendMediumHits = findCues(text, spendMedium);
   const velvetStrongHits = findCues(text, velvetStrong);
   const velvetMediumHits = findCues(text, velvetMedium);
+  const velvetNeedStrongHits = findCues(text, velvetNeedStrong);
+  const velvetNeedMediumHits = findCues(text, velvetNeedMedium);
+  const logisticsStrongHits = findCues(text, logisticsStrong);
+  const logisticsMediumHits = findCues(text, logisticsMedium);
 
   let travelerIntentScore = Math.min(100, travelerStrongHits.length * 42 + travelerMediumHits.length * 14);
   if (/\bparis\b/.test(text) && travelerMediumHits.length > 0) travelerIntentScore = Math.min(100, travelerIntentScore + 12);
@@ -108,6 +149,12 @@ export function classifyRadarIntent(value: string): RadarIntentProfile {
   let velvetIntentScore = Math.min(100, velvetStrongHits.length * 42 + velvetMediumHits.length * 13);
   if (velvetStrongHits.length > 0 && spendStrongHits.length > 0) velvetIntentScore = Math.min(100, velvetIntentScore + 22);
   if (/\bparis\b/.test(text) && velvetMediumHits.length >= 2) velvetIntentScore = Math.min(100, velvetIntentScore + 10);
+
+  let velvetNeedScore = Math.min(100, velvetNeedStrongHits.length * 34 + velvetNeedMediumHits.length * 14);
+  if (velvetNeedStrongHits.length >= 2) velvetNeedScore = Math.min(100, velvetNeedScore + 12);
+  if (/\bparis\b/.test(text) && velvetNeedScore > 0) velvetNeedScore = Math.min(100, velvetNeedScore + 6);
+
+  const logisticsDominanceScore = Math.min(100, logisticsStrongHits.length * 42 + logisticsMediumHits.length * 13);
 
   let purchaseCategory: PurchaseCategory = "NONE";
   let bestHits = 0;
@@ -120,7 +167,6 @@ export function classifyRadarIntent(value: string): RadarIntentProfile {
   }
   if (travelSpendIntentScore >= 20 && purchaseCategory === "NONE") purchaseCategory = "GENERAL_TRIP";
 
-  // Backward compatible buyIntent now represents commercial travel spend, while velvetIntent isolates product fit.
   const buyIntentScore = travelSpendIntentScore;
 
   return {
@@ -132,9 +178,13 @@ export function classifyRadarIntent(value: string): RadarIntentProfile {
     travelSpendIntentScore,
     velvetIntent: strength(velvetIntentScore),
     velvetIntentScore,
+    velvetNeedScore,
+    logisticsDominanceScore,
     purchaseCategory,
     travelerCues: [...new Set([...travelerStrongHits, ...travelerMediumHits])].slice(0, 10),
     buyCues: [...new Set([...spendStrongHits, ...spendMediumHits])].slice(0, 10),
     velvetCues: [...new Set([...velvetStrongHits, ...velvetMediumHits])].slice(0, 10),
+    velvetNeedCues: [...new Set([...velvetNeedStrongHits, ...velvetNeedMediumHits])].slice(0, 10),
+    logisticsCues: [...new Set([...logisticsStrongHits, ...logisticsMediumHits])].slice(0, 10),
   };
 }
