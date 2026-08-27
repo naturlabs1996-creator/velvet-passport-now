@@ -63,9 +63,21 @@ const sourceConfidenceDefaults: Record<string, number> = {
 const clampScore = (value: number | undefined, fallback: number) =>
   Math.round(Math.max(0, Math.min(100, Number.isFinite(value) ? Number(value) : fallback)));
 
+const isFreshEnough = (observedAt: string | undefined, maxAgeDays: number) => {
+  if (!observedAt) return false;
+  const timestamp = Date.parse(observedAt);
+  if (!Number.isFinite(timestamp)) return false;
+  const ageMs = Date.now() - timestamp;
+  return ageMs >= 0 && ageMs <= maxAgeDays * 24 * 60 * 60 * 1000;
+};
+
 export function normalizeRadarObservation(raw: RawRadarObservation): NormalizedRadarObservation[] {
   const source = raw.source.trim().toLowerCase();
   if (!allowedSources[raw.sourceType]?.has(source)) return [];
+
+  // Reddit is used as a live demand source. Search APIs can occasionally surface stale posts even with
+  // a recent-time query, so enforce freshness independently before any scoring or theme matching.
+  if (source === "reddit" && !isFreshEnough(raw.observedAt, 30)) return [];
 
   // Theme classification and intent classification must come from observed content only.
   // Search queries are provenance and must never manufacture intent.
