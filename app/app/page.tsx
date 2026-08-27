@@ -170,6 +170,9 @@ export default function ParisNowApp() {
   const [travelerLocation, setTravelerLocation] = useState<TravelerLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const [locationRevision, setLocationRevision] = useState(0);
+  const [networkOnline, setNetworkOnline] = useState(true);
+  const [networkRevision, setNetworkRevision] = useState(0);
+  const [routeError, setRouteError] = useState("");
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [autoWeatherScenario, setAutoWeatherScenario] = useState<WeatherScenario>("route");
   const [ticket, setTicket] = useState<TicketState>({
@@ -195,7 +198,9 @@ export default function ParisNowApp() {
   const selectedCatalogRoute = catalogRoutes.find((item) => item.id === selectedRouteId) ?? null;
 
   function routeLocation() {
-    return travelerLocation ? { lat: travelerLocation.lat, lon: travelerLocation.lon } : undefined;
+    if (!travelerLocation) return undefined;
+    if (Date.now() - travelerLocation.capturedAt >= LOCATION_FRESH_MS) return undefined;
+    return { lat: travelerLocation.lat, lon: travelerLocation.lon };
   }
 
   function weatherLocation() {
@@ -232,7 +237,8 @@ export default function ParisNowApp() {
         options?.onDone?.();
       },
       () => {
-        setLocationStatus(travelerLocation ? "live" : "fallback");
+        const fresh = Boolean(travelerLocation && Date.now() - travelerLocation.capturedAt < LOCATION_FRESH_MS);
+        setLocationStatus(fresh ? "live" : "fallback");
         options?.onFallback?.();
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 },
@@ -381,24 +387,43 @@ export default function ParisNowApp() {
   }
 
   useEffect(() => {
+    const setFromBrowser = () => {
+      const online = navigator.onLine;
+      setNetworkOnline(online);
+      if (online) setNetworkRevision((revision) => revision + 1);
+      if (!online) {
+        setWeather(null);
+        setRouteError("Connection lost. NOW is keeping the last verified route visible and will revalidate it when the network returns.");
+      }
+    };
+    setNetworkOnline(navigator.onLine);
+    window.addEventListener("online", setFromBrowser);
+    window.addEventListener("offline", setFromBrowser);
+    return () => {
+      window.removeEventListener("online", setFromBrowser);
+      window.removeEventListener("offline", setFromBrowser);
+    };
+  }, []);
+
+  useEffect(() => {
     fetch("/api/now/pass", { cache: "no-store" })
       .then(async (response) => {
         const status = await response.json();
         setPassStatus(status);
       })
       .catch(() => setPassStatus({ state: "inactive", allowed: false, plan: null, expiresAt: null }));
-  }, []);
+  }, [networkRevision]);
 
   useEffect(() => {
-    if (!passStatus.allowed) return;
+    if (!passStatus.allowed || !networkOnline) return;
     fetch("/api/now/route", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalogue unavailable")))
       .then((data: { routes: ConfidentialRouteSummary[] }) => setCatalogRoutes(data.routes))
       .catch(() => setCatalogRoutes([]));
-  }, [passStatus.allowed]);
+  }, [passStatus.allowed, networkOnline, networkRevision]);
 
   useEffect(() => {
-    if (!passStatus.allowed) return;
+    if (!passStatus.allowed || !networkOnline) return;
     const controller = new AbortController();
     const loadWeather = async () => {
       const point = weatherLocation();
@@ -409,7 +434,10 @@ export default function ParisNowApp() {
           body: JSON.stringify({ lat: point.lat, lon: point.lon, radiusMeters: 800 }),
           signal: controller.signal,
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          setWeather(null);
+          return;
+        }
         const context = await response.json() as { weather?: WeatherState };
         const nextWeather = context.weather ?? null;
         setWeather(nextWeather);
@@ -422,7 +450,7 @@ export default function ParisNowApp() {
           return current;
         });
       } catch (error) {
-        if (!(error instanceof Error && error.name === "AbortError")) setWeather((current) => current);
+        if (!(error instanceof Error && error.name === "AbortError")) setWeather(null);
       }
     };
     void loadWeather();
@@ -433,7 +461,7 @@ export default function ParisNowApp() {
       controller.abort();
       window.clearInterval(refresh);
     };
-  }, [passStatus.allowed, selectedZone, locationRevision, travelerLocation?.lat, travelerLocation?.lon]);
+  }, [passStatus.allowed, selectedZone, locationRevision, travelerLocation?.lat, travelerLocation?.lon, networkOnline, networkRevision]);
 
   useEffect(() => {
     if (!LOCATION_AWARE_NEEDS.has(active) || locationStatus !== "live" || !travelerLocation) return;
@@ -446,8 +474,13 @@ export default function ParisNowApp() {
   }, [active, locationStatus, travelerLocation]);
 
   useEffect(() => {
+    if (!networkOnline) {
+      setRebuilding(false);
+      return;
+    }
     setProgress(7);
     setRebuilding(true);
+    setRouteError("");
     const controller = new AbortController();
     const rebuild = window.setTimeout(() => setRebuilding(false), 850);
     const timer = window.setInterval(() => {
@@ -466,11 +499,12 @@ export default function ParisNowApp() {
       })
       .then((plan) => {
         setServerRoute(plan as RouteView);
+        setRouteError("");
         if (plan.ticket) setTicket(plan.ticket as TicketState);
       })
       .catch((error) => {
         if (error instanceof Error && error.name !== "AbortError") {
-          setServerRoute(null);
+          setRouteError("NOW could not revalidate the route. The last verified route remains visible; live changes are paused until the connection recovers.");
         }
       });
 
@@ -479,7 +513,7 @@ export default function ParisNowApp() {
       window.clearTimeout(rebuild);
       window.clearInterval(timer);
     };
-  }, [active, selectedRouteId, availableMinutes, locationRevision]);
+  }, [active, selectedRouteId, availableMinutes, locationRevision, networkOnline, networkRevision]);
 
   useEffect(() => {
     if (active !== "guardian") return;
@@ -503,9 +537,9 @@ export default function ParisNowApp() {
       });
 
     return () => controller.abort();
-  }, [active, guardianLevel, hotelConsent]);
+  }, [active, guardianLevel, hotelConsent, networkRevision]);
 
-  const status = useMemo(() => active === "blocked" ? "Reroute active" : active === "guardian" ? "Route paused" : "Live route", [active]);
+  const status = useMemo(() => !networkOnline ? "Connection paused" : active === "blocked" ? "Reroute active" : active === "guardian" ? "Route paused" : "Live route", [active, networkOnline]);
   const selectableLiveNeed = (active === "food" || active === "pharmacy") && route.liveNeed ? route.liveNeed : null;
 
   return (
@@ -544,6 +578,9 @@ export default function ParisNowApp() {
       {passStatus.state === "inactive" && (
         <div className={styles.inactiveBanner}>A valid Paris NOW Pass is required to calculate routes.</div>
       )}
+      {(!networkOnline || routeError) && (
+        <div className={styles.inactiveBanner}>{!networkOnline ? "Network connection lost. Live recalculation is paused; NOW will verify everything again automatically when you reconnect." : routeError}</div>
+      )}
 
       <section className={styles.journeyContext} aria-label="Your current travel context">
         <div><span>YOUR NEIGHBOURHOOD</span><strong>{selectedZone}</strong></div>
@@ -553,11 +590,11 @@ export default function ParisNowApp() {
 
       <section id="now-route-section" className={styles.liveCard}>
         <div className={styles.liveTop}>
-          <span><i className={active === "blocked" || active === "guardian" ? styles.alertDot : styles.liveDot} />{status}</span>
-          <span>{locationStatus === "live" ? "GPS LIVE" : locationStatus === "fallback" && LOCATION_AWARE_NEEDS.has(active) ? "ROUTE ANCHOR" : weather?.available ? "MET LIVE" : "LIVE"}</span>
+          <span><i className={active === "blocked" || active === "guardian" || !networkOnline ? styles.alertDot : styles.liveDot} />{status}</span>
+          <span>{!networkOnline ? "OFFLINE" : locationStatus === "live" ? "GPS LIVE" : locationStatus === "fallback" && LOCATION_AWARE_NEEDS.has(active) ? "ROUTE ANCHOR" : weather?.available ? "MET LIVE" : "LIVE"}</span>
         </div>
         <div className={styles.progressTrack}>
-          <span className={active === "blocked" || active === "guardian" ? styles.redProgress : ""} style={{ width: `${progress}%` }} />
+          <span className={active === "blocked" || active === "guardian" || !networkOnline ? styles.redProgress : ""} style={{ width: `${progress}%` }} />
         </div>
         <div className={styles.progressLabels}>
           <span>{route.stops[0]?.title ?? "Your starting point"}</span>
