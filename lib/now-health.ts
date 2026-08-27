@@ -49,6 +49,18 @@ export function summarizeNowHealth(signals: NowHealthSignal[]): NowHealthSnapsho
   const counts: Record<NowHealthLevel, number> = { green: 0, amber: 0, red: 0 };
   for (const signal of signals) counts[signal.level] += 1;
 
+  if (signals.length === 0) {
+    return {
+      status: "red",
+      travelerSafe: false,
+      degraded: true,
+      generatedAt: new Date().toISOString(),
+      counts,
+      signals,
+      action: "protect_traveler",
+    };
+  }
+
   const worst = signals.reduce<NowHealthLevel>((current, signal) =>
     LEVEL_WEIGHT[signal.level] > LEVEL_WEIGHT[current] ? signal.level : current,
   "green");
