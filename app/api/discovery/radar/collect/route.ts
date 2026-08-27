@@ -33,6 +33,14 @@ async function persistSignal(signal: any) {
   return response.ok;
 }
 
+function safeSample(value: unknown, max = 280) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/[\r\n\t]/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
 async function runCollector() {
   const results = await collectFirstRadarSources();
   const signals = results.flatMap((result) => result.normalized);
@@ -40,6 +48,7 @@ async function runCollector() {
   for (const signal of signals.slice(0, 250)) {
     if (await persistSignal(signal)) persisted += 1;
   }
+
   return {
     ok: true,
     sources: results.map((result) => ({
@@ -48,6 +57,21 @@ async function runCollector() {
       raw: result.observations.length,
       matched: result.normalized.length,
       note: result.note,
+      unmatchedSamples: result.observations
+        .filter((observation) => {
+          const matched = result.normalized.some((normalized) =>
+            normalized.sourceUrl && observation.sourceUrl
+              ? normalized.sourceUrl === observation.sourceUrl
+              : normalized.text === observation.text
+          );
+          return !matched;
+        })
+        .slice(0, 3)
+        .map((observation) => ({
+          query: safeSample(observation.query, 120),
+          text: safeSample(observation.text),
+          sourceUrl: safeSample(observation.sourceUrl, 240),
+        })),
     })),
     matched: signals.length,
     persisted,
