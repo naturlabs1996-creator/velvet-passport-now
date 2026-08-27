@@ -10,6 +10,11 @@ export type RouteDisruption = {
   geometryPoints: Coordinates[];
 };
 
+type DatasetResult = {
+  items: RouteDisruption[];
+  providerIssue: boolean;
+};
+
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
 const GEOCODE = "https://api-adresse.data.gouv.fr/search/";
 const geocodeCache = new Map<string, { expiresAt: number; value: Coordinates | null }>();
@@ -100,12 +105,12 @@ async function geocodePlace(name: string): Promise<Coordinates | null> {
   }
 }
 
-async function fetchDataset(dataset: string, kind: RouteDisruption["kind"], limit = 100): Promise<RouteDisruption[]> {
+async function fetchDataset(dataset: string, kind: RouteDisruption["kind"], limit = 100): Promise<DatasetResult> {
   try {
     const response = await fetch(`${PARIS_DATA}/${dataset}/records?limit=${limit}`, { next: { revalidate: 900 }, signal: AbortSignal.timeout(5500) });
-    if (!response.ok) return [];
+    if (!response.ok) return { items: [], providerIssue: true };
     const payload = await response.json() as { results?: ParisRecord[] };
-    return (payload.results ?? []).map((record, index) => ({
+    const items = (payload.results ?? []).map((record, index) => ({
       id: String(record.num_emprise ?? record.id ?? `${dataset}-${index}`),
       kind,
       label: recordLabel(record, kind === "works" ? "Road works" : kind === "closure" ? "Road closure" : "Traffic event"),
@@ -114,7 +119,10 @@ async function fetchDataset(dataset: string, kind: RouteDisruption["kind"], limi
       source: `Paris Data · ${dataset}`,
       geometryPoints: geometryPoints(record),
     })).filter((item) => item.geometryPoints.length > 0);
-  } catch { return []; }
+    return { items, providerIssue: false };
+  } catch {
+    return { items: [], providerIssue: true };
+  }
 }
 
 export async function getRouteDisruptions(stopNames: string[], origin?: Coordinates) {
@@ -128,7 +136,8 @@ export async function getRouteDisruptions(stopNames: string[], origin?: Coordina
     fetchDataset("circulation_evenement", "event", 100),
   ]);
 
-  const assessed = [...closures, ...works, ...events].map((item) => {
+  const providerIssue = closures.providerIssue || works.providerIssue || events.providerIssue;
+  const assessed = [...closures.items, ...works.items, ...events.items].map((item) => {
     const distanceMeters = Math.min(...item.geometryPoints.map((point) => distanceToRoute(point, route)));
     const severity: DisruptionSeverity = distanceMeters <= 25 ? "blocked" : distanceMeters <= 70 ? "caution" : "nearby";
     return { ...item, distanceMeters: Math.round(distanceMeters), severity };
@@ -144,5 +153,11 @@ export async function getRouteDisruptions(stopNames: string[], origin?: Coordina
     });
   }
 
-  return { disruptions: assessed, routeGeometry: route, blockedStop, degraded: stopCoords.length < Math.max(1, Math.ceil(stopNames.length / 2)) };
+  const routeGeometryDegraded = stopCoords.length < Math.max(1, Math.ceil(stopNames.length / 2));
+  return {
+    disruptions: assessed,
+    routeGeometry: route,
+    blockedStop,
+    degraded: providerIssue || routeGeometryDegraded,
+  };
 }
