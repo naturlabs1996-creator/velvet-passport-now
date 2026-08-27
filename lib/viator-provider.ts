@@ -74,8 +74,16 @@ type AvailabilitySchedule = {
   summary?: { fromPrice?: number };
 };
 
+type PriceSnapshot = {
+  price: number;
+  currency?: string;
+  observedAt: number;
+};
+
 const API_VERSION = "application/json;version=2.0";
 const PARIS_TIME_ZONE = "Europe/Paris";
+const PRICE_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000;
+const recentPrices = new Map<string, PriceSnapshot>();
 
 function providerMode(): ViatorProviderMode {
   const mode = (process.env.VIATOR_API_MODE || "").trim().toLowerCase();
@@ -109,6 +117,21 @@ function clearLiveEvidence(candidate: TicketCandidate): TicketCandidate {
     ...safe
   } = candidate;
   return safe;
+}
+
+function previousPriceFor(productCode: string) {
+  const snapshot = recentPrices.get(productCode);
+  if (!snapshot) return undefined;
+  if (Date.now() - snapshot.observedAt > PRICE_SNAPSHOT_TTL_MS) {
+    recentPrices.delete(productCode);
+    return undefined;
+  }
+  return snapshot;
+}
+
+function rememberPrice(productCode: string, price?: number, currency?: string) {
+  if (typeof price !== "number" || !Number.isFinite(price)) return;
+  recentPrices.set(productCode, { price, currency, observedAt: Date.now() });
 }
 
 function parisDateParts(now = new Date()) {
@@ -248,9 +271,12 @@ async function revalidateCandidate(
     const verifiedAt = new Date().toISOString();
     const providerPrice = typeof schedule.summary?.fromPrice === "number" ? schedule.summary.fromPrice : undefined;
     const providerCurrency = typeof schedule.currency === "string" ? schedule.currency : undefined;
-    const priceChanged = typeof candidate.currentPrice === "number"
+    const previousSnapshot = previousPriceFor(productCode);
+    const previousPrice = typeof candidate.currentPrice === "number" ? candidate.currentPrice : previousSnapshot?.price;
+    const priceChanged = typeof previousPrice === "number"
       && typeof providerPrice === "number"
-      && Math.abs(candidate.currentPrice - providerPrice) > 0.009;
+      && Math.abs(previousPrice - providerPrice) > 0.009;
+    rememberPrice(productCode, providerPrice, providerCurrency);
 
     if (mode !== "production") {
       return {
@@ -259,9 +285,12 @@ async function revalidateCandidate(
           id: candidate.id,
           productCode,
           state: "sandbox_only",
+          previousPrice: priceChanged ? previousPrice : undefined,
           currentPrice: providerPrice,
           currency: providerCurrency,
-          message: "Viator Sandbox returned data, but sandbox evidence never becomes traveler-facing booking readiness.",
+          message: priceChanged
+            ? "Viator Sandbox returned a changed price, but sandbox evidence remains diagnostic only and never becomes traveler-facing booking readiness."
+            : "Viator Sandbox returned data, but sandbox evidence never becomes traveler-facing booking readiness.",
         },
       };
     }
@@ -281,7 +310,7 @@ async function revalidateCandidate(
         id: candidate.id,
         productCode,
         state: priceChanged ? "price_changed" : "verified",
-        previousPrice: priceChanged ? candidate.currentPrice : undefined,
+        previousPrice: priceChanged ? previousPrice : undefined,
         currentPrice: providerPrice,
         currency: providerCurrency,
         message: priceChanged
