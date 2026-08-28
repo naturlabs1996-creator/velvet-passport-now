@@ -1,4 +1,5 @@
 import type { NowScenario } from "./now-engine";
+import { getNowCityConfig, isNowCityId, pointIsInsideCity, type NowCityId } from "./city-config";
 
 export type NowNeedType = "food" | "pharmacy" | "water" | "restroom" | "sitdown" | "battery" | "medication" | "glucose";
 export type NowWeatherScenario = "route" | "rain" | "snow" | "heat" | "cold";
@@ -12,6 +13,7 @@ export type NowNeedConstraint = {
 };
 
 export type NowComposableRequest = {
+  city: NowCityId;
   routeId?: string;
   location?: { lat: number; lon: number };
   availableMinutes: number;
@@ -40,14 +42,15 @@ export type NowComposableRequest = {
   legacyScenario?: NowScenario;
 };
 
-function validLocation(value: unknown) {
+function validLocation(value: unknown, city: NowCityId) {
   if (!value || typeof value !== "object") return undefined;
   const raw = value as Record<string, unknown>;
   const lat = Number(raw.lat);
   const lon = Number(raw.lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return undefined;
-  if (lat < 48.80 || lat > 48.92 || lon < 2.20 || lon > 2.50) return undefined;
-  return { lat, lon };
+  const point = { lat, lon };
+  if (!pointIsInsideCity(city, point)) return undefined;
+  return point;
 }
 
 function parseNeed(value: unknown): NowNeedConstraint | null {
@@ -71,6 +74,9 @@ function parseNeed(value: unknown): NowNeedConstraint | null {
 }
 
 export function normalizeNowRequest(input: Record<string, unknown>, legacyScenario?: NowScenario): NowComposableRequest {
+  const city: NowCityId = isNowCityId(input.city) ? input.city : "paris";
+  getNowCityConfig(city); // Resolve early so unsupported city ids never leak into downstream providers.
+
   // Reservation rescue must preserve the real remaining time. Never inflate a
   // critical 6-minute window into the previous 15-minute minimum.
   const availableMinutes = typeof input.availableMinutes === "number" && Number.isFinite(input.availableMinutes)
@@ -103,8 +109,9 @@ export function normalizeNowRequest(input: Record<string, unknown>, legacyScenar
     : undefined;
 
   return {
+    city,
     routeId: typeof input.routeId === "string" ? input.routeId : undefined,
-    location: validLocation(input.location),
+    location: validLocation(input.location, city),
     availableMinutes,
     ticket: {
       time: typeof rawTicket?.time === "string" ? rawTicket.time : ticketTime,
