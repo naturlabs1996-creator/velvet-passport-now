@@ -51,9 +51,9 @@ function visibilitySum(
     .reduce((sum, item) => sum + (item.visibilityShare ?? 0), 0) * 10) / 10;
 }
 
-function demandStrength(decision: VelvetDecision, demand?: SearchDemandMetric) {
-  if (typeof demand?.monthlySearches === "number") {
-    const volumeScore = Math.min(100, Math.log10(Math.max(10, demand.monthlySearches)) * 25);
+function demandStrength(decision: VelvetDecision, demandMetric?: SearchDemandMetric) {
+  if (typeof demandMetric?.monthlySearches === "number") {
+    const volumeScore = Math.min(100, Math.log10(Math.max(10, demandMetric.monthlySearches)) * 25);
     return clamp(volumeScore * 0.55 + decision.priorityScore * 0.45);
   }
   return clamp(
@@ -98,7 +98,7 @@ export function buildOpportunityGapScore(input: {
   destination?: DestinationThemeCapture;
   demand?: SearchDemandMetric;
 }): OpportunityGapScore {
-  const { decision, destination, demand } = input;
+  const { decision, destination } = input;
   const commercialVisibilityShare = visibilitySum(
     destination,
     (_domain, resultType) => resultType === "TOUR" || resultType === "MARKETPLACE",
@@ -128,7 +128,7 @@ export function buildOpportunityGapScore(input: {
       );
 
   const lowCommercialSaturation = clamp(100 - commercialVisibilityShare * 1.6);
-  const demand = demandStrength(decision, input.demand);
+  const demandScore = demandStrength(decision, input.demand);
   const velvetFit = clamp(decision.avgVelvetFit);
   const intentStrength = clamp(
     decision.avgTravelerIntent * 0.35 +
@@ -136,13 +136,12 @@ export function buildOpportunityGapScore(input: {
   );
 
   let score =
-    demand * 0.28 +
+    demandScore * 0.28 +
     velvetFit * 0.19 +
     intentStrength * 0.18 +
     destinationWeakness * 0.24 +
     lowCommercialSaturation * 0.11;
 
-  // Never let thin destination evidence masquerade as a proven gap.
   if (relevantEvidence < 35) score -= 15;
   if (destination?.status === "UNKNOWN") score -= 18;
   if (!decision.searchConfirmed) score -= 8;
@@ -152,7 +151,7 @@ export function buildOpportunityGapScore(input: {
   const action = actionFor(score, confidence);
   const reasons: string[] = [];
 
-  if (demand >= 75) reasons.push("Strong demand signal relative to the current radar portfolio.");
+  if (demandScore >= 75) reasons.push("Strong demand signal relative to the current radar portfolio.");
   if (velvetFit >= 85) reasons.push("Very strong fit with the Velvet discovery promise.");
   if (destinationWeakness >= 70) reasons.push("Observed results leave a meaningful content-quality or specificity gap.");
   if (specialistTravelVisibilityShare < 25 && (destination?.resultCount ?? 0) >= 6) reasons.push("Specialist travel publishers do not dominate the observed result set.");
@@ -177,7 +176,7 @@ export function buildOpportunityGapScore(input: {
     confidence,
     action,
     components: {
-      demandStrength: demand,
+      demandStrength: demandScore,
       velvetFit,
       intentStrength,
       destinationWeakness,
