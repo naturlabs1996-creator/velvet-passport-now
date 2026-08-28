@@ -76,6 +76,11 @@ export default function JourneyPauseProtection() {
   const [clockTick, setClockTick] = useState(0);
   const [resuming, setResuming] = useState(false);
   const overrideRef = useRef<ResumeOverride | null>(null);
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     const syncTicket = () => setTicketTime(readTicketFromPage());
@@ -94,9 +99,14 @@ export default function JourneyPauseProtection() {
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+      const isRoutePost = method === "POST" && /\/api\/now\/route(?:\?|$)/.test(url);
       const override = overrideRef.current;
 
-      if (override && method === "POST" && url.includes("/api/now/route") && typeof init?.body === "string") {
+      if (isRoutePost && pausedRef.current && !override) {
+        throw new DOMException("Journey paused", "AbortError");
+      }
+
+      if (override && isRoutePost && typeof init?.body === "string") {
         try {
           const body = JSON.parse(init.body) as Record<string, unknown>;
           const currentAvailable = typeof body.availableMinutes === "number" ? body.availableMinutes : override.availableMinutes;
@@ -132,12 +142,18 @@ export default function JourneyPauseProtection() {
       availableMinutes: Math.max(1, Math.floor(latestRemaining ?? 90)),
       location,
     };
+    pausedRef.current = false;
     setPaused(false);
     window.dispatchEvent(new Event("online"));
     window.setTimeout(() => {
       document.getElementById("now-route-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
       setResuming(false);
     }, 500);
+  }
+
+  function pauseJourney() {
+    pausedRef.current = true;
+    setPaused(true);
   }
 
   if (!ticketTime) return null;
@@ -154,7 +170,7 @@ export default function JourneyPauseProtection() {
           {resuming ? "RECALCULATING…" : urgency === "critical" || urgency === "at_risk" ? "RESUME · GO NOW" : "RESUME & RECALCULATE"}
         </button>
       ) : (
-        <button type="button" onClick={() => setPaused(true)}>PAUSE ROUTE</button>
+        <button type="button" onClick={pauseJourney}>PAUSE ROUTE</button>
       )}
     </aside>
   );
