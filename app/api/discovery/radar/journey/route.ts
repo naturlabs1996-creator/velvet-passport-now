@@ -7,6 +7,7 @@ import { buildThemeJourney } from "@/lib/discovery/demand-journey";
 import { buildInterceptPortfolio } from "@/lib/discovery/intercept-engine";
 import { buildOpportunityGapPortfolio } from "@/lib/discovery/opportunity-gap";
 import { buildProductionQueue } from "@/lib/discovery/production-queue";
+import { buildPageFactoryQueue } from "@/lib/discovery/page-factory";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
@@ -48,17 +49,19 @@ export async function GET() {
       decisions,
       maxReady: 20,
     });
+    const pageFactory = buildPageFactoryQueue(productionQueue);
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "VELVET_JOURNEY", "INTERCEPT"],
+      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "PAGE_FACTORY", "VELVET_JOURNEY", "INTERCEPT"],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
         productionQueue: "Only BUILD_IMMEDIATELY and BUILD_NEXT themes become READY. TEST_FIRST themes become VALIDATE and missing evidence never becomes an automatic production order.",
+        pageFactory: "The factory may generate page structure, SEO fields, CTA routing and tracking automatically. Specific discoveries and factual claims remain RESEARCH_REQUIRED until verified; such pages stay noindex.",
         velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
       },
@@ -80,6 +83,7 @@ export async function GET() {
       },
       opportunityGaps,
       productionQueue,
+      pageFactory,
       summary: {
         themes: portfolio.length,
         actionable: portfolio.filter((item) => item.readiness === "ACTIONABLE").length,
@@ -95,6 +99,9 @@ export async function GET() {
         productionReady: productionQueue.filter((item) => item.status === "READY").length,
         productionValidate: productionQueue.filter((item) => item.status === "VALIDATE").length,
         productionHold: productionQueue.filter((item) => item.status === "HOLD").length,
+        pageResearchRequired: pageFactory.filter((item) => item.status === "RESEARCH_REQUIRED").length,
+        pagePublishableStructure: pageFactory.filter((item) => item.status === "PUBLISHABLE_STRUCTURE").length,
+        pageHold: pageFactory.filter((item) => item.status === "HOLD").length,
         freeInterceptActions: interceptPlan.filter((item) => item.costMode === "FREE").length,
         paidOptionalActions: interceptPlan.filter((item) => item.costMode === "PAID_OPTIONAL").length,
       },
