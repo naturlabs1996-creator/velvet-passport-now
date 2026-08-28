@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { collectFirstRadarSources } from "@/lib/discovery/radar-collectors";
 import { collectBuyRadarSources } from "@/lib/discovery/radar-buy-collectors";
+import { collectDestinationCapture } from "@/lib/discovery/destination-capture";
 import { buildVelvetDecisions } from "@/lib/discovery/decision-engine";
-import { buildJourneyPortfolio } from "@/lib/discovery/demand-journey";
+import { buildThemeJourney } from "@/lib/discovery/demand-journey";
 import { buildInterceptPortfolio } from "@/lib/discovery/intercept-engine";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
   try {
-    const [coreSources, buySources] = await Promise.all([
+    const [coreSources, buySources, destinationCapture] = await Promise.all([
       collectFirstRadarSources(),
       collectBuyRadarSources(),
+      collectDestinationCapture(parisUncoveredUniverse),
     ]);
 
     const signals = [
@@ -25,7 +27,14 @@ export async function GET() {
     }));
 
     const decisions = buildVelvetDecisions(signals, buyHealth);
-    const portfolio = buildJourneyPortfolio(decisions);
+    const portfolio = decisions.map((decision) => {
+      const destination = destinationCapture.themes.find((item) => item.theme === decision.theme);
+      return buildThemeJourney({
+        theme: decision.theme,
+        decision,
+        destinations: destination?.domains ?? [],
+      });
+    });
     const interceptPlan = buildInterceptPortfolio(portfolio);
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
@@ -35,7 +44,7 @@ export async function GET() {
       architecture: ["DEMAND", "DESTINATION", "VELVET_JOURNEY", "INTERCEPT"],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
-        destination: "MEASURED only when SERP/clickstream or owned-search data supplies destination evidence; never inferred from Google Suggest alone.",
+        destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
       },
@@ -46,6 +55,14 @@ export async function GET() {
         themes: parisUncoveredUniverse.themes.length,
         keywordCount: universeKeywords.length,
         keywords: emptyDemandRows(parisUncoveredUniverse),
+      },
+      destinationCapture: {
+        source: destinationCapture.source,
+        measurement: destinationCapture.measurement,
+        note: destinationCapture.note,
+        keywordCount: destinationCapture.keywordCount,
+        resultCount: destinationCapture.resultCount,
+        themes: destinationCapture.themes,
       },
       summary: {
         themes: portfolio.length,
