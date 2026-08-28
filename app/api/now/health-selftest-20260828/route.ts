@@ -1,4 +1,4 @@
-import { runGlobalNowHealth } from "../../../../../lib/now-health-aggregate";
+import { runGlobalNowHealth } from "../../../../lib/now-health-aggregate";
 
 export const runtime = "nodejs";
 
