@@ -5,6 +5,7 @@ import { collectDestinationCapture } from "@/lib/discovery/destination-capture";
 import { buildVelvetDecisions } from "@/lib/discovery/decision-engine";
 import { buildThemeJourney } from "@/lib/discovery/demand-journey";
 import { buildInterceptPortfolio } from "@/lib/discovery/intercept-engine";
+import { buildOpportunityGapPortfolio } from "@/lib/discovery/opportunity-gap";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
@@ -36,15 +37,20 @@ export async function GET() {
       });
     });
     const interceptPlan = buildInterceptPortfolio(portfolio);
+    const opportunityGaps = buildOpportunityGapPortfolio(decisions.map((decision) => ({
+      decision,
+      destination: destinationCapture.themes.find((item) => item.theme === decision.theme),
+    })));
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      architecture: ["DEMAND", "DESTINATION", "VELVET_JOURNEY", "INTERCEPT"],
+      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "VELVET_JOURNEY", "INTERCEPT"],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
+        opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
         velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
       },
@@ -64,6 +70,7 @@ export async function GET() {
         resultCount: destinationCapture.resultCount,
         themes: destinationCapture.themes,
       },
+      opportunityGaps,
       summary: {
         themes: portfolio.length,
         actionable: portfolio.filter((item) => item.readiness === "ACTIONABLE").length,
@@ -72,6 +79,10 @@ export async function GET() {
         missingSearchVolume: portfolio.filter((item) => item.gaps.includes("SEARCH_VOLUME")).length,
         missingDestinationCapture: portfolio.filter((item) => item.gaps.includes("DESTINATION_CAPTURE")).length,
         missingFirstPartyJourney: portfolio.filter((item) => item.gaps.includes("FIRST_PARTY_JOURNEY")).length,
+        buildImmediately: opportunityGaps.filter((item) => item.action === "BUILD_IMMEDIATELY").length,
+        buildNext: opportunityGaps.filter((item) => item.action === "BUILD_NEXT").length,
+        testFirst: opportunityGaps.filter((item) => item.action === "TEST_FIRST").length,
+        monitorGap: opportunityGaps.filter((item) => item.action === "MONITOR").length,
         freeInterceptActions: interceptPlan.filter((item) => item.costMode === "FREE").length,
         paidOptionalActions: interceptPlan.filter((item) => item.costMode === "PAID_OPTIONAL").length,
       },
