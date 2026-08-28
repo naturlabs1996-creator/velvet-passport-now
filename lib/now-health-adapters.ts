@@ -152,8 +152,8 @@ export function liveNeedsHealthSignal(scenario: LiveNeedScenario, choices: LiveN
   return providerFailureSignal(
     "live_needs",
     "live_needs_unavailable",
-    `NOW could not verify a usable ${scenario} option for the current request.`,
-    false,
+    `NOW could not verify a usable ${scenario} option for the current request; it must show no verified choice rather than invent availability.`,
+    true,
     { scenario, usable: 0, unknown: 0, total: 0, minimum },
   );
 }
