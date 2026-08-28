@@ -121,11 +121,11 @@ export const MONTREAL_PILOT_ROUTES: MontrealPilotRoute[] = [
       {
         id: "mile-lahaie",
         name: "Parc Lahaie",
-        lat: 45.50000,
-        lon: -73.60000,
+        lat: 45.52295,
+        lon: -73.59187,
         access: "public",
-        address: "Boulevard Saint-Laurent / rue Saint-Joseph, Montréal",
-        source: "Commission de toponymie du Québec",
+        address: "4921 boulevard Saint-Laurent, Montréal",
+        source: "Ville de Montréal",
         fallback: "Bibliothèque Mordecai-Richler",
       },
       {
