@@ -6,6 +6,7 @@ import { buildVelvetDecisions } from "@/lib/discovery/decision-engine";
 import { buildThemeJourney } from "@/lib/discovery/demand-journey";
 import { buildInterceptPortfolio } from "@/lib/discovery/intercept-engine";
 import { buildOpportunityGapPortfolio } from "@/lib/discovery/opportunity-gap";
+import { buildProductionQueue } from "@/lib/discovery/production-queue";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
@@ -41,16 +42,23 @@ export async function GET() {
       decision,
       destination: destinationCapture.themes.find((item) => item.theme === decision.theme),
     })));
+    const productionQueue = buildProductionQueue({
+      universe: parisUncoveredUniverse,
+      gaps: opportunityGaps,
+      decisions,
+      maxReady: 20,
+    });
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "VELVET_JOURNEY", "INTERCEPT"],
+      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "VELVET_JOURNEY", "INTERCEPT"],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
+        productionQueue: "Only BUILD_IMMEDIATELY and BUILD_NEXT themes become READY. TEST_FIRST themes become VALIDATE and missing evidence never becomes an automatic production order.",
         velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
       },
@@ -71,6 +79,7 @@ export async function GET() {
         themes: destinationCapture.themes,
       },
       opportunityGaps,
+      productionQueue,
       summary: {
         themes: portfolio.length,
         actionable: portfolio.filter((item) => item.readiness === "ACTIONABLE").length,
@@ -83,6 +92,9 @@ export async function GET() {
         buildNext: opportunityGaps.filter((item) => item.action === "BUILD_NEXT").length,
         testFirst: opportunityGaps.filter((item) => item.action === "TEST_FIRST").length,
         monitorGap: opportunityGaps.filter((item) => item.action === "MONITOR").length,
+        productionReady: productionQueue.filter((item) => item.status === "READY").length,
+        productionValidate: productionQueue.filter((item) => item.status === "VALIDATE").length,
+        productionHold: productionQueue.filter((item) => item.status === "HOLD").length,
         freeInterceptActions: interceptPlan.filter((item) => item.costMode === "FREE").length,
         paidOptionalActions: interceptPlan.filter((item) => item.costMode === "PAID_OPTIONAL").length,
       },
