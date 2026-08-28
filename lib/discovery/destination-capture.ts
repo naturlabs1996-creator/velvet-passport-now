@@ -44,6 +44,8 @@ const DOMAIN_TYPES: Array<[RegExp, DestinationResultType]> = [
   [/(google\.[a-z.]+|bing\.com)$/i, "MAP"],
 ];
 
+const TRAVEL_DOMAINS = /(tripadvisor\.|viator\.com|getyourguide\.com|parisjetaime\.com|lonelyplanet\.com|cntraveler\.com|timeout\.com|travel\.|atlasobscura\.com|france\.fr)/i;
+
 function classifyDomain(domain: string): DestinationResultType {
   for (const [pattern, type] of DOMAIN_TYPES) {
     if (pattern.test(domain)) return type;
@@ -73,6 +75,7 @@ function parseRss(xml: string) {
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map((match) => ({
     title: itemValue(match[1], "title"),
     link: itemValue(match[1], "link"),
+    description: itemValue(match[1], "description"),
   })).filter((item) => item.title && item.link);
 }
 
@@ -89,8 +92,15 @@ function normalizeDomain(url: string) {
   }
 }
 
+function isParisTravelResult(item: { title: string; link: string; description: string }, domain: string) {
+  const observed = `${item.title} ${item.description} ${item.link}`;
+  if (/\bparis\b/i.test(observed)) return true;
+  return TRAVEL_DOMAINS.test(domain) && /france|paris|travel|things to do|attractions|guide/i.test(observed);
+}
+
 async function collectKeyword(keyword: string, theme: string): Promise<DestinationSerpResult[]> {
-  const url = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(keyword)}`;
+  const searchQuery = `"${keyword}" Paris travel`;
+  const url = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(searchQuery)}`;
   try {
     const response = await fetch(url, {
       headers: {
@@ -105,7 +115,7 @@ async function collectKeyword(keyword: string, theme: string): Promise<Destinati
     const now = new Date().toISOString();
     return parseRss(xml).slice(0, 10).flatMap((item, index) => {
       const domain = normalizeDomain(item.link);
-      if (!domain || domain.includes("bing.com")) return [];
+      if (!domain || domain.includes("bing.com") || !isParisTravelResult(item, domain)) return [];
       return [{
         keyword,
         theme,
@@ -183,7 +193,7 @@ export async function collectDestinationCapture(
     universe: universe.id,
     source: "BING_RSS" as const,
     measurement: "ESTIMATED_SERP_VISIBILITY" as const,
-    note: "Visibility share is estimated from observed organic rank positions. It is not click share or traffic volume.",
+    note: "Only Paris/travel-relevant public SERP results are retained. Visibility share is rank-weighted and is not click share or traffic volume.",
     keywordCount: new Set(results.map((result) => result.keyword)).size,
     resultCount: results.length,
     results,
