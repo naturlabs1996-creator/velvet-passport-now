@@ -9,6 +9,7 @@ import { buildOpportunityGapPortfolio } from "@/lib/discovery/opportunity-gap";
 import { buildProductionQueue } from "@/lib/discovery/production-queue";
 import { buildPageFactoryQueue } from "@/lib/discovery/page-factory";
 import { buildResearchVerificationQueue } from "@/lib/discovery/research-verification";
+import { collectResearchQueue } from "@/lib/discovery/research-collectors";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
@@ -52,18 +53,23 @@ export async function GET() {
     });
     const pageFactory = buildPageFactoryQueue(productionQueue);
     const researchVerification = buildResearchVerificationQueue(pageFactory);
+    const researchCollector = await collectResearchQueue(
+      researchVerification.map((item) => item.packet),
+      2,
+    );
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "PAGE_FACTORY", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT"],
+      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "PAGE_FACTORY", "RESEARCH_COLLECTOR", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT"],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
         productionQueue: "Only BUILD_IMMEDIATELY and BUILD_NEXT themes become READY. TEST_FIRST themes become VALIDATE and missing evidence never becomes an automatic production order.",
         pageFactory: "The factory may generate page structure, SEO fields, CTA routing and tracking automatically. Specific discoveries and factual claims remain RESEARCH_REQUIRED until verified; such pages stay noindex.",
+        researchCollector: "Free public collectors return research leads from Wikimedia, OpenStreetMap, official-domain search and editorial search. Leads are evidence candidates only; they never count as VERIFIED until normalized into discoveries and passed through the verification gate.",
         researchVerification: "Publication requires at least five VERIFIED discoveries. Each VERIFIED discovery needs at least two independent sources; an official source plus an independent source is preferred. Time-sensitive facts must be current. Empty or missing evidence never becomes publishable.",
         velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
@@ -87,6 +93,7 @@ export async function GET() {
       opportunityGaps,
       productionQueue,
       pageFactory,
+      researchCollector,
       researchVerification,
       summary: {
         themes: portfolio.length,
@@ -106,6 +113,8 @@ export async function GET() {
         pageResearchRequired: pageFactory.filter((item) => item.status === "RESEARCH_REQUIRED").length,
         pagePublishableStructure: pageFactory.filter((item) => item.status === "PUBLISHABLE_STRUCTURE").length,
         pageHold: pageFactory.filter((item) => item.status === "HOLD").length,
+        researchPacketsCollected: researchCollector.length,
+        researchLeadsCollected: researchCollector.reduce((sum, item) => sum + item.leadCount, 0),
         verificationPublishable: researchVerification.filter((item) => item.verification.status === "PUBLISHABLE").length,
         verificationResearchRequired: researchVerification.filter((item) => item.verification.status === "RESEARCH_REQUIRED").length,
         freeInterceptActions: interceptPlan.filter((item) => item.costMode === "FREE").length,
