@@ -99,6 +99,9 @@ export function buildOpportunityGapScore(input: {
   demand?: SearchDemandMetric;
 }): OpportunityGapScore {
   const { decision, destination } = input;
+  const hasDestinationEvidence = Boolean(
+    destination && destination.status !== "UNKNOWN" && destination.resultCount > 0,
+  );
   const commercialVisibilityShare = visibilitySum(
     destination,
     (_domain, resultType) => resultType === "TOUR" || resultType === "MARKETPLACE",
@@ -118,7 +121,7 @@ export function buildOpportunityGapScore(input: {
     Math.min(40, (destination?.resultCount ?? 0) * 2),
   );
 
-  const destinationWeakness = destination?.status === "UNKNOWN"
+  const destinationWeakness = !hasDestinationEvidence
     ? 0
     : clamp(
         45 +
@@ -127,7 +130,9 @@ export function buildOpportunityGapScore(input: {
         Math.max(0, 18 - topShare) * 0.35,
       );
 
-  const lowCommercialSaturation = clamp(100 - commercialVisibilityShare * 1.6);
+  const lowCommercialSaturation = hasDestinationEvidence
+    ? clamp(100 - commercialVisibilityShare * 1.6)
+    : 50;
   const demandScore = demandStrength(decision, input.demand);
   const velvetFit = clamp(decision.avgVelvetFit);
   const intentStrength = clamp(
@@ -142,9 +147,14 @@ export function buildOpportunityGapScore(input: {
     destinationWeakness * 0.24 +
     lowCommercialSaturation * 0.11;
 
-  if (relevantEvidence < 35) score -= 15;
-  if (destination?.status === "UNKNOWN") score -= 18;
+  if (hasDestinationEvidence && relevantEvidence < 35) score -= 15;
+  if (!hasDestinationEvidence) score -= 8;
   if (!decision.searchConfirmed) score -= 8;
+
+  // Strong proven radar demand with missing SERP evidence deserves validation, not rejection.
+  if (!hasDestinationEvidence && demandScore >= 70 && velvetFit >= 85 && decision.searchConfirmed) {
+    score = Math.max(score, 55);
+  }
   score = clamp(score);
 
   const confidence = confidenceFor({ destination, demand: input.demand, decision });
@@ -153,10 +163,11 @@ export function buildOpportunityGapScore(input: {
 
   if (demandScore >= 75) reasons.push("Strong demand signal relative to the current radar portfolio.");
   if (velvetFit >= 85) reasons.push("Very strong fit with the Velvet discovery promise.");
-  if (destinationWeakness >= 70) reasons.push("Observed results leave a meaningful content-quality or specificity gap.");
-  if (specialistTravelVisibilityShare < 25 && (destination?.resultCount ?? 0) >= 6) reasons.push("Specialist travel publishers do not dominate the observed result set.");
-  if (commercialVisibilityShare < 15 && (destination?.resultCount ?? 0) >= 6) reasons.push("Tour and marketplace saturation is low in the observed destinations.");
-  if (genericVisibilityShare >= 30) reasons.push("A large share of visibility is held by generic rather than intent-specific destinations.");
+  if (hasDestinationEvidence && destinationWeakness >= 70) reasons.push("Observed results leave a meaningful content-quality or specificity gap.");
+  if (hasDestinationEvidence && specialistTravelVisibilityShare < 25 && (destination?.resultCount ?? 0) >= 6) reasons.push("Specialist travel publishers do not dominate the observed result set.");
+  if (hasDestinationEvidence && commercialVisibilityShare < 15 && (destination?.resultCount ?? 0) >= 6) reasons.push("Tour and marketplace saturation is low in the observed destinations.");
+  if (hasDestinationEvidence && genericVisibilityShare >= 30) reasons.push("A large share of visibility is held by generic rather than intent-specific destinations.");
+  if (!hasDestinationEvidence) reasons.push("Destination competition is unknown; missing SERP evidence is not treated as weak competition.");
   if (confidence === "LOW") reasons.push("Evidence is still thin; validate before scaling production.");
   if (input.demand?.status === "UNKNOWN") reasons.push("Absolute search volume is still unknown, so the score uses relative radar demand rather than invented volume.");
 
@@ -184,7 +195,7 @@ export function buildOpportunityGapScore(input: {
       serpEvidence: clamp(relevantEvidence),
     },
     evidence: {
-      destinationStatus: destination?.status ?? "UNKNOWN",
+      destinationStatus: hasDestinationEvidence ? destination?.status ?? "UNKNOWN" : "UNKNOWN",
       queryCount: destination?.queryCount ?? 0,
       resultCount: destination?.resultCount ?? 0,
       topCompetitors: (destination?.topDomains ?? []).slice(0, 5).map((item) => ({
