@@ -1,6 +1,7 @@
 import type { MontrealPilotRoute, MontrealPilotStop } from "./montreal-pilot-routes";
 
 type Coordinates = { lat: number; lon: number };
+type TransitState = "normal" | "degraded" | "unavailable" | "unknown";
 
 export type PilotSimulationScenario = {
   currentLocation?: Coordinates;
@@ -8,6 +9,10 @@ export type PilotSimulationScenario = {
   unavailableStopIds?: string[];
   weather?: "route" | "rain" | "snow" | "heat" | "cold";
   paused?: boolean;
+  transit?: {
+    stm?: TransitState;
+    rem?: TransitState;
+  };
 };
 
 export type PilotSimulationResult = {
@@ -19,6 +24,8 @@ export type PilotSimulationResult = {
   walkingMinutesToNext: number | null;
   paused: boolean;
   weatherAction: "continue" | "prefer-indoor" | "shorten-outdoor";
+  transitAction: "continue" | "replan" | "walk-or-taxi";
+  routeAction: "continue" | "replan-from-current-location" | "end-safely";
   safe: boolean;
   notes: string[];
 };
@@ -50,11 +57,20 @@ function chooseFallback(route: MontrealPilotRoute, stop: MontrealPilotStop, visi
   return fallback;
 }
 
+function transitDecision(transit?: PilotSimulationScenario["transit"]) {
+  const stm = transit?.stm ?? "normal";
+  const rem = transit?.rem ?? "normal";
+  if (stm === "unavailable" && rem === "unavailable") return "walk-or-taxi" as const;
+  if (stm === "unavailable" || rem === "unavailable" || stm === "degraded" || rem === "degraded") return "replan" as const;
+  return "continue" as const;
+}
+
 export function simulateMontrealPilotRoute(route: MontrealPilotRoute, scenario: PilotSimulationScenario = {}): PilotSimulationResult {
   const visited = new Set(scenario.visitedStopIds ?? []);
   const unavailable = new Set(scenario.unavailableStopIds ?? []);
   const skipped = new Set<string>();
   const notes: string[] = [];
+  const transitAction = transitDecision(scenario.transit);
 
   if (scenario.paused) {
     return {
@@ -66,6 +82,8 @@ export function simulateMontrealPilotRoute(route: MontrealPilotRoute, scenario: 
       walkingMinutesToNext: null,
       paused: true,
       weatherAction: "continue",
+      transitAction,
+      routeAction: "continue",
       safe: true,
       notes: ["Route is paused; no movement or background replan should advance the journey."],
     };
@@ -104,8 +122,26 @@ export function simulateMontrealPilotRoute(route: MontrealPilotRoute, scenario: 
     weatherAction = nextIsIndoor ? "prefer-indoor" : "shorten-outdoor";
   }
 
-  if (!nextStop) notes.push("No safe unvisited stop remains; end the pilot route instead of inventing another destination.");
-  if (distanceToNextMeters !== null && distanceToNextMeters > 2_500) notes.push("GPS displacement is large; a fresh transport decision is required before continuing.");
+  let routeAction: PilotSimulationResult["routeAction"] = "continue";
+  if (!nextStop) {
+    routeAction = "end-safely";
+    notes.push("No safe unvisited stop remains; end the pilot route instead of inventing another destination.");
+  } else if (distanceToNextMeters !== null && distanceToNextMeters > 2_500) {
+    routeAction = "replan-from-current-location";
+    notes.push("GPS displacement is large; a fresh transport decision is required before continuing.");
+  }
+
+  if (transitAction === "replan") {
+    notes.push("STM or REM is degraded/unavailable; recalculate without assuming the affected service is usable.");
+  } else if (transitAction === "walk-or-taxi") {
+    notes.push("STM and REM are unavailable; offer only verified walking or taxi fallback until transit recovers.");
+  }
+
+  if (weatherAction === "shorten-outdoor") {
+    notes.push(weather === "snow" ? "Snow protection active; shorten exposed outdoor segments." : "Rain protection active; shorten exposed outdoor segments.");
+  } else if (weatherAction === "prefer-indoor") {
+    notes.push("Adverse weather detected; prefer the verified indoor stop while it is open.");
+  }
 
   return {
     routeId: route.id,
@@ -116,6 +152,8 @@ export function simulateMontrealPilotRoute(route: MontrealPilotRoute, scenario: 
     walkingMinutesToNext: distanceToNextMeters === null ? null : walkingMinutes(distanceToNextMeters),
     paused: false,
     weatherAction,
+    transitAction,
+    routeAction,
     safe: true,
     notes,
   };
