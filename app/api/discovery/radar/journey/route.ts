@@ -16,14 +16,17 @@ import { buildSafeCopyPortfolio } from "@/lib/discovery/safe-copy-composer";
 import { buildPageAssemblyPortfolio } from "@/lib/discovery/page-assembly";
 import { buildRenderPublishPortfolio } from "@/lib/discovery/render-publish";
 import { buildLearningPortfolio } from "@/lib/discovery/learning-feedback";
+import { readFirstPartyBundle } from "@/lib/discovery/first-party-performance";
+import { runPredatorCore } from "@/lib/discovery/predator-core";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
   try {
-    const [coreSources, buySources, destinationCapture] = await Promise.all([
+    const [coreSources, buySources, destinationCapture, firstParty] = await Promise.all([
       collectFirstRadarSources(),
       collectBuyRadarSources(),
       collectDestinationCapture(parisUncoveredUniverse),
+      readFirstPartyBundle(),
     ]);
 
     const signals = [
@@ -75,32 +78,57 @@ export async function GET() {
       candidatePortfolio.map((item) => ({ pageId: item.pageId, safeCopies: item.safeCopy, verification: item.verification })),
     );
     const renderPublish = buildRenderPublishPortfolio(pageAssembly);
-    const learning = buildLearningPortfolio(renderPublish, []);
+
+    const pageIdForTheme = new Map(pageFactory.map((item) => [item.theme, item.id]));
+    const performanceRows = firstParty.performanceRows.map((row) => ({
+      ...row,
+      pageId: pageIdForTheme.get(row.theme) ?? row.pageId,
+    }));
+    const performanceHistory = firstParty.performanceHistory.map((row) => ({
+      ...row,
+      pageId: pageIdForTheme.get(row.theme) ?? row.pageId,
+    }));
+
+    const learning = buildLearningPortfolio(renderPublish, performanceRows);
+    const safeCopyByTheme = Object.fromEntries(candidatePortfolio.map((item) => [item.theme, item.safeCopy]));
+    const predatorCore = runPredatorCore({
+      opportunityGaps,
+      learning: learning.scores,
+      performanceRows,
+      performanceHistory,
+      safeCopyByTheme,
+    });
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "THEME_RESOLVER", "PRODUCTION_QUEUE", "PAGE_FACTORY", "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "SOURCE_REPUTATION", "CONFLICT_STALENESS", "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "PAGE_ASSEMBLY", "RENDER_PUBLISH", "LEARNING_FEEDBACK", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT"],
+      architecture: [
+        "DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "THEME_RESOLVER", "PRODUCTION_QUEUE", "PAGE_FACTORY",
+        "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "SOURCE_REPUTATION", "CONFLICT_STALENESS",
+        "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "PAGE_ASSEMBLY", "RENDER_PUBLISH", "FIRST_PARTY_AGGREGATION",
+        "PERFORMANCE_MEMORY", "LEARNING_FEEDBACK", "BEHAVIOR_PREDICTION", "PRECISION_TARGETING", "TARGET_REFINEMENT",
+        "SPEED_CONTROLLER", "SMART_CACHE_POLICY", "ADAPTIVE_TARGET_BUDGETS", "DYNAMIC_REALLOCATION", "RESOURCE_ALLOCATION",
+        "EXPERIMENT_ENGINE", "CREATIVE_STRIKE_ENGINE", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT",
+      ],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
-        themeResolver: "Raw Radar themes are preserved, while production uses a canonical theme when an exact or controlled alias mapping exists. Unresolved themes remain visible as research tests rather than disappearing.",
-        productionQueue: "Only BUILD_IMMEDIATELY and BUILD_NEXT themes become READY. TEST_FIRST themes become VALIDATE and missing evidence never becomes an automatic production order.",
-        pageFactory: "The factory may generate page structure, SEO fields, CTA routing and tracking automatically. Specific discoveries and factual claims remain RESEARCH_REQUIRED until verified; such pages stay noindex.",
-        researchCollector: "Free public collectors return research leads from Wikimedia, OpenStreetMap, official-domain search and editorial search. Leads are evidence candidates only.",
-        evidenceNormalizer: "Leads are merged conservatively using name similarity, address agreement and geospatial proximity. Raw snippets remain candidate claims only; the normalizer no longer assigns editorial Velvet fit or factual truth.",
-        sourceReputation: "Source authority is fact-domain specific. Official sources are preferred for operational facts, map sources for identity/location, and editorial sources remain supporting context rather than universal authority.",
-        conflictStaleness: "Contradictory operational evidence creates CONFLICTED status and stale-only evidence creates STALE status. Both are non-publishable until refreshed or resolved.",
-        claimLevelVerifier: "Every factual claim is evaluated independently. High-risk claims such as hours, prices, access, secrecy, popularity and atmosphere need stronger, fresher and domain-appropriate evidence. Non-verified claims are excluded from publishable copy.",
-        safeCopyComposer: "Copy is generated strictly from VERIFIED publishable claims. Excluded claims cannot be paraphrased or reintroduced. Every factual sentence retains source IDs and URLs for auditability.",
-        pageAssembly: "Page Factory structure and Safe Copy blocks are assembled only after verification. Indexing opens only when the page verification status is PUBLISHABLE, at least five discoveries have READY safe copy and a source audit trail exists; otherwise the assembled page remains noindex.",
-        renderPublish: "Render manifests default to PREVIEW/noindex. PUBLIC/index is allowed only when the assembled page is READY_TO_RENDER, at least five READY discoveries remain, source audit exists and the indexing gate is already open. The render layer cannot override an upstream gate.",
-        learningFeedback: "Learning uses measured first-party outcomes only. Small samples cannot amplify or suppress a theme. Purchases and revenue outweigh CTA, engagement and CTR when commerce data exists. Missing performance data returns NO_DATA rather than a synthetic score.",
-        researchVerification: "Publication requires at least five VERIFIED discoveries. Each VERIFIED discovery needs at least two independent sources; an official source plus an independent source is preferred. Time-sensitive facts must be current. Empty or missing evidence never becomes publishable.",
-        velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
-        intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
+        firstParty: "Velvet event metrics are aggregated in Supabase by page/theme. Individual event rows are not returned to Predator. Missing Search Console or commerce data remains unavailable rather than inferred.",
+        learningFeedback: "Learning uses measured first-party outcomes only. Small samples cannot amplify or suppress a theme. Purchases and revenue receive weight only when an attributable commerce source exists.",
+        performanceMemory: "Long-horizon memory uses real weekly aggregate snapshots, not overlapping cumulative windows. Insufficient history remains INSUFFICIENT_HISTORY.",
+        behaviorPrediction: "Behavior prediction uses aggregate first-party cohorts only and cannot infer sensitive traits or claim certainty about an individual.",
+        predatorCore: "Targeting, adaptive budgets, reallocation, experiments and creative strikes consume measured evidence while preserving all verification, privacy, publication and paid-spend gates.",
+        researchVerification: "Publication requires at least five VERIFIED discoveries. Each VERIFIED discovery needs at least two independent sources; time-sensitive facts must be current.",
+        velvetJourney: "MEASURED only from first-party Velvet events, Search Console or attributable commerce inputs.",
+        intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured and spend is explicitly authorized.",
+      },
+      firstParty: {
+        availability: firstParty.availability,
+        currentRows: performanceRows.length,
+        historicalSnapshots: performanceHistory.length,
+        rows: performanceRows,
       },
       universe: {
         id: parisUncoveredUniverse.id,
@@ -126,6 +154,7 @@ export async function GET() {
       pageAssembly,
       renderPublish,
       learning,
+      predatorCore,
       researchVerification: researchQueue,
       summary: {
         themes: portfolio.length,
@@ -135,43 +164,29 @@ export async function GET() {
         missingSearchVolume: portfolio.filter((item) => item.gaps.includes("SEARCH_VOLUME")).length,
         missingDestinationCapture: portfolio.filter((item) => item.gaps.includes("DESTINATION_CAPTURE")).length,
         missingFirstPartyJourney: portfolio.filter((item) => item.gaps.includes("FIRST_PARTY_JOURNEY")).length,
+        firstPartyRows: performanceRows.length,
+        firstPartyHistorySnapshots: performanceHistory.length,
         buildImmediately: opportunityGaps.filter((item) => item.action === "BUILD_IMMEDIATELY").length,
         buildNext: opportunityGaps.filter((item) => item.action === "BUILD_NEXT").length,
         testFirst: opportunityGaps.filter((item) => item.action === "TEST_FIRST").length,
-        monitorGap: opportunityGaps.filter((item) => item.action === "MONITOR").length,
         productionReady: productionQueue.filter((item) => item.status === "READY").length,
         productionValidate: productionQueue.filter((item) => item.status === "VALIDATE").length,
-        productionHold: productionQueue.filter((item) => item.status === "HOLD").length,
-        pageResearchRequired: pageFactory.filter((item) => item.status === "RESEARCH_REQUIRED").length,
-        pagePublishableStructure: pageFactory.filter((item) => item.status === "PUBLISHABLE_STRUCTURE").length,
-        pageHold: pageFactory.filter((item) => item.status === "HOLD").length,
         researchPacketsCollected: researchCollector.length,
         researchLeadsCollected: researchCollector.reduce((sum, item) => sum + item.leadCount, 0),
         mergedCandidates: candidatePortfolio.reduce((sum, item) => sum + item.candidateCount, 0),
-        mergedHighConfidence: candidatePortfolio.reduce((sum, item) => sum + item.candidates.filter((candidate) => candidate.mergeConfidence === "HIGH").length, 0),
         verifiedClaims: candidatePortfolio.reduce((sum, item) => sum + item.claimVerification.reduce((inner, result) => inner + result.publishableClaims.length, 0), 0),
-        excludedClaims: candidatePortfolio.reduce((sum, item) => sum + item.claimVerification.reduce((inner, result) => inner + result.excludedClaims.length, 0), 0),
         conflictedClaims: candidatePortfolio.reduce((sum, item) => sum + item.claimVerification.reduce((inner, result) => inner + result.conflicts, 0), 0),
         staleClaims: candidatePortfolio.reduce((sum, item) => sum + item.claimVerification.reduce((inner, result) => inner + result.staleClaims, 0), 0),
-        safeCopyCandidates: candidatePortfolio.reduce((sum, item) => sum + item.claimVerification.filter((result) => result.candidateSafeForCopy).length, 0),
         safeCopyReady: candidatePortfolio.reduce((sum, item) => sum + item.safeCopy.filter((result) => result.status === "READY").length, 0),
-        safeCopyPartial: candidatePortfolio.reduce((sum, item) => sum + item.safeCopy.filter((result) => result.status === "PARTIAL").length, 0),
-        safeCopyHold: candidatePortfolio.reduce((sum, item) => sum + item.safeCopy.filter((result) => result.status === "HOLD").length, 0),
-        assemblyReadyToRender: pageAssembly.filter((item) => item.status === "READY_TO_RENDER").length,
-        assemblyDraftNoIndex: pageAssembly.filter((item) => item.status === "DRAFT_NO_INDEX").length,
-        assemblyHold: pageAssembly.filter((item) => item.status === "HOLD").length,
         renderPublic: renderPublish.filter((item) => item.mode === "PUBLIC").length,
         renderPreview: renderPublish.filter((item) => item.mode === "PREVIEW").length,
-        renderBlocked: renderPublish.filter((item) => item.mode === "BLOCKED").length,
-        publishAllowed: renderPublish.filter((item) => item.publishDecision === "PUBLISH_ALLOWED").length,
         learningMeasured: learning.scores.filter((item) => item.status === "MEASURED").length,
         learningInsufficient: learning.scores.filter((item) => item.status === "INSUFFICIENT").length,
         learningNoData: learning.scores.filter((item) => item.status === "NO_DATA").length,
-        learningAmplify: learning.scores.filter((item) => item.action === "AMPLIFY").length,
-        learningOptimize: learning.scores.filter((item) => item.action === "OPTIMIZE").length,
-        learningDeprioritize: learning.scores.filter((item) => item.action === "DEPRIORITIZE").length,
-        verificationPublishable: candidatePortfolio.filter((item) => item.verification?.status === "PUBLISHABLE").length,
-        verificationResearchRequired: candidatePortfolio.filter((item) => item.verification?.status === "RESEARCH_REQUIRED").length,
+        lockedTargets: predatorCore.summary.lockedTargets,
+        superchargedTargets: predatorCore.summary.superchargedTargets,
+        reallocatedTargets: predatorCore.summary.reallocatedTargets,
+        strikesReadyToTest: predatorCore.summary.strikesReadyToTest,
         freeInterceptActions: interceptPlan.filter((item) => item.costMode === "FREE").length,
         paidOptionalActions: interceptPlan.filter((item) => item.costMode === "PAID_OPTIONAL").length,
       },
