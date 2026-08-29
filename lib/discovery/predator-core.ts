@@ -5,6 +5,8 @@ import { buildPrecisionTargets } from "./precision-targeting";
 import { refinePrecisionTargets } from "./target-refinement";
 import { allocateResources } from "./resource-allocator";
 import { buildExperimentPlan } from "./experiment-engine";
+import { buildCreativeStrikes } from "./creative-strike-engine";
+import type { SafeDiscoveryCopy } from "./safe-copy-composer";
 import type { OpportunityGapScore } from "./opportunity-gap";
 
 export type PredatorCoreInput = {
@@ -12,6 +14,7 @@ export type PredatorCoreInput = {
   learning: LearningScore[];
   performanceRows: FirstPartyPerformance[];
   performanceHistory: PerformanceSnapshot[];
+  safeCopyByTheme?: Record<string, SafeDiscoveryCopy[]>;
 };
 
 export function runPredatorCore(input: PredatorCoreInput) {
@@ -21,6 +24,13 @@ export function runPredatorCore(input: PredatorCoreInput) {
   const refinedTargets = refinePrecisionTargets(precisionTargets, behaviorPrediction);
   const resourceAllocation = allocateResources(refinedTargets, behaviorPrediction);
   const experimentPlan = buildExperimentPlan(refinedTargets, resourceAllocation);
+  const creativeStrikes = buildCreativeStrikes({
+    targets: refinedTargets,
+    predictions: behaviorPrediction,
+    allocations: resourceAllocation,
+    experiments: experimentPlan,
+    safeCopyByTheme: input.safeCopyByTheme,
+  });
 
   return {
     architecture: [
@@ -30,6 +40,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
       "TARGET_REFINEMENT",
       "RESOURCE_ALLOCATION",
       "EXPERIMENT_ENGINE",
+      "CREATIVE_STRIKE_ENGINE",
     ],
     memory,
     precisionTargets,
@@ -37,6 +48,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
     refinedTargets,
     resourceAllocation,
     experimentPlan,
+    creativeStrikes,
     summary: {
       memoryRows: memory.length,
       lockedTargets: refinedTargets.filter((item) => item.state === "LOCK").length,
@@ -48,13 +60,20 @@ export function runPredatorCore(input: PredatorCoreInput) {
       concentratedAllocations: resourceAllocation.filter((item) => item.directive === "CONCENTRATE").length,
       stoppedAllocations: resourceAllocation.filter((item) => item.directive === "STOP").length,
       plannedExperiments: experimentPlan.length,
+      strikesReadyToTest: creativeStrikes.filter((item) => item.status === "READY_TO_TEST").length,
+      strikesHeldNoLock: creativeStrikes.filter((item) => item.status === "HOLD_NO_LOCK").length,
+      strikesHeldLowConfidence: creativeStrikes.filter((item) => item.status === "HOLD_LOW_CONFIDENCE").length,
+      strikesHeldCopyEvidence: creativeStrikes.filter((item) => item.status === "HOLD_COPY_EVIDENCE").length,
+      paidStrikesHeld: creativeStrikes.filter((item) => item.status === "HOLD_PAID").length,
     },
     safeguards: [
       "Missing first-party data remains unknown and cannot be manufactured into a behavior signal.",
       "A prediction is an aggregate cohort probability, never a statement about an identified person.",
       "Resource allocation cannot activate paid spend.",
       "Experiment winners require minimum samples and material measured performance margins.",
-      "No targeting, allocation or experiment decision overrides factual, publication, privacy or consent gates.",
+      "Creative strikes require target lock, measured behavior confidence and verified Safe Copy before factual body copy can be used.",
+      "Paid strikes remain held until a separate spend gate and explicit authorization exist.",
+      "No targeting, allocation, experiment or strike decision overrides factual, publication, privacy or consent gates.",
     ],
   };
 }
