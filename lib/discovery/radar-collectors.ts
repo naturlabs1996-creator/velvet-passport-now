@@ -29,6 +29,11 @@ export type CollectorResult = {
   note?: string;
 };
 
+export type RadarCollectorBudget = {
+  maxQueriesPerSource?: number;
+  maxSources?: number;
+};
+
 function radarQueries(limit = 12) {
   return parisRadarSeeds.flatMap((seed) => seed.phrases.slice(0, 1)).slice(0, limit);
 }
@@ -48,9 +53,9 @@ export async function collectGoogleTrends(): Promise<CollectorResult> {
   return { source: "google-trends", ok: true, observations, normalized: observations.flatMap(normalizeRadarObservation) };
 }
 
-export async function collectGoogleSuggest(): Promise<CollectorResult> {
+export async function collectGoogleSuggest(queryLimit = 10): Promise<CollectorResult> {
   const observations: RawRadarObservation[] = [];
-  for (const query of radarQueries(10)) {
+  for (const query of radarQueries(queryLimit)) {
     try {
       const url = `https://suggestqueries.google.com/complete/search?client=firefox&hl=en&q=${encodeURIComponent(query)}`;
       const response = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 VelvetPassportRadar/1.0" }, next: { revalidate: 1800 } });
@@ -120,12 +125,12 @@ async function collectBingSiteSource(options: { source: "tripadvisor" | "wanderl
   return { source: options.source, ok: deduped.length > 0, observations: deduped, normalized: deduped.flatMap(normalizeRadarObservation), note };
 }
 
-export function collectTripadvisor() {
-  return collectBingSiteSource({ source: "tripadvisor", sourceType: "ASK", siteQuery: "tripadvisor.com", domain: "tripadvisor.com", confidence: 86, velocity: 48, commercialIntent: 38, limit: 8, requiredUrlPattern: /tripadvisor\.com\/ShowTopic/i, requireFreshPubDate: true });
+export function collectTripadvisor(queryLimit = 8) {
+  return collectBingSiteSource({ source: "tripadvisor", sourceType: "ASK", siteQuery: "tripadvisor.com", domain: "tripadvisor.com", confidence: 86, velocity: 48, commercialIntent: 38, limit: queryLimit, requiredUrlPattern: /tripadvisor\.com\/ShowTopic/i, requireFreshPubDate: true });
 }
 
-export function collectGetYourGuide() {
-  return collectBingSiteSource({ source: "getyourguide", sourceType: "BUY", siteQuery: "getyourguide.com", domain: "getyourguide.com", confidence: 88, velocity: 52, commercialIntent: 78, limit: 8, requiredUrlPattern: /getyourguide\.com\//i });
+export function collectGetYourGuide(queryLimit = 8) {
+  return collectBingSiteSource({ source: "getyourguide", sourceType: "BUY", siteQuery: "getyourguide.com", domain: "getyourguide.com", confidence: 88, velocity: 52, commercialIntent: 78, limit: queryLimit, requiredUrlPattern: /getyourguide\.com\//i });
 }
 
 export async function collectAtlas(): Promise<CollectorResult> {
@@ -152,28 +157,32 @@ export async function collectAtlas(): Promise<CollectorResult> {
   }
 }
 
-export function collectWanderlog() {
-  return collectBingSiteSource({ source: "wanderlog", sourceType: "SAVE", siteQuery: "wanderlog.com", domain: "wanderlog.com", confidence: 80, velocity: 44, commercialIntent: 48, limit: 6 });
+export function collectWanderlog(queryLimit = 6) {
+  return collectBingSiteSource({ source: "wanderlog", sourceType: "SAVE", siteQuery: "wanderlog.com", domain: "wanderlog.com", confidence: 80, velocity: 44, commercialIntent: 48, limit: queryLimit });
 }
 
-export function collectSubstack() {
-  return collectBingSiteSource({ source: "substack", sourceType: "DISCOVER", siteQuery: "substack.com", domain: "substack.com", confidence: 74, velocity: 48, commercialIntent: 38, limit: 6 });
+export function collectSubstack(queryLimit = 6) {
+  return collectBingSiteSource({ source: "substack", sourceType: "DISCOVER", siteQuery: "substack.com", domain: "substack.com", confidence: 74, velocity: 48, commercialIntent: 38, limit: queryLimit });
 }
 
 export async function collectPinterest(): Promise<CollectorResult> {
   return { source: "pinterest", ok: false, observations: [], normalized: [], note: "disabled_by_product_decision" };
 }
 
-export async function collectFirstRadarSources() {
-  return Promise.all([
-    collectGoogleTrends(),
-    collectGoogleSuggest(),
-    collectReddit(),
-    collectTripadvisor(),
-    collectGetYourGuide(),
-    collectAtlas(),
-    collectWanderlog(),
-    collectSubstack(),
-    collectPinterest(),
-  ]);
+export async function collectFirstRadarSources(budget: RadarCollectorBudget = {}) {
+  const queryLimit = Math.max(1, Math.min(budget.maxQueriesPerSource ?? 8, 12));
+  const maxSources = Math.max(1, Math.min(budget.maxSources ?? 9, 9));
+  const tasks = [
+    () => collectGoogleTrends(),
+    () => collectGoogleSuggest(queryLimit),
+    () => collectReddit(),
+    () => collectTripadvisor(queryLimit),
+    () => collectGetYourGuide(queryLimit),
+    () => collectAtlas(),
+    () => collectWanderlog(Math.min(queryLimit, 6)),
+    () => collectSubstack(Math.min(queryLimit, 6)),
+    () => collectPinterest(),
+  ].slice(0, maxSources);
+
+  return Promise.all(tasks.map((task) => task()));
 }
