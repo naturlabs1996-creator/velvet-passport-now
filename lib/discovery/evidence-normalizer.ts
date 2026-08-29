@@ -126,21 +126,12 @@ function mergeConfidence(leads: ResearchLead[]): { confidence: MergeConfidence; 
   return { confidence: "LOW", reasons };
 }
 
-function estimateVelvetFit(theme: string, leads: ResearchLead[]) {
-  const text = leads.flatMap((lead) => [lead.name, lead.snippet ?? "", ...lead.rawClaims]).join(" ").toLowerCase();
-  let score = 55;
-  if (/hidden|secret|quiet|unusual|forgotten|literary|garden|courtyard|passage|bookshop|museum|historic|atelier|workshop/.test(text)) score += 20;
-  if (/tripadvisor|top 10|must see|eiffel|louvre museum|notre dame/.test(text)) score -= 15;
-  if (/quiet|secret|hidden|forgotten|unusual|literary/.test(theme)) score += 10;
-  return Math.max(0, Math.min(100, score));
-}
-
 function mergeGroup(group: ResearchLead[]): MergedCandidate {
   const canonicalName = chooseCanonicalName(group);
   const evidence = group.map(leadEvidence);
   const aliases = [...new Set(group.map((lead) => lead.name).filter((name) => name !== canonicalName))];
   const address = group.find((lead) => lead.address)?.address;
-  const factualClaims = [...new Set(group.flatMap((lead) => lead.rawClaims).filter(Boolean))].slice(0, 20);
+  const candidateClaims = [...new Set(group.flatMap((lead) => lead.rawClaims).filter(Boolean))].slice(0, 20);
   const merge = mergeConfidence(group);
 
   return {
@@ -150,13 +141,16 @@ function mergeGroup(group: ResearchLead[]): MergedCandidate {
     city: "Paris",
     theme: group[0].theme,
     address,
-    factualClaims,
-    timeSensitiveClaims: factualClaims.filter((claim) => /open|opening|hours|price|ticket|reservation|closed|access/i.test(claim)),
+    factualClaims: candidateClaims,
+    timeSensitiveClaims: candidateClaims.filter((claim) => /open|opening|hours|price|ticket|reservation|closed|access/i.test(claim)),
     evidence,
-    velvetFit: estimateVelvetFit(group[0].theme, group),
+    velvetFit: undefined,
     sourceLeadIds: group.map((lead) => lead.id),
     mergeConfidence: merge.confidence,
-    mergeReasons: merge.reasons,
+    mergeReasons: [
+      ...merge.reasons,
+      "Raw research observations are candidate claims only; the normalizer does not assign editorial Velvet fit or factual truth.",
+    ],
   };
 }
 
@@ -177,7 +171,7 @@ export function normalizeAndMergeLeads(leads: ResearchLead[]): MergedCandidate[]
     .sort((a, b) => {
       const rank: Record<MergeConfidence, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 };
       const sourceDelta = new Set(b.evidence.map((item) => item.independentKey)).size - new Set(a.evidence.map((item) => item.independentKey)).size;
-      return rank[b.mergeConfidence] - rank[a.mergeConfidence] || sourceDelta || (b.velvetFit ?? 0) - (a.velvetFit ?? 0);
+      return rank[b.mergeConfidence] - rank[a.mergeConfidence] || sourceDelta;
     });
 }
 
