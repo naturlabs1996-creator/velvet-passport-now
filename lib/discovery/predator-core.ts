@@ -8,6 +8,7 @@ import { buildExperimentPlan } from "./experiment-engine";
 import { buildCreativeStrikes } from "./creative-strike-engine";
 import { buildSpeedPlans } from "./speed-controller";
 import { buildAdaptiveTargetBudgets } from "./adaptive-budget";
+import { buildDynamicReallocation } from "./dynamic-reallocation";
 import type { SafeDiscoveryCopy } from "./safe-copy-composer";
 import type { OpportunityGapScore } from "./opportunity-gap";
 
@@ -26,6 +27,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
   const refinedTargets = refinePrecisionTargets(precisionTargets, behaviorPrediction);
   const speedPlans = buildSpeedPlans(refinedTargets);
   const adaptiveBudgets = buildAdaptiveTargetBudgets(input.opportunityGaps);
+  const dynamicReallocation = buildDynamicReallocation(adaptiveBudgets, refinedTargets, behaviorPrediction);
   const resourceAllocation = allocateResources(refinedTargets, behaviorPrediction);
   const experimentPlan = buildExperimentPlan(refinedTargets, resourceAllocation);
   const creativeStrikes = buildCreativeStrikes({
@@ -45,6 +47,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
       "SPEED_CONTROLLER",
       "SMART_CACHE_POLICY",
       "ADAPTIVE_TARGET_BUDGETS",
+      "DYNAMIC_REALLOCATION",
       "RESOURCE_ALLOCATION",
       "EXPERIMENT_ENGINE",
       "CREATIVE_STRIKE_ENGINE",
@@ -55,6 +58,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
     refinedTargets,
     speedPlans,
     adaptiveBudgets,
+    dynamicReallocation,
     resourceAllocation,
     experimentPlan,
     creativeStrikes,
@@ -74,6 +78,9 @@ export function runPredatorCore(input: PredatorCoreInput) {
       boostedTargets: adaptiveBudgets.filter((item) => item.tier === "BOOST").length,
       controlledTargets: adaptiveBudgets.filter((item) => item.tier === "CONTROLLED").length,
       minimalTargets: adaptiveBudgets.filter((item) => item.tier === "MINIMAL").length,
+      reallocationReceivers: dynamicReallocation.filter((item) => item.directive === "RECEIVE").length,
+      reallocationReleasers: dynamicReallocation.filter((item) => item.directive === "RELEASE").length,
+      reallocatedUnits: dynamicReallocation.reduce((sum, item) => sum + item.receivedUnits, 0),
       concentratedAllocations: resourceAllocation.filter((item) => item.directive === "CONCENTRATE").length,
       stoppedAllocations: resourceAllocation.filter((item) => item.directive === "STOP").length,
       plannedExperiments: experimentPlan.length,
@@ -89,6 +96,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
       "Speed controls can stop or defer work but never bypass factual verification or publication gates.",
       "Smart cache reuse is freshness-sensitive; stale research cannot become publication evidence.",
       "Adaptive budgets increase collection capacity only; they never promote a claim to verified status.",
+      "Dynamic reallocation moves unused planning capacity only and caps per-target gains.",
       "Resource allocation cannot activate paid spend.",
       "Experiment winners require minimum samples and material measured performance margins.",
       "Creative strikes require target lock, measured behavior confidence and verified Safe Copy before factual body copy can be used.",
