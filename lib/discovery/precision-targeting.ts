@@ -1,6 +1,6 @@
 import type { LearningScore } from "./learning-feedback";
 import type { PerformanceMemory } from "./performance-memory";
-import type { OpportunityGapResult } from "./opportunity-gap";
+import type { OpportunityGapScore } from "./opportunity-gap";
 
 export type TargetState = "LOCK" | "TRACK" | "RETEST" | "IGNORE";
 
@@ -18,7 +18,7 @@ function clamp(value: number) {
 }
 
 export function buildPrecisionTargets(
-  gaps: OpportunityGapResult[],
+  gaps: OpportunityGapScore[],
   learning: LearningScore[],
   memory: PerformanceMemory[],
 ): PrecisionTarget[] {
@@ -27,7 +27,7 @@ export function buildPrecisionTargets(
     const memoryRow = memory.find((item) => item.theme === gap.theme);
     const reasons: string[] = [];
 
-    let score = gap.score * 0.55;
+    let score = gap.gapScore * 0.55;
     let confidence: PrecisionTarget["confidence"] = gap.confidence === "HIGH" ? "HIGH" : gap.confidence === "MEDIUM" ? "MEDIUM" : "LOW";
 
     if (learningScore?.status === "MEASURED" && typeof learningScore.performanceScore === "number") {
