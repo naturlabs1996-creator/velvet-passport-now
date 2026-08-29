@@ -7,6 +7,7 @@ import { allocateResources } from "./resource-allocator";
 import { buildExperimentPlan } from "./experiment-engine";
 import { buildCreativeStrikes } from "./creative-strike-engine";
 import { buildSpeedPlans } from "./speed-controller";
+import { buildAdaptiveTargetBudgets } from "./adaptive-budget";
 import type { SafeDiscoveryCopy } from "./safe-copy-composer";
 import type { OpportunityGapScore } from "./opportunity-gap";
 
@@ -24,6 +25,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
   const behaviorPrediction = buildBehaviorPredictionPortfolio(input.performanceRows, memory, precisionTargets);
   const refinedTargets = refinePrecisionTargets(precisionTargets, behaviorPrediction);
   const speedPlans = buildSpeedPlans(refinedTargets);
+  const adaptiveBudgets = buildAdaptiveTargetBudgets(input.opportunityGaps);
   const resourceAllocation = allocateResources(refinedTargets, behaviorPrediction);
   const experimentPlan = buildExperimentPlan(refinedTargets, resourceAllocation);
   const creativeStrikes = buildCreativeStrikes({
@@ -42,6 +44,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
       "TARGET_REFINEMENT",
       "SPEED_CONTROLLER",
       "SMART_CACHE_POLICY",
+      "ADAPTIVE_TARGET_BUDGETS",
       "RESOURCE_ALLOCATION",
       "EXPERIMENT_ENGINE",
       "CREATIVE_STRIKE_ENGINE",
@@ -51,6 +54,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
     behaviorPrediction,
     refinedTargets,
     speedPlans,
+    adaptiveBudgets,
     resourceAllocation,
     experimentPlan,
     creativeStrikes,
@@ -66,6 +70,10 @@ export function runPredatorCore(input: PredatorCoreInput) {
       focusedVerifyTargets: speedPlans.filter((item) => item.mode === "FOCUSED_VERIFY").length,
       fastScanTargets: speedPlans.filter((item) => item.mode === "FAST_SCAN").length,
       earlyStoppedTargets: speedPlans.filter((item) => item.decision === "STOP").length,
+      superchargedTargets: adaptiveBudgets.filter((item) => item.tier === "SUPERCHARGE").length,
+      boostedTargets: adaptiveBudgets.filter((item) => item.tier === "BOOST").length,
+      controlledTargets: adaptiveBudgets.filter((item) => item.tier === "CONTROLLED").length,
+      minimalTargets: adaptiveBudgets.filter((item) => item.tier === "MINIMAL").length,
       concentratedAllocations: resourceAllocation.filter((item) => item.directive === "CONCENTRATE").length,
       stoppedAllocations: resourceAllocation.filter((item) => item.directive === "STOP").length,
       plannedExperiments: experimentPlan.length,
@@ -80,6 +88,7 @@ export function runPredatorCore(input: PredatorCoreInput) {
       "A prediction is an aggregate cohort probability, never a statement about an identified person.",
       "Speed controls can stop or defer work but never bypass factual verification or publication gates.",
       "Smart cache reuse is freshness-sensitive; stale research cannot become publication evidence.",
+      "Adaptive budgets increase collection capacity only; they never promote a claim to verified status.",
       "Resource allocation cannot activate paid spend.",
       "Experiment winners require minimum samples and material measured performance margins.",
       "Creative strikes require target lock, measured behavior confidence and verified Safe Copy before factual body copy can be used.",
