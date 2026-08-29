@@ -109,16 +109,6 @@ export const MONTREAL_PILOT_ROUTES: MontrealPilotRoute[] = [
     purpose: ["opening-hours", "accessibility", "walking", "neighbourhood-routing", "event-dependent fallback"],
     stops: [
       {
-        id: "mile-richler",
-        name: "Bibliothèque Mordecai-Richler",
-        lat: 45.52165,
-        lon: -73.60176,
-        access: "opening-hours",
-        address: "5434 avenue du Parc, Montréal",
-        source: "Ville de Montréal",
-        fallback: "Parc Lahaie",
-      },
-      {
         id: "mile-lahaie",
         name: "Parc Lahaie",
         lat: 45.52295,
@@ -127,6 +117,16 @@ export const MONTREAL_PILOT_ROUTES: MontrealPilotRoute[] = [
         address: "4921 boulevard Saint-Laurent, Montréal",
         source: "Ville de Montréal",
         fallback: "Bibliothèque Mordecai-Richler",
+      },
+      {
+        id: "mile-richler",
+        name: "Bibliothèque Mordecai-Richler",
+        lat: 45.52165,
+        lon: -73.60176,
+        access: "opening-hours",
+        address: "5434 avenue du Parc, Montréal",
+        source: "Ville de Montréal",
+        fallback: "Parc Lahaie",
       },
       {
         id: "mile-rialto",
