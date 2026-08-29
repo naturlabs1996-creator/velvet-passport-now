@@ -15,6 +15,7 @@ import { buildClaimVerificationPortfolio } from "@/lib/discovery/claim-verifier"
 import { buildSafeCopyPortfolio } from "@/lib/discovery/safe-copy-composer";
 import { buildPageAssemblyPortfolio } from "@/lib/discovery/page-assembly";
 import { buildRenderPublishPortfolio } from "@/lib/discovery/render-publish";
+import { buildLearningPortfolio } from "@/lib/discovery/learning-feedback";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
@@ -93,16 +94,21 @@ export async function GET() {
     );
     const renderPublish = buildRenderPublishPortfolio(pageAssembly);
 
+    // The learning engine deliberately starts with no synthetic performance rows.
+    // Real Search Console, Velvet event and commerce adapters will populate this input.
+    const learning = buildLearningPortfolio(renderPublish, []);
+
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "PAGE_FACTORY", "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "PAGE_ASSEMBLY", "RENDER_PUBLISH", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT"],
+      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "THEME_RESOLVER", "PRODUCTION_QUEUE", "PAGE_FACTORY", "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "PAGE_ASSEMBLY", "RENDER_PUBLISH", "LEARNING_FEEDBACK", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT"],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
+        themeResolver: "Raw Radar themes are preserved, while production uses a canonical theme when an exact or controlled alias mapping exists. Unresolved themes remain visible as research tests rather than disappearing.",
         productionQueue: "Only BUILD_IMMEDIATELY and BUILD_NEXT themes become READY. TEST_FIRST themes become VALIDATE and missing evidence never becomes an automatic production order.",
         pageFactory: "The factory may generate page structure, SEO fields, CTA routing and tracking automatically. Specific discoveries and factual claims remain RESEARCH_REQUIRED until verified; such pages stay noindex.",
         researchCollector: "Free public collectors return research leads from Wikimedia, OpenStreetMap, official-domain search and editorial search. Leads are evidence candidates only.",
@@ -111,6 +117,7 @@ export async function GET() {
         safeCopyComposer: "Copy is generated strictly from VERIFIED publishable claims. Excluded claims cannot be paraphrased or reintroduced. Every factual sentence retains source IDs and URLs for auditability.",
         pageAssembly: "Page Factory structure and Safe Copy blocks are assembled only after verification. Indexing opens only when the page verification status is PUBLISHABLE, at least five discoveries have READY safe copy and a source audit trail exists; otherwise the assembled page remains noindex.",
         renderPublish: "Render manifests default to PREVIEW/noindex. PUBLIC/index is allowed only when the assembled page is READY_TO_RENDER, at least five READY discoveries remain, source audit exists and the indexing gate is already open. The render layer cannot override an upstream gate.",
+        learningFeedback: "Learning uses measured first-party outcomes only. Small samples cannot amplify or suppress a theme. Purchases and revenue outweigh CTA, engagement and CTR when commerce data exists. Missing performance data returns NO_DATA rather than a synthetic score.",
         researchVerification: "Publication requires at least five VERIFIED discoveries. Each VERIFIED discovery needs at least two independent sources; an official source plus an independent source is preferred. Time-sensitive facts must be current. Empty or missing evidence never becomes publishable.",
         velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
@@ -138,6 +145,7 @@ export async function GET() {
       candidatePortfolio,
       pageAssembly,
       renderPublish,
+      learning,
       researchVerification: researchQueue,
       summary: {
         themes: portfolio.length,
@@ -174,6 +182,12 @@ export async function GET() {
         renderPreview: renderPublish.filter((item) => item.mode === "PREVIEW").length,
         renderBlocked: renderPublish.filter((item) => item.mode === "BLOCKED").length,
         publishAllowed: renderPublish.filter((item) => item.publishDecision === "PUBLISH_ALLOWED").length,
+        learningMeasured: learning.scores.filter((item) => item.status === "MEASURED").length,
+        learningInsufficient: learning.scores.filter((item) => item.status === "INSUFFICIENT").length,
+        learningNoData: learning.scores.filter((item) => item.status === "NO_DATA").length,
+        learningAmplify: learning.scores.filter((item) => item.action === "AMPLIFY").length,
+        learningOptimize: learning.scores.filter((item) => item.action === "OPTIMIZE").length,
+        learningDeprioritize: learning.scores.filter((item) => item.action === "DEPRIORITIZE").length,
         verificationPublishable: candidatePortfolio.filter((item) => item.verification?.status === "PUBLISHABLE").length,
         verificationResearchRequired: candidatePortfolio.filter((item) => item.verification?.status === "RESEARCH_REQUIRED").length,
         freeInterceptActions: interceptPlan.filter((item) => item.costMode === "FREE").length,
