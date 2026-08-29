@@ -13,6 +13,7 @@ import { collectResearchQueue } from "@/lib/discovery/research-collectors";
 import { normalizeAndMergeLeads } from "@/lib/discovery/evidence-normalizer";
 import { buildClaimVerificationPortfolio } from "@/lib/discovery/claim-verifier";
 import { buildSafeCopyPortfolio } from "@/lib/discovery/safe-copy-composer";
+import { buildPageAssemblyPortfolio } from "@/lib/discovery/page-assembly";
 import { emptyDemandRows, flattenUniverse, parisUncoveredUniverse } from "@/lib/discovery/search-demand";
 
 export async function GET() {
@@ -81,12 +82,21 @@ export async function GET() {
       };
     });
 
+    const pageAssembly = buildPageAssemblyPortfolio(
+      pageFactory,
+      candidatePortfolio.map((item) => ({
+        pageId: item.pageId,
+        safeCopies: item.safeCopy,
+        verification: item.verification,
+      })),
+    );
+
     const universeKeywords = flattenUniverse(parisUncoveredUniverse);
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
-      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "PAGE_FACTORY", "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT"],
+      architecture: ["DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "PRODUCTION_QUEUE", "PAGE_FACTORY", "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "PAGE_ASSEMBLY", "RESEARCH_VERIFICATION", "VELVET_JOURNEY", "INTERCEPT"],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
@@ -97,6 +107,7 @@ export async function GET() {
         evidenceNormalizer: "Leads are merged conservatively using name similarity, address agreement and geospatial proximity. Ambiguous entities remain separate. A merged candidate still must pass the verification gate.",
         claimLevelVerifier: "Every factual claim is evaluated independently. High-risk claims such as hours, prices, access, secrecy, popularity and atmosphere need stronger and fresher evidence. Non-verified claims are excluded from publishable copy rather than inherited from an otherwise valid place.",
         safeCopyComposer: "Copy is generated strictly from VERIFIED publishable claims. Excluded claims cannot be paraphrased or reintroduced. Every factual sentence retains source IDs and URLs for auditability.",
+        pageAssembly: "Page Factory structure and Safe Copy blocks are assembled only after verification. Indexing opens only when the page verification status is PUBLISHABLE, at least five discoveries have READY safe copy and a source audit trail exists; otherwise the assembled page remains noindex.",
         researchVerification: "Publication requires at least five VERIFIED discoveries. Each VERIFIED discovery needs at least two independent sources; an official source plus an independent source is preferred. Time-sensitive facts must be current. Empty or missing evidence never becomes publishable.",
         velvetJourney: "MEASURED only from first-party Velvet events/Search Console/analytics.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured.",
@@ -122,6 +133,7 @@ export async function GET() {
       pageFactory,
       researchCollector,
       candidatePortfolio,
+      pageAssembly,
       researchVerification: researchQueue,
       summary: {
         themes: portfolio.length,
@@ -151,6 +163,9 @@ export async function GET() {
         safeCopyReady: candidatePortfolio.reduce((sum, item) => sum + item.safeCopy.filter((result) => result.status === "READY").length, 0),
         safeCopyPartial: candidatePortfolio.reduce((sum, item) => sum + item.safeCopy.filter((result) => result.status === "PARTIAL").length, 0),
         safeCopyHold: candidatePortfolio.reduce((sum, item) => sum + item.safeCopy.filter((result) => result.status === "HOLD").length, 0),
+        assemblyReadyToRender: pageAssembly.filter((item) => item.status === "READY_TO_RENDER").length,
+        assemblyDraftNoIndex: pageAssembly.filter((item) => item.status === "DRAFT_NO_INDEX").length,
+        assemblyHold: pageAssembly.filter((item) => item.status === "HOLD").length,
         verificationPublishable: candidatePortfolio.filter((item) => item.verification?.status === "PUBLISHABLE").length,
         verificationResearchRequired: candidatePortfolio.filter((item) => item.verification?.status === "RESEARCH_REQUIRED").length,
         freeInterceptActions: interceptPlan.filter((item) => item.costMode === "FREE").length,
