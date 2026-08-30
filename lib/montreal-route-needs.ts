@@ -9,7 +9,9 @@ type CommercialPlace = NearbyPlace | MontrealNeedPlace;
 export type MontrealRouteNeeds = {
   routeId: string;
   centre: Coordinates;
+  requestedRadiusMeters: number;
   radiusMeters: number;
+  radiusExpanded: boolean;
   restaurants: CommercialPlace[];
   cafes: CommercialPlace[];
   pharmacies: CommercialPlace[];
@@ -47,13 +49,37 @@ function mergeCommercial(primary: CommercialPlace[], fallback: NearbyPlace[], ma
   return result.slice(0, max);
 }
 
+function resultCount(osm: Awaited<ReturnType<typeof getMontrealOsmNeeds>>) {
+  return osm.pharmacies.length
+    + osm.restaurants.length
+    + osm.cafes.length
+    + osm.restrooms.length
+    + osm.water.length
+    + osm.usefulShops.length;
+}
+
+function commercialCoverage(osm: Awaited<ReturnType<typeof getMontrealOsmNeeds>>) {
+  return osm.pharmacies.length >= 2 && osm.restaurants.length >= 3 && osm.cafes.length >= 3;
+}
+
 export async function getMontrealRouteNeeds(route: MontrealPilotRoute, radiusMeters = 700): Promise<MontrealRouteNeeds> {
   const centre = routeCentre(route);
-  const radius = Math.max(300, Math.min(1200, radiusMeters));
+  const requestedRadius = Math.max(300, Math.min(1200, radiusMeters));
+  let effectiveRadius = requestedRadius;
+  let osm = await getMontrealOsmNeeds(centre, effectiveRadius);
 
-  const osm = await getMontrealOsmNeeds(centre, radius);
+  const shouldExpand = requestedRadius < 800 && (resultCount(osm) === 0 || !commercialCoverage(osm));
+  if (shouldExpand) {
+    const expandedRadius = Math.min(800, requestedRadius + 100);
+    const expanded = await getMontrealOsmNeeds(centre, expandedRadius);
+    if (resultCount(expanded) > resultCount(osm) || commercialCoverage(expanded)) {
+      osm = expanded;
+      effectiveRadius = expandedRadius;
+    }
+  }
+
   const needsFallback = osm.pharmacies.length < 2 || osm.restaurants.length < 3 || osm.cafes.length < 3;
-  const fallback = needsFallback ? await getNearbyPlaces(centre, radius) : null;
+  const fallback = needsFallback ? await getNearbyPlaces(centre, effectiveRadius) : null;
 
   const restaurants = mergeCommercial(osm.restaurants, fallback?.restaurants ?? [], 3);
   const cafes = mergeCommercial(osm.cafes, fallback?.cafes ?? [], 3);
@@ -67,7 +93,9 @@ export async function getMontrealRouteNeeds(route: MontrealPilotRoute, radiusMet
   return {
     routeId: route.id,
     centre,
-    radiusMeters: radius,
+    requestedRadiusMeters: requestedRadius,
+    radiusMeters: effectiveRadius,
+    radiusExpanded: effectiveRadius > requestedRadius,
     restaurants,
     cafes,
     pharmacies,
