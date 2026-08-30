@@ -4,6 +4,7 @@ export type CuratedMontrealRestaurant = {
   lat: number;
   lon: number;
   address: string;
+  source: "curated";
   profile: "daytime-casual" | "refined-brasserie" | "signature-dinner";
   priceBand: "$$" | "$$$" | "$$$$";
   reservation: "none" | "recommended" | "required";
@@ -20,6 +21,7 @@ export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
     lat: 45.50122,
     lon: -73.55640,
     address: "351 Rue Saint-Paul Ouest, Montréal, QC H2Y 2A7",
+    source: "curated",
     profile: "daytime-casual",
     priceBand: "$$",
     reservation: "none",
@@ -34,6 +36,7 @@ export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
     lat: 45.50170,
     lon: -73.55982,
     address: "406 Rue Saint-Jacques, Montréal, QC H2Y 1S1",
+    source: "curated",
     profile: "refined-brasserie",
     priceBand: "$$$",
     reservation: "recommended",
@@ -48,6 +51,7 @@ export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
     lat: 45.50894,
     lon: -73.55250,
     address: "423 Rue Saint-Claude, Montréal, QC H2Y 3B6",
+    source: "curated",
     profile: "signature-dinner",
     priceBand: "$$$$",
     reservation: "required",
