@@ -1,4 +1,5 @@
 import type { ResearchPacket, ResearchEvidence } from "./research-verification";
+import { applyParisDestinationEntityLock } from "./destination-entity-lock";
 
 export type ResearchLead = {
   id: string;
@@ -61,7 +62,7 @@ function intentRelevant(text: string, query: string) { const tokens = queryToken
 async function collectWikimedia(packet: ResearchPacket, maxLeads: number): Promise<CollectorResult> {
   const collector = "WIKIMEDIA" as const;
   try {
-    const search = `${packet.query} Paris`;
+    const search = `${packet.query} Paris France place`;
     const response = await fetchWithTimeout(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(search)}&srlimit=10&format=json&origin=*`);
     if (!response.ok) throw new Error(`http_${response.status}`);
     const json = await response.json() as { query?: { search?: Array<{ pageid: number; title: string; snippet?: string }> } };
@@ -85,8 +86,8 @@ async function collectOpenStreetMap(packet: ResearchPacket, maxLeads: number): P
 
 async function collectBingRss(packet: ResearchPacket, mode: "OFFICIAL_SEARCH" | "EDITORIAL_SEARCH", maxLeads: number): Promise<CollectorResult> {
   const officialDomains = "(site:paris.fr OR site:parisjetaime.com OR site:france.fr OR site:culture.gouv.fr)";
-  const editorialTerms = "Paris travel hidden unusual quiet garden passage museum bookshop";
-  const q = mode === "OFFICIAL_SEARCH" ? `${packet.query} ${officialDomains}` : `${packet.query} ${editorialTerms}`;
+  const editorialTerms = "Paris France travel hidden unusual quiet garden passage museum bookshop";
+  const q = mode === "OFFICIAL_SEARCH" ? `${packet.query} Paris France ${officialDomains}` : `${packet.query} ${editorialTerms}`;
   try {
     const response = await fetchWithTimeout(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`);
     if (!response.ok) throw new Error(`http_${response.status}`);
@@ -115,8 +116,23 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
     () => collectBingRss(packet, "EDITORIAL_SEARCH", maxLeads),
   ].slice(0, maxCollectors);
   const results = await Promise.all(tasks.map((task) => task()));
-  const leads = dedupeLeads(results.flatMap((result) => result.leads));
-  return { packet, collectors: results.map((result) => ({ collector: result.collector, ok: result.ok, leads: result.leads.length, error: result.error })), leadCount: leads.length, independentSources: new Set(leads.map((lead) => lead.independentKey)).size, leads, note: "Research leads are evidence candidates only. Collector count and leads are budget-capped; no budget can open the publication gate by itself." };
+  const rawLeads = dedupeLeads(results.flatMap((result) => result.leads));
+  const entityLock = applyParisDestinationEntityLock(rawLeads);
+  const leads = entityLock.accepted;
+  return {
+    packet,
+    collectors: results.map((result) => ({ collector: result.collector, ok: result.ok, leads: result.leads.length, error: result.error })),
+    leadCount: leads.length,
+    independentSources: new Set(leads.map((lead) => lead.independentKey)).size,
+    leads,
+    destinationEntityLock: {
+      accepted: leads.length,
+      rejected: entityLock.rejected.length,
+      rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })),
+      rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before candidate merging unless a Paris-France geographic anchor exists.",
+    },
+    note: "Research leads are evidence candidates only. Collector count and leads are budget-capped; Destination Entity Lock runs before candidate merging; no budget or entity match can open the publication gate by itself.",
+  };
 }
 
 export async function collectResearchQueue(packets: ResearchPacket[], budgetOrMaxPackets: ResearchCollectorBudget | number = {}) {
