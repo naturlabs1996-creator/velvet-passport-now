@@ -1,11 +1,11 @@
 import { getNearbyPlaces, type NearbyPlace } from "./nearby-places";
 import { getMontrealOsmNeeds, type MontrealNeedPlace } from "./montreal-needs-provider";
-import { getCuratedMontrealRestaurants, type CuratedMontrealRestaurant } from "./montreal-curated-restaurants";
+import { getCuratedMontrealRestaurants, getTrustedCuratedMontrealRestaurants, type AuditedMontrealRestaurant } from "./montreal-curated-restaurants";
 import type { MontrealPilotRoute } from "./montreal-pilot-routes";
 
 type Coordinates = { lat: number; lon: number };
 
-type CuratedRestaurantResult = CuratedMontrealRestaurant & { distanceMeters: number };
+type CuratedRestaurantResult = AuditedMontrealRestaurant & { distanceMeters: number };
 type CommercialPlace = NearbyPlace | MontrealNeedPlace | CuratedRestaurantResult;
 
 export type MontrealRouteNeeds = {
@@ -15,7 +15,9 @@ export type MontrealRouteNeeds = {
   radiusMeters: number;
   radiusExpanded: boolean;
   restaurants: CommercialPlace[];
-  restaurantSelection: "curated" | "dynamic";
+  restaurantSelection: "trusted-curated" | "none";
+  restaurantDiscoveryCandidates: CommercialPlace[];
+  restaurantTrustReview: CuratedRestaurantResult[];
   cafes: CommercialPlace[];
   pharmacies: CommercialPlace[];
   restrooms: MontrealNeedPlace[];
@@ -89,24 +91,31 @@ export async function getMontrealRouteNeeds(route: MontrealPilotRoute, radiusMet
     }
   }
 
-  const curatedRestaurants = getCuratedMontrealRestaurants(route.id)
+  const auditedCuratedRestaurants = getCuratedMontrealRestaurants(route.id)
     .map((restaurant) => ({
       ...restaurant,
       distanceMeters: Math.round(haversineMeters(centre, restaurant)),
     }))
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
 
-  const needsFallback = osm.pharmacies.length < 2 || osm.cafes.length < 3 || (curatedRestaurants.length === 0 && osm.restaurants.length < 3);
+  const trustedCuratedRestaurants = getTrustedCuratedMontrealRestaurants(route.id)
+    .map((restaurant) => ({
+      ...restaurant,
+      distanceMeters: Math.round(haversineMeters(centre, restaurant)),
+    }))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+  const needsFallback = osm.pharmacies.length < 2 || osm.cafes.length < 3 || osm.restaurants.length < 3;
   const fallback = needsFallback ? await getNearbyPlaces(centre, effectiveRadius) : null;
 
-  const restaurants = curatedRestaurants.length > 0
-    ? curatedRestaurants.slice(0, 3)
-    : mergeCommercial(osm.restaurants, fallback?.restaurants ?? [], 3);
+  const restaurants = trustedCuratedRestaurants.slice(0, 3);
+  const restaurantDiscoveryCandidates = mergeCommercial(osm.restaurants, fallback?.restaurants ?? [], 6);
+  const restaurantTrustReview = auditedCuratedRestaurants.filter((restaurant) => restaurant.trustAssessment.status !== "approved");
   const cafes = mergeCommercial(osm.cafes, fallback?.cafes ?? [], 3);
   const pharmacies = mergeCommercial(osm.pharmacies, fallback?.pharmacies ?? [], 2);
 
   const providersUsed = [
-    ...(curatedRestaurants.length > 0 ? ["Velvet Passport Curated"] : []),
+    ...(auditedCuratedRestaurants.length > 0 ? ["Velvet Passport Curated"] : []),
     ...(osm.providerReachable ? ["OpenStreetMap"] : []),
     ...(fallback?.providersUsed ?? []),
   ];
@@ -118,14 +127,16 @@ export async function getMontrealRouteNeeds(route: MontrealPilotRoute, radiusMet
     radiusMeters: effectiveRadius,
     radiusExpanded: effectiveRadius > requestedRadius,
     restaurants,
-    restaurantSelection: curatedRestaurants.length > 0 ? "curated" : "dynamic",
+    restaurantSelection: restaurants.length > 0 ? "trusted-curated" : "none",
+    restaurantDiscoveryCandidates,
+    restaurantTrustReview,
     cafes,
     pharmacies,
     restrooms: osm.restrooms.slice(0, 4),
     water: osm.water.slice(0, 4),
     usefulShops: osm.usefulShops.slice(0, 4),
     providersUsed: Array.from(new Set(providersUsed)),
-    providerReachable: osm.providerReachable || Boolean(fallback?.providersUsed.length) || curatedRestaurants.length > 0,
+    providerReachable: osm.providerReachable || Boolean(fallback?.providersUsed.length) || auditedCuratedRestaurants.length > 0,
     cacheHit: osm.cacheHit && (fallback ? fallback.cacheHit : true),
   };
 }
