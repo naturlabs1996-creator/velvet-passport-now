@@ -3,6 +3,7 @@ export type TrustVerificationStatus = "approved" | "review_required" | "rejected
 export type TrustSubject =
   | "restaurant"
   | "food-experience"
+  | "lodging"
   | "museum-ticket"
   | "attraction-ticket"
   | "tour-activity"
@@ -49,7 +50,7 @@ function evidenceFresh(verifiedAt: string) {
 }
 
 function requiredEvidence(subject: TrustSubject, lesserKnown: boolean) {
-  if (subject === "restaurant" || subject === "food-experience") return 2;
+  if (subject === "restaurant" || subject === "food-experience" || subject === "lodging") return 2;
   if (lesserKnown) return 2;
   if (subject === "museum-ticket" || subject === "attraction-ticket" || subject === "tour-activity") return 1;
   return 1;
@@ -71,7 +72,7 @@ export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
   const massMarketRisk = input.massMarketRisk ?? "unknown";
   const strict = strictTouristRisk(subject);
 
-  let score = strict ? 30 : lesserKnown ? 35 : 45;
+  let score = strict ? 30 : lesserKnown ? 35 : subject === "lodging" ? 35 : 45;
   score += Math.min(40, positiveIndependent.length * 20);
   score -= Math.min(50, negativeIndependent.length * 25);
   if (input.editorialApproved) score += 15;
@@ -96,9 +97,8 @@ export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
   }
 
   const enoughIndependentEvidence = positiveIndependent.length >= requiredIndependentEvidence;
-  // High-risk cases have already returned above. Food still requires explicitly low tourist-trap risk.
   const acceptableRisk = strict ? touristTrapRisk === "low" : true;
-  const minimumScore = strict ? 70 : lesserKnown ? 70 : 55;
+  const minimumScore = strict || subject === "lodging" ? 70 : lesserKnown ? 70 : 55;
 
   if (enoughIndependentEvidence && acceptableRisk && score >= minimumScore) {
     return {
@@ -112,9 +112,11 @@ export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
       requiredIndependentEvidence,
       reason: strict
         ? "Food recommendation passed the strict NOW cross-check with at least two recent independent confirmations and low tourist-trap risk."
-        : lesserKnown
-          ? "Lesser-known recommendation passed an elevated NOW cross-check with at least two recent independent confirmations."
-          : "Recommendation passed the risk-weighted NOW cross-check for this category.",
+        : subject === "lodging"
+          ? "Lodging recommendation passed an elevated NOW cross-check with at least two recent independent confirmations."
+          : lesserKnown
+            ? "Lesser-known recommendation passed an elevated NOW cross-check with at least two recent independent confirmations."
+            : "Recommendation passed the risk-weighted NOW cross-check for this category.",
     };
   }
 
@@ -129,9 +131,11 @@ export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
     requiredIndependentEvidence,
     reason: strict
       ? "Food recommendations require at least two recent independent confirmations and low tourist-trap risk before NOW recommends them."
-      : lesserKnown
-        ? "Lesser-known places require at least two recent independent confirmations before NOW recommends them."
-        : `This category requires at least ${requiredIndependentEvidence} recent independent confirmation before NOW recommends it.`,
+      : subject === "lodging"
+        ? "Lodging recommendations require at least two recent independent confirmations before NOW recommends them."
+        : lesserKnown
+          ? "Lesser-known places require at least two recent independent confirmations before NOW recommends them."
+          : `This category requires at least ${requiredIndependentEvidence} recent independent confirmation before NOW recommends it.`,
   };
 }
 
