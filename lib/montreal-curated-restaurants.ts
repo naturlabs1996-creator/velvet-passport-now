@@ -1,3 +1,6 @@
+import { assessRestaurantTrust, type RestaurantTrustAssessment } from "./restaurant-trust-gate";
+import type { TrustEvidence } from "./now-trust-gate";
+
 export type CuratedMontrealRestaurant = {
   routeId: string;
   name: string;
@@ -12,6 +15,11 @@ export type CuratedMontrealRestaurant = {
   editorialReason: string;
   touristTrapRisk: "low";
   lastVerified: string;
+  trustEvidence?: TrustEvidence[];
+};
+
+export type AuditedMontrealRestaurant = CuratedMontrealRestaurant & {
+  trustAssessment: RestaurantTrustAssessment;
 };
 
 export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
@@ -62,6 +70,26 @@ export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
   },
 ];
 
+function auditRestaurant(restaurant: CuratedMontrealRestaurant): AuditedMontrealRestaurant {
+  const trustAssessment = assessRestaurantTrust({
+    name: restaurant.name,
+    provider: "Velvet Passport Curated",
+    evidence: restaurant.trustEvidence,
+    touristTrapRisk: restaurant.touristTrapRisk,
+    editorialApproved: restaurant.editorialStatus === "approved",
+    hygieneStatus: "unknown",
+    valueRisk: "unknown",
+    qualityConsistencyRisk: "unknown",
+    localFit: "strong",
+  });
+
+  return { ...restaurant, trustAssessment };
+}
+
 export function getCuratedMontrealRestaurants(routeId: string) {
-  return MONTREAL_CURATED_RESTAURANTS.filter((restaurant) => restaurant.routeId === routeId);
+  return MONTREAL_CURATED_RESTAURANTS.filter((restaurant) => restaurant.routeId === routeId).map(auditRestaurant);
+}
+
+export function getTrustedCuratedMontrealRestaurants(routeId: string) {
+  return getCuratedMontrealRestaurants(routeId).filter((restaurant) => restaurant.trustAssessment.status === "approved");
 }
