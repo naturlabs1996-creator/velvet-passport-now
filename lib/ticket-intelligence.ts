@@ -1,4 +1,4 @@
-import { assessNowTrust, type TrustEvidence, type TrustRisk, type TrustVerificationStatus } from "./now-trust-gate";
+import { assessNowTrust, type TrustEvidence, type TrustRisk, type TrustSubject, type TrustVerificationStatus } from "./now-trust-gate";
 
 export type TicketCandidate = {
   id: string;
@@ -15,6 +15,7 @@ export type TicketCandidate = {
   currency?: string;
   availabilityVerifiedAt?: string;
   priceVerifiedAt?: string;
+  trustSubject?: TrustSubject;
   trustEvidence?: TrustEvidence[];
   touristTrapRisk?: TrustRisk;
   massMarketRisk?: TrustRisk;
@@ -120,6 +121,7 @@ export function rankTicketCandidates(candidates: TicketCandidate[], context: Tic
       const promotionVerified = verifiedPromotion(candidate);
       const trust = assessNowTrust({
         provider: candidate.provider,
+        subject: candidate.trustSubject,
         evidence: candidate.trustEvidence,
         touristTrapRisk: candidate.touristTrapRisk,
         massMarketRisk: candidate.massMarketRisk,
@@ -145,7 +147,7 @@ export function rankTicketCandidates(candidates: TicketCandidate[], context: Tic
           ? "Does not fit without sacrificing the protected margin."
           : !availabilityVerified
             ? "Schedule fit is possible, but live availability is not fresh enough to recommend booking."
-            : "Fits the current schedule, live availability is fresh, and independent trust verification passed.";
+            : "Fits the current schedule, live availability is fresh, and the risk-weighted trust check passed.";
 
       return {
         ...candidate,
@@ -183,6 +185,7 @@ export const PARIS_TICKET_SEEDS: TicketCandidate[] = [
     travelMinutes: 20,
     productUrl: "https://www.viator.com/tours/Paris/Entry-ticket-for-the-Louvre-Museum-in-Paris/d479-374060P8",
     provider: "viator",
+    trustSubject: "museum-ticket",
     touristTrapRisk: "unknown",
     massMarketRisk: "unknown",
     editorialApproved: false,
@@ -196,6 +199,7 @@ export const PARIS_TICKET_SEEDS: TicketCandidate[] = [
     flexibleDeparture: true,
     productUrl: "https://www.viator.com/tours/Paris/Paris-Seine-River-Sightseeing-cruise/d479-9511P19",
     provider: "viator",
+    trustSubject: "tour-activity",
     touristTrapRisk: "unknown",
     massMarketRisk: "unknown",
     editorialApproved: false,
@@ -209,6 +213,7 @@ export const PARIS_TICKET_SEEDS: TicketCandidate[] = [
     flexibleDeparture: true,
     productUrl: "https://www.viator.com/tours/Paris/Paris-Seine-River-Sightseeing-Cruise-Tour/d479-242747P85",
     provider: "viator",
+    trustSubject: "tour-activity",
     touristTrapRisk: "unknown",
     massMarketRisk: "unknown",
     editorialApproved: false,
