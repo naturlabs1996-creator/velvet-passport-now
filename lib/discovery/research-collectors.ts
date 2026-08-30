@@ -1,5 +1,6 @@
 import type { ResearchPacket, ResearchEvidence } from "./research-verification";
 import { applyParisDestinationEntityLock } from "./destination-entity-lock";
+import { applyResearchRelevanceEngine } from "./research-relevance-engine";
 
 export type ResearchLead = {
   id: string;
@@ -118,7 +119,8 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   const results = await Promise.all(tasks.map((task) => task()));
   const rawLeads = dedupeLeads(results.flatMap((result) => result.leads));
   const entityLock = applyParisDestinationEntityLock(rawLeads);
-  const leads = entityLock.accepted;
+  const relevance = applyResearchRelevanceEngine(entityLock.accepted);
+  const leads = relevance.accepted;
   return {
     packet,
     collectors: results.map((result) => ({ collector: result.collector, ok: result.ok, leads: result.leads.length, error: result.error })),
@@ -126,12 +128,18 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
     independentSources: new Set(leads.map((lead) => lead.independentKey)).size,
     leads,
     destinationEntityLock: {
-      accepted: leads.length,
+      accepted: entityLock.accepted.length,
       rejected: entityLock.rejected.length,
       rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })),
       rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before candidate merging unless a Paris-France geographic anchor exists.",
     },
-    note: "Research leads are evidence candidates only. Collector count and leads are budget-capped; Destination Entity Lock runs before candidate merging; no budget or entity match can open the publication gate by itself.",
+    researchRelevance: {
+      accepted: leads.length,
+      rejected: relevance.rejected.length,
+      rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, reasons: score.reasons })),
+      rule: "A valid Paris entity must also match the active traveler intent and provide enough Velvet utility before deeper verification.",
+    },
+    note: "Research leads are evidence candidates only. Destination Entity Lock and Research Relevance Engine both run before candidate merging; no score can open verification or publication gates by itself.",
   };
 }
 
