@@ -1,10 +1,12 @@
 import { getNearbyPlaces, type NearbyPlace } from "./nearby-places";
 import { getMontrealOsmNeeds, type MontrealNeedPlace } from "./montreal-needs-provider";
+import { getCuratedMontrealRestaurants, type CuratedMontrealRestaurant } from "./montreal-curated-restaurants";
 import type { MontrealPilotRoute } from "./montreal-pilot-routes";
 
 type Coordinates = { lat: number; lon: number };
 
-type CommercialPlace = NearbyPlace | MontrealNeedPlace;
+type CuratedRestaurantResult = CuratedMontrealRestaurant & { distanceMeters: number };
+type CommercialPlace = NearbyPlace | MontrealNeedPlace | CuratedRestaurantResult;
 
 export type MontrealRouteNeeds = {
   routeId: string;
@@ -13,6 +15,7 @@ export type MontrealRouteNeeds = {
   radiusMeters: number;
   radiusExpanded: boolean;
   restaurants: CommercialPlace[];
+  restaurantSelection: "curated" | "dynamic";
   cafes: CommercialPlace[];
   pharmacies: CommercialPlace[];
   restrooms: MontrealNeedPlace[];
@@ -29,6 +32,14 @@ function routeCentre(route: MontrealPilotRoute): Coordinates {
     lat: route.stops.reduce((sum, stop) => sum + stop.lat, 0) / count,
     lon: route.stops.reduce((sum, stop) => sum + stop.lon, 0) / count,
   };
+}
+
+function haversineMeters(a: Coordinates, b: Coordinates) {
+  const rad = (value: number) => value * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLon = rad(b.lon - a.lon);
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
 function normalizedName(value: string) {
@@ -78,14 +89,24 @@ export async function getMontrealRouteNeeds(route: MontrealPilotRoute, radiusMet
     }
   }
 
-  const needsFallback = osm.pharmacies.length < 2 || osm.restaurants.length < 3 || osm.cafes.length < 3;
+  const curatedRestaurants = getCuratedMontrealRestaurants(route.id)
+    .map((restaurant) => ({
+      ...restaurant,
+      distanceMeters: Math.round(haversineMeters(centre, restaurant)),
+    }))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+  const needsFallback = osm.pharmacies.length < 2 || osm.cafes.length < 3 || (curatedRestaurants.length === 0 && osm.restaurants.length < 3);
   const fallback = needsFallback ? await getNearbyPlaces(centre, effectiveRadius) : null;
 
-  const restaurants = mergeCommercial(osm.restaurants, fallback?.restaurants ?? [], 3);
+  const restaurants = curatedRestaurants.length > 0
+    ? curatedRestaurants.slice(0, 3)
+    : mergeCommercial(osm.restaurants, fallback?.restaurants ?? [], 3);
   const cafes = mergeCommercial(osm.cafes, fallback?.cafes ?? [], 3);
   const pharmacies = mergeCommercial(osm.pharmacies, fallback?.pharmacies ?? [], 2);
 
   const providersUsed = [
+    ...(curatedRestaurants.length > 0 ? ["Velvet Passport Curated"] : []),
     ...(osm.providerReachable ? ["OpenStreetMap"] : []),
     ...(fallback?.providersUsed ?? []),
   ];
@@ -97,13 +118,14 @@ export async function getMontrealRouteNeeds(route: MontrealPilotRoute, radiusMet
     radiusMeters: effectiveRadius,
     radiusExpanded: effectiveRadius > requestedRadius,
     restaurants,
+    restaurantSelection: curatedRestaurants.length > 0 ? "curated" : "dynamic",
     cafes,
     pharmacies,
     restrooms: osm.restrooms.slice(0, 4),
     water: osm.water.slice(0, 4),
     usefulShops: osm.usefulShops.slice(0, 4),
     providersUsed: Array.from(new Set(providersUsed)),
-    providerReachable: osm.providerReachable || Boolean(fallback?.providersUsed.length),
+    providerReachable: osm.providerReachable || Boolean(fallback?.providersUsed.length) || curatedRestaurants.length > 0,
     cacheHit: osm.cacheHit && (fallback ? fallback.cacheHit : true),
   };
 }
