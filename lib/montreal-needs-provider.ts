@@ -32,6 +32,12 @@ const cache = new Map<string, CacheEntry>();
 const POSITIVE_TTL_MS = 30 * 60 * 1000;
 const NEGATIVE_TTL_MS = 60 * 1000;
 const OSM_TIMEOUT_MS = 9000;
+const RETRY_PASSES = 2;
+const RETRY_BACKOFF_MS = 250;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function haversineMeters(a: Coordinates, b: Coordinates) {
   const rad = (value: number) => value * Math.PI / 180;
@@ -77,6 +83,10 @@ function empty(providerReachable = false): MontrealNeedGroups {
   };
 }
 
+function countGroups(groups: MontrealNeedGroups) {
+  return groups.pharmacies.length + groups.restaurants.length + groups.cafes.length + groups.restrooms.length + groups.water.length + groups.usefulShops.length;
+}
+
 export async function getMontrealOsmNeeds(centre: Coordinates, radiusMeters: number): Promise<MontrealNeedGroups> {
   const radius = Math.max(300, Math.min(1200, radiusMeters));
   const key = cacheKey(centre, radius);
@@ -100,87 +110,95 @@ export async function getMontrealOsmNeeds(centre: Coordinates, radiusMeters: num
     "https://overpass.nchc.org.tw/api/interpreter",
   ];
 
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          "User-Agent": "VelvetPassportNOW/1.0 (travel-context)",
-          Accept: "application/json",
-        },
-        body: new URLSearchParams({ data: query }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(OSM_TIMEOUT_MS),
-      });
-      if (!response.ok) continue;
+  let anyProviderReachable = false;
 
-      const payload = await response.json() as {
-        elements?: Array<{
-          lat?: number;
-          lon?: number;
-          center?: { lat?: number; lon?: number };
-          tags?: Record<string, string>;
-        }>;
-      };
+  for (let pass = 0; pass < RETRY_PASSES; pass += 1) {
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "User-Agent": "VelvetPassportNOW/1.0 (travel-context)",
+            Accept: "application/json",
+          },
+          body: new URLSearchParams({ data: query }),
+          cache: "no-store",
+          signal: AbortSignal.timeout(OSM_TIMEOUT_MS),
+        });
+        if (!response.ok) continue;
+        anyProviderReachable = true;
 
-      const groups = empty(true);
-      for (const element of payload.elements ?? []) {
-        const point = pointFromElement(element);
-        if (!point) continue;
-        const tags = element.tags ?? {};
-        const amenity = tags.amenity;
-        const shop = tags.shop;
-        const openingHours = tags.opening_hours;
-        const opening = evaluateOpeningHours(openingHours);
-        const address = [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" ") || undefined;
-        const fallbackName = amenity === "pharmacy" ? "Pharmacy"
-          : amenity === "restaurant" ? "Restaurant"
-          : amenity === "cafe" ? "Café"
-          : amenity === "toilets" ? "Public restroom"
-          : amenity === "drinking_water" ? "Drinking water"
-          : "Useful shop";
-        const item: MontrealNeedPlace = {
-          name: tags.name || fallbackName,
-          ...point,
-          distanceMeters: Math.round(haversineMeters(centre, point)),
-          detail: [tags.cuisine, openingHours ? opening.label : undefined, tags.wheelchair === "yes" ? "wheelchair accessible" : undefined].filter(Boolean).join(" · ") || undefined,
-          address,
-          source: "osm",
-          openingHours,
-          openStatus: openingHours ? opening.status : "unknown",
-          openLabel: openingHours ? opening.label : "Hours not confirmed",
-          closesInMinutes: openingHours ? opening.closesInMinutes : undefined,
+        const payload = await response.json() as {
+          elements?: Array<{
+            lat?: number;
+            lon?: number;
+            center?: { lat?: number; lon?: number };
+            tags?: Record<string, string>;
+          }>;
         };
 
-        if (amenity === "pharmacy") groups.pharmacies.push(item);
-        else if (amenity === "restaurant") groups.restaurants.push(item);
-        else if (amenity === "cafe") groups.cafes.push(item);
-        else if (amenity === "toilets") groups.restrooms.push(item);
-        else if (amenity === "drinking_water") groups.water.push(item);
-        else if (shop === "convenience" || shop === "supermarket") groups.usefulShops.push(item);
-      }
+        const groups = empty(true);
+        for (const element of payload.elements ?? []) {
+          const point = pointFromElement(element);
+          if (!point) continue;
+          const tags = element.tags ?? {};
+          const amenity = tags.amenity;
+          const shop = tags.shop;
+          const openingHours = tags.opening_hours;
+          const opening = evaluateOpeningHours(openingHours);
+          const address = [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" ") || undefined;
+          const fallbackName = amenity === "pharmacy" ? "Pharmacy"
+            : amenity === "restaurant" ? "Restaurant"
+            : amenity === "cafe" ? "Café"
+            : amenity === "toilets" ? "Public restroom"
+            : amenity === "drinking_water" ? "Drinking water"
+            : "Useful shop";
+          const item: MontrealNeedPlace = {
+            name: tags.name || fallbackName,
+            ...point,
+            distanceMeters: Math.round(haversineMeters(centre, point)),
+            detail: [tags.cuisine, openingHours ? opening.label : undefined, tags.wheelchair === "yes" ? "wheelchair accessible" : undefined].filter(Boolean).join(" · ") || undefined,
+            address,
+            source: "osm",
+            openingHours,
+            openStatus: openingHours ? opening.status : "unknown",
+            openLabel: openingHours ? opening.label : "Hours not confirmed",
+            closesInMinutes: openingHours ? opening.closesInMinutes : undefined,
+          };
 
-      groups.pharmacies = sortByOpenStatus(clean(groups.pharmacies, 6));
-      groups.restaurants = sortByOpenStatus(clean(groups.restaurants, 10));
-      groups.cafes = sortByOpenStatus(clean(groups.cafes, 6));
-      groups.restrooms = clean(groups.restrooms, 6);
-      groups.water = clean(groups.water, 6);
-      groups.usefulShops = clean(groups.usefulShops, 6);
+          if (amenity === "pharmacy") groups.pharmacies.push(item);
+          else if (amenity === "restaurant") groups.restaurants.push(item);
+          else if (amenity === "cafe") groups.cafes.push(item);
+          else if (amenity === "toilets") groups.restrooms.push(item);
+          else if (amenity === "drinking_water") groups.water.push(item);
+          else if (shop === "convenience" || shop === "supermarket") groups.usefulShops.push(item);
+        }
 
-      const count = groups.pharmacies.length + groups.restaurants.length + groups.cafes.length + groups.restrooms.length + groups.water.length + groups.usefulShops.length;
-      cache.set(key, { expiresAt: Date.now() + (count > 0 ? POSITIVE_TTL_MS : NEGATIVE_TTL_MS), value: groups });
-      if (cache.size > 250) {
-        const oldest = cache.keys().next().value;
-        if (oldest) cache.delete(oldest);
+        groups.pharmacies = sortByOpenStatus(clean(groups.pharmacies, 6));
+        groups.restaurants = sortByOpenStatus(clean(groups.restaurants, 10));
+        groups.cafes = sortByOpenStatus(clean(groups.cafes, 6));
+        groups.restrooms = clean(groups.restrooms, 6);
+        groups.water = clean(groups.water, 6);
+        groups.usefulShops = clean(groups.usefulShops, 6);
+
+        if (countGroups(groups) === 0) continue;
+
+        cache.set(key, { expiresAt: Date.now() + POSITIVE_TTL_MS, value: groups });
+        if (cache.size > 250) {
+          const oldest = cache.keys().next().value;
+          if (oldest) cache.delete(oldest);
+        }
+        return groups;
+      } catch {
+        continue;
       }
-      return groups;
-    } catch {
-      continue;
     }
+
+    if (pass < RETRY_PASSES - 1) await sleep(RETRY_BACKOFF_MS * (pass + 1));
   }
 
-  const value = empty(false);
+  const value = empty(anyProviderReachable);
   cache.set(key, { expiresAt: Date.now() + NEGATIVE_TTL_MS, value });
   return value;
 }
