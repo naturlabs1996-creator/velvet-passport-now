@@ -1,5 +1,5 @@
-import { assessRestaurantTrust, type RestaurantTrustAssessment } from "./restaurant-trust-gate";
-import type { TrustEvidence } from "./now-trust-gate";
+import { assessRestaurantTrust, type RestaurantHygieneStatus, type RestaurantLocalFit, type RestaurantTrustAssessment } from "./restaurant-trust-gate";
+import type { TrustEvidence, TrustRisk } from "./now-trust-gate";
 
 export type CuratedMontrealRestaurant = {
   routeId: string;
@@ -15,7 +15,11 @@ export type CuratedMontrealRestaurant = {
   editorialReason: string;
   touristTrapRisk: "low";
   lastVerified: string;
-  trustEvidence?: TrustEvidence[];
+  trustEvidence: TrustEvidence[];
+  hygieneStatus: RestaurantHygieneStatus;
+  valueRisk: TrustRisk;
+  qualityConsistencyRisk: TrustRisk;
+  localFit: RestaurantLocalFit;
 };
 
 export type AuditedMontrealRestaurant = CuratedMontrealRestaurant & {
@@ -37,6 +41,33 @@ export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
     editorialReason: "Long-established local daytime institution with house-made food, strong local credibility, and a distinct identity beyond Old Montreal tourist traffic.",
     touristTrapRisk: "low",
     lastVerified: "2026-08-30",
+    hygieneStatus: "unknown",
+    valueRisk: "medium",
+    qualityConsistencyRisk: "low",
+    localFit: "strong",
+    trustEvidence: [
+      {
+        source: "Tourisme Montréal — Olive et Gourmando current gastronomy profile",
+        kind: "local-editorial",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "Restaurantji — Olive et Gourmando current review aggregate, updated August 2026",
+        kind: "independent-reviews",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "Tripadvisor — Olive et Gourmando recent 2026 traveler reviews",
+        kind: "independent-reviews",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+    ],
   },
   {
     routeId: "montreal-old-1",
@@ -52,6 +83,40 @@ export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
     editorialReason: "Chef-led Montreal restaurant with separate brasserie and dining-room experiences, strong local reputation, and serious food and wine programs.",
     touristTrapRisk: "low",
     lastVerified: "2026-08-30",
+    hygieneStatus: "unknown",
+    valueRisk: "medium",
+    qualityConsistencyRisk: "medium",
+    localFit: "strong",
+    trustEvidence: [
+      {
+        source: "MICHELIN Guide Québec 2026 — Monarque recommended selection",
+        kind: "local-editorial",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "Tourisme Montréal — award-winning restaurants 2026, Monarque",
+        kind: "local-editorial",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "Restaurantji — Monarque current review aggregate, updated August 2026",
+        kind: "independent-reviews",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "Tripadvisor — Monarque recent 2026 traveler reviews",
+        kind: "independent-reviews",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+    ],
   },
   {
     routeId: "montreal-old-1",
@@ -67,6 +132,40 @@ export const MONTREAL_CURATED_RESTAURANTS: CuratedMontrealRestaurant[] = [
     editorialReason: "Discreet Old Montreal institution with more than two decades of local credibility, chef-driven Quebec cuisine, and an intimate destination-worthy experience.",
     touristTrapRisk: "low",
     lastVerified: "2026-08-30",
+    hygieneStatus: "unknown",
+    valueRisk: "medium",
+    qualityConsistencyRisk: "low",
+    localFit: "strong",
+    trustEvidence: [
+      {
+        source: "MICHELIN Guide — Le Club Chasse et Pêche current Montréal listing",
+        kind: "local-editorial",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "OpenTable editors — Le Club Chasse et Pêche 2026 Icon/current editorial profile",
+        kind: "local-editorial",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "Restaurantji — Le Club Chasse et Pêche current review aggregate, August 2026",
+        kind: "independent-reviews",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+      {
+        source: "Tripadvisor — Le Club Chasse et Pêche recent July-August 2026 traveler reviews",
+        kind: "independent-reviews",
+        independent: true,
+        verifiedAt: "2026-08-30",
+        positive: true,
+      },
+    ],
   },
 ];
 
@@ -77,10 +176,10 @@ function auditRestaurant(restaurant: CuratedMontrealRestaurant): AuditedMontreal
     evidence: restaurant.trustEvidence,
     touristTrapRisk: restaurant.touristTrapRisk,
     editorialApproved: restaurant.editorialStatus === "approved",
-    hygieneStatus: "unknown",
-    valueRisk: "unknown",
-    qualityConsistencyRisk: "unknown",
-    localFit: "strong",
+    hygieneStatus: restaurant.hygieneStatus,
+    valueRisk: restaurant.valueRisk,
+    qualityConsistencyRisk: restaurant.qualityConsistencyRisk,
+    localFit: restaurant.localFit,
   });
 
   return { ...restaurant, trustAssessment };
