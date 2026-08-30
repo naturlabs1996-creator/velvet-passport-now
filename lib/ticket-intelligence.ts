@@ -1,3 +1,5 @@
+import { assessNowTrust, type TrustEvidence, type TrustRisk, type TrustVerificationStatus } from "./now-trust-gate";
+
 export type TicketCandidate = {
   id: string;
   title: string;
@@ -13,6 +15,10 @@ export type TicketCandidate = {
   currency?: string;
   availabilityVerifiedAt?: string;
   priceVerifiedAt?: string;
+  trustEvidence?: TrustEvidence[];
+  touristTrapRisk?: TrustRisk;
+  massMarketRisk?: TrustRisk;
+  editorialApproved?: boolean;
 };
 
 export type TicketContext = {
@@ -31,6 +37,10 @@ export type TicketRecommendation = TicketCandidate & {
   ticketMarginProtected: boolean;
   availabilityVerified: boolean;
   promotionVerified: boolean;
+  trustStatus: TrustVerificationStatus;
+  trustScore: number;
+  trustReason: string;
+  independentEvidenceCount: number;
   bookingReady: boolean;
   affiliateUrl: string;
   reason: string;
@@ -107,23 +117,35 @@ export function rankTicketCandidates(candidates: TicketCandidate[], context: Tic
       const remainingMinutes = Math.max(0, hardWindow - elapsed - committedMinutes);
       const availabilityVerified = freshEnough(candidate.availabilityVerifiedAt, 15);
       const ticketMarginProtected = remainingMinutes >= protectedMargin;
-      const bookingReady = availabilityVerified && ticketMarginProtected;
-      const fit = bookingReady;
       const promotionVerified = verifiedPromotion(candidate);
+      const trust = assessNowTrust({
+        provider: candidate.provider,
+        evidence: candidate.trustEvidence,
+        touristTrapRisk: candidate.touristTrapRisk,
+        massMarketRisk: candidate.massMarketRisk,
+        editorialApproved: candidate.editorialApproved,
+      });
+      const trustApproved = trust.status === "approved";
+      const bookingReady = availabilityVerified && ticketMarginProtected && trustApproved;
+      const fit = bookingReady;
 
       let score = 100;
       if (!ticketMarginProtected) score -= 70;
       if (!availabilityVerified) score -= 40;
+      if (!trustApproved) score -= 60;
+      score += Math.round((trust.trustScore - 70) / 5);
       if (candidate.flexibleDeparture) score += 8;
       if (promotionVerified) score += 6;
       score -= timingPenalty(candidate);
       score -= Math.min(20, Math.round(committedMinutes / 20));
 
-      const reason = !ticketMarginProtected
-        ? "Does not fit without sacrificing the protected margin."
-        : !availabilityVerified
-          ? "Schedule fit is possible, but live availability is not fresh enough to recommend booking."
-          : "Fits the current schedule and live availability was recently verified.";
+      const reason = !trustApproved
+        ? `NOW Trust Gate blocked this offer: ${trust.reason}`
+        : !ticketMarginProtected
+          ? "Does not fit without sacrificing the protected margin."
+          : !availabilityVerified
+            ? "Schedule fit is possible, but live availability is not fresh enough to recommend booking."
+            : "Fits the current schedule, live availability is fresh, and independent trust verification passed.";
 
       return {
         ...candidate,
@@ -134,6 +156,10 @@ export function rankTicketCandidates(candidates: TicketCandidate[], context: Tic
         ticketMarginProtected,
         availabilityVerified,
         promotionVerified,
+        trustStatus: trust.status,
+        trustScore: trust.trustScore,
+        trustReason: trust.reason,
+        independentEvidenceCount: trust.independentEvidenceCount,
         bookingReady,
         affiliateUrl: buildViatorAffiliateUrl(candidate.productUrl, `paris-now-${candidate.id}`),
         reason,
@@ -157,6 +183,9 @@ export const PARIS_TICKET_SEEDS: TicketCandidate[] = [
     travelMinutes: 20,
     productUrl: "https://www.viator.com/tours/Paris/Entry-ticket-for-the-Louvre-Museum-in-Paris/d479-374060P8",
     provider: "viator",
+    touristTrapRisk: "unknown",
+    massMarketRisk: "unknown",
+    editorialApproved: false,
   },
   {
     id: "seine-pont-neuf",
@@ -167,6 +196,9 @@ export const PARIS_TICKET_SEEDS: TicketCandidate[] = [
     flexibleDeparture: true,
     productUrl: "https://www.viator.com/tours/Paris/Paris-Seine-River-Sightseeing-cruise/d479-9511P19",
     provider: "viator",
+    touristTrapRisk: "unknown",
+    massMarketRisk: "unknown",
+    editorialApproved: false,
   },
   {
     id: "seine-sightseeing",
@@ -177,5 +209,8 @@ export const PARIS_TICKET_SEEDS: TicketCandidate[] = [
     flexibleDeparture: true,
     productUrl: "https://www.viator.com/tours/Paris/Paris-Seine-River-Sightseeing-Cruise-Tour/d479-242747P85",
     provider: "viator",
+    touristTrapRisk: "unknown",
+    massMarketRisk: "unknown",
+    editorialApproved: false,
   },
 ];
