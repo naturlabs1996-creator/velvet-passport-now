@@ -96,9 +96,8 @@ export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
   }
 
   const enoughIndependentEvidence = positiveIndependent.length >= requiredIndependentEvidence;
-  const acceptableRisk = strict
-    ? touristTrapRisk === "low" && massMarketRisk !== "high"
-    : touristTrapRisk !== "high" && massMarketRisk !== "high";
+  // High-risk cases have already returned above. Food still requires explicitly low tourist-trap risk.
+  const acceptableRisk = strict ? touristTrapRisk === "low" : true;
   const minimumScore = strict ? 70 : lesserKnown ? 70 : 55;
 
   if (enoughIndependentEvidence && acceptableRisk && score >= minimumScore) {
