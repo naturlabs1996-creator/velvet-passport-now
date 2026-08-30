@@ -1,5 +1,13 @@
 export type TrustRisk = "low" | "medium" | "high" | "unknown";
 export type TrustVerificationStatus = "approved" | "review_required" | "rejected";
+export type TrustSubject =
+  | "restaurant"
+  | "food-experience"
+  | "museum-ticket"
+  | "attraction-ticket"
+  | "tour-activity"
+  | "transport"
+  | "other";
 
 export type TrustEvidence = {
   source: string;
@@ -11,6 +19,7 @@ export type TrustEvidence = {
 
 export type TrustAssessmentInput = {
   provider: string;
+  subject?: TrustSubject;
   evidence?: TrustEvidence[];
   touristTrapRisk?: TrustRisk;
   massMarketRisk?: TrustRisk;
@@ -23,6 +32,8 @@ export type TrustAssessment = {
   independentEvidenceCount: number;
   touristTrapRisk: TrustRisk;
   massMarketRisk: TrustRisk;
+  subject: TrustSubject;
+  requiredIndependentEvidence: number;
   reason: string;
 };
 
@@ -35,21 +46,34 @@ function evidenceFresh(verifiedAt: string) {
   return age >= 0 && age <= MAX_EVIDENCE_AGE_DAYS * 24 * 60 * 60 * 1000;
 }
 
+function requiredEvidence(subject: TrustSubject) {
+  if (subject === "restaurant" || subject === "food-experience") return 2;
+  if (subject === "museum-ticket" || subject === "attraction-ticket" || subject === "tour-activity") return 1;
+  return 1;
+}
+
+function strictTouristRisk(subject: TrustSubject) {
+  return subject === "restaurant" || subject === "food-experience";
+}
+
 export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
+  const subject = input.subject ?? "other";
+  const requiredIndependentEvidence = requiredEvidence(subject);
   const evidence = (input.evidence ?? []).filter((item) => evidenceFresh(item.verifiedAt));
   const independentEvidence = evidence.filter((item) => item.independent && item.kind !== "provider");
   const positiveIndependent = independentEvidence.filter((item) => item.positive !== false);
   const negativeIndependent = independentEvidence.filter((item) => item.positive === false);
   const touristTrapRisk = input.touristTrapRisk ?? "unknown";
   const massMarketRisk = input.massMarketRisk ?? "unknown";
+  const strict = strictTouristRisk(subject);
 
-  let score = 35;
+  let score = strict ? 30 : 45;
   score += Math.min(40, positiveIndependent.length * 20);
   score -= Math.min(50, negativeIndependent.length * 25);
   if (input.editorialApproved) score += 15;
-  if (touristTrapRisk === "medium") score -= 20;
+  if (touristTrapRisk === "medium") score -= strict ? 25 : 10;
   if (touristTrapRisk === "high") score -= 50;
-  if (massMarketRisk === "medium") score -= 15;
+  if (massMarketRisk === "medium") score -= strict ? 20 : 10;
   if (massMarketRisk === "high") score -= 40;
   score = Math.max(0, Math.min(100, score));
 
@@ -60,20 +84,30 @@ export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
       independentEvidenceCount: independentEvidence.length,
       touristTrapRisk,
       massMarketRisk,
+      subject,
+      requiredIndependentEvidence,
       reason: "Independent evidence indicates a material quality or tourist-mass-market risk.",
     };
   }
 
-  const enoughIndependentEvidence = positiveIndependent.length >= 2;
-  const acceptableRisk = touristTrapRisk !== "medium" && massMarketRisk !== "medium";
-  if (enoughIndependentEvidence && acceptableRisk && score >= 70) {
+  const enoughIndependentEvidence = positiveIndependent.length >= requiredIndependentEvidence;
+  const acceptableRisk = strict
+    ? touristTrapRisk === "low" && massMarketRisk !== "high"
+    : touristTrapRisk !== "high" && massMarketRisk !== "high";
+  const minimumScore = strict ? 70 : 55;
+
+  if (enoughIndependentEvidence && acceptableRisk && score >= minimumScore) {
     return {
       status: "approved",
       trustScore: score,
       independentEvidenceCount: independentEvidence.length,
       touristTrapRisk,
       massMarketRisk,
-      reason: "Cross-checked by at least two recent independent sources and passed NOW risk thresholds.",
+      subject,
+      requiredIndependentEvidence,
+      reason: strict
+        ? "Food recommendation passed the strict NOW cross-check with at least two recent independent confirmations and low tourist-trap risk."
+        : "Recommendation passed the risk-weighted NOW cross-check for this category.",
     };
   }
 
@@ -83,7 +117,11 @@ export function assessNowTrust(input: TrustAssessmentInput): TrustAssessment {
     independentEvidenceCount: independentEvidence.length,
     touristTrapRisk,
     massMarketRisk,
-    reason: "Not enough recent independent evidence to carry a NOW recommendation.",
+    subject,
+    requiredIndependentEvidence,
+    reason: strict
+      ? "Food recommendations require at least two recent independent confirmations and low tourist-trap risk before NOW recommends them."
+      : `This category requires at least ${requiredIndependentEvidence} recent independent confirmation before NOW recommends it.`,
   };
 }
 
