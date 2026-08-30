@@ -20,6 +20,7 @@ export type TicketCandidate = {
   touristTrapRisk?: TrustRisk;
   massMarketRisk?: TrustRisk;
   editorialApproved?: boolean;
+  lesserKnown?: boolean;
 };
 
 export type TicketContext = {
@@ -126,6 +127,7 @@ export function rankTicketCandidates(candidates: TicketCandidate[], context: Tic
         touristTrapRisk: candidate.touristTrapRisk,
         massMarketRisk: candidate.massMarketRisk,
         editorialApproved: candidate.editorialApproved,
+        lesserKnown: candidate.lesserKnown,
       });
       const trustApproved = trust.status === "approved";
       const bookingReady = availabilityVerified && ticketMarginProtected && trustApproved;
