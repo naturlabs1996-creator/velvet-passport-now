@@ -61,9 +61,9 @@ function finite(value: unknown): number | undefined {
   return Number.isFinite(number) ? number : undefined;
 }
 
-function parisWallClockEpoch(now = new Date()) {
+function wallClockEpoch(now: Date, timeZone: string) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Paris",
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -73,6 +73,13 @@ function parisWallClockEpoch(now = new Date()) {
     hourCycle: "h23",
   }).formatToParts(now).map((part) => [part.type, part.value]));
   return Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second));
+}
+
+function weatherTimeZone(point: Coordinates) {
+  // Current NOW pilot cities. Keep timestamps fail-safe instead of assuming Paris globally.
+  if (point.lat >= 45.2 && point.lat <= 45.8 && point.lon >= -74.1 && point.lon <= -73.3) return "America/Toronto";
+  if (point.lat >= 48.7 && point.lat <= 49.0 && point.lon >= 2.1 && point.lon <= 2.7) return "Europe/Paris";
+  return "UTC";
 }
 
 function observedAtEpoch(value?: string) {
@@ -86,10 +93,11 @@ function observedAtEpoch(value?: string) {
   return Date.UTC(Number(local[1]), Number(local[2]) - 1, Number(local[3]), Number(local[4]), Number(local[5]), Number(local[6] ?? 0));
 }
 
-function readingIsFresh(reading: WeatherReading, now = new Date()) {
+function readingIsFresh(reading: WeatherReading, point: Coordinates, now = new Date()) {
   const observed = observedAtEpoch(reading.observedAt);
   if (observed === null) return false;
-  const nowEpoch = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(reading.observedAt ?? "") ? now.getTime() : parisWallClockEpoch(now);
+  const hasExplicitZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(reading.observedAt ?? "");
+  const nowEpoch = hasExplicitZone ? now.getTime() : wallClockEpoch(now, weatherTimeZone(point));
   const ageMinutes = (nowEpoch - observed) / 60_000;
   return ageMinutes <= WEATHER_MAX_PAST_MINUTES && ageMinutes >= -WEATHER_MAX_FUTURE_MINUTES;
 }
@@ -237,7 +245,7 @@ export async function getWeatherIntelligence(point: Coordinates): Promise<Weathe
   const region = classifyWeatherRegion(point);
   const priority = MODEL_PRIORITY[region];
   const rawReadings = await Promise.all(priority.map((model) => model === "met" ? fetchMet(point) : fetchOfficialModel(model, point)));
-  const readings = rawReadings.map((reading) => reading.available && !readingIsFresh(reading) ? { ...reading, available: false } : reading);
+  const readings = rawReadings.map((reading) => reading.available && !readingIsFresh(reading, point) ? { ...reading, available: false } : reading);
   const available = readings.filter((reading) => reading.available);
   const decision = chooseScenario(available, priority);
   const primaryModel = priority.find((model) => available.some((reading) => reading.model === model)) ?? null;
