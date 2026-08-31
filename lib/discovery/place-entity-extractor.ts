@@ -8,6 +8,15 @@ export type PlaceExtractionResult = {
   error?: string;
 };
 
+type SelectedEntity = {
+  name: string;
+  confidence: "HIGH";
+  method: "JSON_LD" | "PLACE_TYPE_TEXT";
+  address?: string;
+  lat?: number;
+  lon?: number;
+};
+
 const USER_AGENT = "VelvetPassportPlaceExtractor/1.1 (precision place extraction + structured data; cached public pages)";
 const GENERIC = /^(paris|france|home|menu|visit|guide|travel|read more|learn more|about|contact|official website|wikipedia|contents|history|origins|etymology|geography|climate|administration|actualités|rechercher)$/i;
 const EDITORIAL_NOISE = /\b(what to do|things to do|best |top |exhibitions?|events?|autumn|september|october|november|december|january|february|march|april|may|june|july|august|right now|discover the|heritage days|city pass|tourist office|official website|newsletter|privacy|cookie|facebook|instagram|youtube|tripadvisor|terms|login|sign in|subscribe|booking|all you must know|must-see|guide to|tips|news|agenda)\b/i;
@@ -126,9 +135,9 @@ export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], max
       const structured = structuredCandidates(html);
       const structuredNames = new Set(structured.map((item) => item.name.toLowerCase()));
       const visible = visibleCandidates(html).filter((name) => !structuredNames.has(name.toLowerCase()));
-      const selected = [
-        ...structured.map((item) => ({ ...item, method: "JSON_LD" as const })),
-        ...visible.map((name) => ({ name, confidence: "HIGH" as const, method: "PLACE_TYPE_TEXT" as const })),
+      const selected: SelectedEntity[] = [
+        ...structured.map((item): SelectedEntity => ({ ...item, method: "JSON_LD" })),
+        ...visible.map((name): SelectedEntity => ({ name, confidence: "HIGH", method: "PLACE_TYPE_TEXT" })),
       ].filter((item) => item.name.toLowerCase() !== lead.name.toLowerCase()).slice(0, Math.max(1, Math.min(maxEntitiesPerPage, 8)));
 
       const observedAt = new Date().toISOString();
