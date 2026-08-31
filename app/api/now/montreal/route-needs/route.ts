@@ -5,6 +5,12 @@ import { getMontrealPassContext, parseMontrealTravelerPasses } from "../../../..
 
 export const runtime = "nodejs";
 
+function parseRadius(value: string | null) {
+  if (!value) return 700;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 700;
+}
+
 export async function GET(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) {
@@ -13,7 +19,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const routeId = url.searchParams.get("routeId")?.trim() || "";
-  const radius = Number(url.searchParams.get("radiusMeters") || 700);
+  const radius = parseRadius(url.searchParams.get("radiusMeters"));
   const route = getMontrealPilotRoute(routeId);
   if (!route) return Response.json({ error: "Pilot route not found" }, { status: 404 });
 
