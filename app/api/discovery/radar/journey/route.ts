@@ -6,6 +6,7 @@ import { buildVelvetDecisions } from "@/lib/discovery/decision-engine";
 import { buildThemeJourney } from "@/lib/discovery/demand-journey";
 import { buildInterceptPortfolio } from "@/lib/discovery/intercept-engine";
 import { buildOpportunityGapPortfolio } from "@/lib/discovery/opportunity-gap";
+import { buildGemPortfolio, GEM_FILTER_RULES } from "@/lib/discovery/gem-filter";
 import { buildProductionQueue } from "@/lib/discovery/production-queue";
 import { buildPageFactoryQueue } from "@/lib/discovery/page-factory";
 import { buildResearchVerificationQueue, verifyPageResearch } from "@/lib/discovery/research-verification";
@@ -50,9 +51,12 @@ export async function GET() {
       decision,
       destination: destinationCapture.themes.find((item) => item.theme === decision.theme),
     })));
+    const gemPortfolio = buildGemPortfolio(opportunityGaps);
+    const gemRank = new Map(gemPortfolio.map((item, index) => [item.theme, index]));
     const productionQueue = buildProductionQueue({ universe: parisUncoveredUniverse, gaps: opportunityGaps, decisions, maxReady: 20 });
     const pageFactory = buildPageFactoryQueue(productionQueue);
-    const researchQueue = buildResearchVerificationQueue(pageFactory);
+    const researchQueue = buildResearchVerificationQueue(pageFactory)
+      .sort((a, b) => (gemRank.get(a.packet.theme) ?? 999) - (gemRank.get(b.packet.theme) ?? 999));
     const researchCollector = await collectResearchQueue(researchQueue.map((item) => item.packet), 2);
 
     const candidatePortfolio = researchCollector.map((collection) => {
@@ -104,7 +108,7 @@ export async function GET() {
       ok: true,
       generatedAt: new Date().toISOString(),
       architecture: [
-        "DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "THEME_RESOLVER", "PRODUCTION_QUEUE", "PAGE_FACTORY",
+        "DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "GEM_FILTER", "THEME_RESOLVER", "PRODUCTION_QUEUE", "PAGE_FACTORY",
         "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "SOURCE_REPUTATION", "CONFLICT_STALENESS",
         "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "PAGE_ASSEMBLY", "RENDER_PUBLISH", "FIRST_PARTY_AGGREGATION",
         "PERFORMANCE_MEMORY", "LEARNING_FEEDBACK", "BEHAVIOR_PREDICTION", "PRECISION_TARGETING", "TARGET_REFINEMENT",
@@ -115,6 +119,7 @@ export async function GET() {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
+        gemFilter: "A priority gem requires measured absolute search volume plus strong relevance, rarity/opportunity scarcity and commercial potential. Unknown volume can never create PRIORITY_GEM status.",
         firstParty: "Velvet event metrics are aggregated in Supabase by page/theme. Individual event rows are not returned to Predator. Missing Search Console or commerce data remains unavailable rather than inferred.",
         learningFeedback: "Learning uses measured first-party outcomes only. Small samples cannot amplify or suppress a theme. Purchases and revenue receive weight only when an attributable commerce source exists.",
         performanceMemory: "Long-horizon memory uses real weekly aggregate snapshots, not overlapping cumulative windows. Insufficient history remains INSUFFICIENT_HISTORY.",
@@ -147,6 +152,10 @@ export async function GET() {
         themes: destinationCapture.themes,
       },
       opportunityGaps,
+      gemFilter: {
+        rules: GEM_FILTER_RULES,
+        portfolio: gemPortfolio,
+      },
       productionQueue,
       pageFactory,
       researchCollector,
@@ -169,6 +178,9 @@ export async function GET() {
         buildImmediately: opportunityGaps.filter((item) => item.action === "BUILD_IMMEDIATELY").length,
         buildNext: opportunityGaps.filter((item) => item.action === "BUILD_NEXT").length,
         testFirst: opportunityGaps.filter((item) => item.action === "TEST_FIRST").length,
+        priorityGems: gemPortfolio.filter((item) => item.classification === "PRIORITY_GEM").length,
+        gemTests: gemPortfolio.filter((item) => item.classification === "TEST").length,
+        gemUnknownVolume: gemPortfolio.filter((item) => item.classification === "HOLD_UNKNOWN_VOLUME").length,
         productionReady: productionQueue.filter((item) => item.status === "READY").length,
         productionValidate: productionQueue.filter((item) => item.status === "VALIDATE").length,
         researchPacketsCollected: researchCollector.length,
