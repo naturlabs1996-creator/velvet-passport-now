@@ -34,6 +34,10 @@ function textOf(lead: ResearchLead) {
   return normalize([lead.name, lead.snippet, lead.address, ...lead.rawClaims].filter(Boolean).join(" "));
 }
 
+function lexicalTextOf(lead: ResearchLead) {
+  return normalize([lead.name, lead.snippet, lead.address, ...lead.rawClaims.filter((claim) => !claim.startsWith("INTENT_EVIDENCE ") && !claim.startsWith("HISTORY_EVIDENCE:"))].filter(Boolean).join(" "));
+}
+
 function hasAny(text: string, terms: string[]) {
   return terms.some((term) => text.includes(normalize(term)));
 }
@@ -46,21 +50,30 @@ function geographyScore(lead: ResearchLead, text: string) {
   return Math.min(100, score);
 }
 
-function intentEvidenceBonus(lead: ResearchLead) {
+type IntentEvidenceState = "NONE" | "CONFIRMED" | "PARTIAL" | "UNCONFIRMED";
+
+function intentEvidenceState(lead: ResearchLead): IntentEvidenceState {
   const claims = lead.rawClaims.filter((claim) => claim.startsWith(`INTENT_EVIDENCE ${lead.theme}:`));
-  if (!claims.length) return 0;
-  if (claims.some((claim) => /status=CONFIRMED/.test(claim))) return 65;
-  if (claims.some((claim) => /status=PARTIAL/.test(claim))) return 30;
-  return 0;
+  if (!claims.length) return "NONE";
+  if (claims.some((claim) => /status=CONFIRMED/.test(claim))) return "CONFIRMED";
+  if (claims.some((claim) => /status=PARTIAL/.test(claim))) return "PARTIAL";
+  return "UNCONFIRMED";
 }
 
-function intentScore(lead: ResearchLead, text: string) {
+function intentScore(lead: ResearchLead) {
+  const evidenceState = intentEvidenceState(lead);
+  // Once focused research has explicitly evaluated the theme-place relationship,
+  // that evidence is authoritative. Lexical collisions such as "late 19th century"
+  // must never rescue an UNCONFIRMED candidate for a night-intent theme.
+  if (evidenceState === "CONFIRMED") return 75;
+  if (evidenceState === "PARTIAL") return 30;
+  if (evidenceState === "UNCONFIRMED") return 0;
+
   const terms = THEME_TERMS[lead.theme] ?? [];
   if (!terms.length) return 50;
+  const text = lexicalTextOf(lead);
   const matches = terms.filter((term) => text.includes(normalize(term))).length;
-  const lexical = matches === 0 ? 0 : Math.min(100, 35 + matches * 20);
-  const evidence = intentEvidenceBonus(lead);
-  return Math.min(100, Math.max(lexical, evidence));
+  return matches === 0 ? 0 : Math.min(100, 35 + matches * 20);
 }
 
 function velvetUtilityScore(text: string) {
@@ -74,16 +87,18 @@ function velvetUtilityScore(text: string) {
 export function scoreResearchLeadRelevance(lead: ResearchLead): RelevanceScore {
   const text = textOf(lead);
   const geography = geographyScore(lead, text);
-  const intent = intentScore(lead, text);
+  const intent = intentScore(lead);
   const velvetUtility = velvetUtilityScore(text);
   const total = Math.round(geography * 0.35 + intent * 0.45 + velvetUtility * 0.2);
   const reasons: string[] = [];
+  const evidenceState = intentEvidenceState(lead);
 
   if (geography < 45) reasons.push("Paris-France anchor is too weak for a research candidate.");
   if (intent < 35) reasons.push("Candidate does not match the active traveler intent strongly enough.");
   if (velvetUtility < 25) reasons.push("Candidate is too generic or tourist-dominant for the Velvet discovery layer.");
-  if (intentEvidenceBonus(lead) >= 65) reasons.push("Focused Intent Evidence confirmed the theme-place relationship across independent sources.");
-  else if (intentEvidenceBonus(lead) >= 30) reasons.push("Focused Intent Evidence found a partial theme-place relationship that still needs stronger confirmation.");
+  if (evidenceState === "CONFIRMED") reasons.push("Focused Intent Evidence explicitly confirms the theme-place relationship.");
+  else if (evidenceState === "PARTIAL") reasons.push("Focused Intent Evidence is only partial, so it cannot satisfy the relevance acceptance threshold yet.");
+  else if (evidenceState === "UNCONFIRMED") reasons.push("Focused Intent Evidence explicitly failed to confirm this theme-place relationship; lexical matches are ignored.");
 
   const decision: RelevanceDecision = geography >= 45 && intent >= 35 && velvetUtility >= 25 && total >= 50 ? "ACCEPT" : "REJECT";
   if (decision === "ACCEPT") reasons.push("Candidate is geographically anchored, intent-relevant and useful enough for deeper verification.");
