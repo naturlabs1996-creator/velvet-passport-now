@@ -201,7 +201,7 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
 }
 
 export async function collectResearchQueue(packets: ResearchPacket[], budgetOrMaxPackets: ResearchCollectorBudget | number = {}) {
-  const budget = typeof budgetOrMaxPackets === "number" ? { maxPackets: budgetOrMaxPackets } : budgetOrMaxMaxPackets;
+  const budget = typeof budgetOrMaxPackets === "number" ? { maxPackets: budgetOrMaxPackets } : budgetOrMaxPackets;
   const maxPackets = Math.max(1, Math.min(budget.maxPackets ?? 3, 5));
   const concurrency = Math.max(1, Math.min(budget.concurrency ?? 2, 4));
   const selected = packets.slice(0, maxPackets);
