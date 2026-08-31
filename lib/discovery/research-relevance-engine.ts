@@ -46,12 +46,21 @@ function geographyScore(lead: ResearchLead, text: string) {
   return Math.min(100, score);
 }
 
+function intentEvidenceBonus(lead: ResearchLead) {
+  const claims = lead.rawClaims.filter((claim) => claim.startsWith(`INTENT_EVIDENCE ${lead.theme}:`));
+  if (!claims.length) return 0;
+  if (claims.some((claim) => /status=CONFIRMED/.test(claim))) return 65;
+  if (claims.some((claim) => /status=PARTIAL/.test(claim))) return 30;
+  return 0;
+}
+
 function intentScore(lead: ResearchLead, text: string) {
   const terms = THEME_TERMS[lead.theme] ?? [];
   if (!terms.length) return 50;
   const matches = terms.filter((term) => text.includes(normalize(term))).length;
-  const score = matches === 0 ? 0 : Math.min(100, 35 + matches * 20);
-  return score;
+  const lexical = matches === 0 ? 0 : Math.min(100, 35 + matches * 20);
+  const evidence = intentEvidenceBonus(lead);
+  return Math.min(100, Math.max(lexical, evidence));
 }
 
 function velvetUtilityScore(text: string) {
@@ -73,6 +82,8 @@ export function scoreResearchLeadRelevance(lead: ResearchLead): RelevanceScore {
   if (geography < 45) reasons.push("Paris-France anchor is too weak for a research candidate.");
   if (intent < 35) reasons.push("Candidate does not match the active traveler intent strongly enough.");
   if (velvetUtility < 25) reasons.push("Candidate is too generic or tourist-dominant for the Velvet discovery layer.");
+  if (intentEvidenceBonus(lead) >= 65) reasons.push("Focused Intent Evidence confirmed the theme-place relationship across independent sources.");
+  else if (intentEvidenceBonus(lead) >= 30) reasons.push("Focused Intent Evidence found a partial theme-place relationship that still needs stronger confirmation.");
 
   const decision: RelevanceDecision = geography >= 45 && intent >= 35 && velvetUtility >= 25 && total >= 50 ? "ACCEPT" : "REJECT";
   if (decision === "ACCEPT") reasons.push("Candidate is geographically anchored, intent-relevant and useful enough for deeper verification.");
