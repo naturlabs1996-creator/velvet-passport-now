@@ -2,6 +2,7 @@ import type { ResearchPacket, ResearchEvidence } from "./research-verification";
 import { applyParisDestinationEntityLock } from "./destination-entity-lock";
 import { applyResearchRelevanceEngine } from "./research-relevance-engine";
 import { buildScentTrail } from "./scent-expander";
+import { resolveParisPlaces } from "./place-resolver";
 
 export type ResearchLead = {
   id: string;
@@ -34,12 +35,14 @@ export type ResearchCollectorBudget = {
   maxCollectorsPerPacket?: number;
   maxLeadsPerCollector?: number;
   maxScentQueries?: number;
+  maxPlaceLookups?: number;
   concurrency?: number;
 };
 
-const USER_AGENT = "VelvetPassportResearch/2.0 (semantic scent collector; public data; cached requests)";
+const USER_AGENT = "VelvetPassportResearch/2.1 (semantic scent collector; public data; cached requests)";
 const DEFAULT_MAX_LEADS_PER_COLLECTOR = 8;
 const DEFAULT_SCENT_QUERIES = 4;
+const DEFAULT_PLACE_LOOKUPS = 18;
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 6500) {
   const controller = new AbortController();
@@ -144,6 +147,7 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   const maxLeads = Math.max(1, Math.min(budget.maxLeadsPerCollector ?? DEFAULT_MAX_LEADS_PER_COLLECTOR, 12));
   const maxCollectors = Math.max(1, Math.min(budget.maxCollectorsPerPacket ?? 4, 4));
   const maxScentQueries = Math.max(2, Math.min(budget.maxScentQueries ?? DEFAULT_SCENT_QUERIES, 8));
+  const maxPlaceLookups = Math.max(4, Math.min(budget.maxPlaceLookups ?? DEFAULT_PLACE_LOOKUPS, 30));
   const scentTrail = buildScentTrail(packet.theme, packet.query, maxScentQueries);
 
   const results: CollectorResult[] = [];
@@ -153,7 +157,9 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   }
 
   const rawLeads = dedupeLeads(results.flatMap((result) => result.leads));
-  const entityLock = applyParisDestinationEntityLock(rawLeads);
+  const placeResolution = await resolveParisPlaces(rawLeads, maxPlaceLookups);
+  const enrichedLeads = placeResolution.all.map((item) => item.lead);
+  const entityLock = applyParisDestinationEntityLock(enrichedLeads);
   const relevance = applyResearchRelevanceEngine(entityLock.accepted);
   const leads = relevance.accepted;
   const trailSignals = buildTrailSignals(leads);
@@ -166,6 +172,14 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
       strategy: scentTrail.strategy,
     },
     collectors: results.map((result) => ({ collector: result.collector, query: result.query, ok: result.ok, leads: result.leads.length, error: result.error })),
+    placeResolver: {
+      lookups: placeResolution.lookups,
+      resolved: placeResolution.resolved.length,
+      partial: placeResolution.partial.length,
+      unresolved: placeResolution.unresolved.length,
+      examples: placeResolution.all.slice(0, 12).map((item) => ({ name: item.lead.name, status: item.status, confidence: item.confidence, method: item.method, address: item.lead.address, lat: item.lead.lat, lon: item.lead.lon, reasons: item.reasons })),
+      rule: placeResolution.rule,
+    },
     leadCount: leads.length,
     independentSources: new Set(leads.map((lead) => lead.independentKey)).size,
     leads,
@@ -182,12 +196,12 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
       rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, reasons: score.reasons })),
       rule: "A valid Paris entity must also match the active traveler intent and provide enough Velvet utility before deeper verification.",
     },
-    note: "Deep Research Collector V2 follows multiple semantic scent queries. Recurrence across independent sources and query variants strengthens a trail, but no trail score can bypass Destination Entity Lock, Research Relevance, claim verification or publication gates.",
+    note: "Deep Research Collector V2 follows multiple semantic scent queries, resolves place identity and geo-enriches candidates before Destination Entity Lock. Recurrence strengthens a trail, but no resolver or trail score can bypass Relevance, claim verification or publication gates.",
   };
 }
 
 export async function collectResearchQueue(packets: ResearchPacket[], budgetOrMaxPackets: ResearchCollectorBudget | number = {}) {
-  const budget = typeof budgetOrMaxPackets === "number" ? { maxPackets: budgetOrMaxPackets } : budgetOrMaxPackets;
+  const budget = typeof budgetOrMaxPackets === "number" ? { maxPackets: budgetOrMaxPackets } : budgetOrMaxMaxPackets;
   const maxPackets = Math.max(1, Math.min(budget.maxPackets ?? 3, 5));
   const concurrency = Math.max(1, Math.min(budget.concurrency ?? 2, 4));
   const selected = packets.slice(0, maxPackets);
