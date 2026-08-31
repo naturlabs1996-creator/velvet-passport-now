@@ -3,6 +3,7 @@ import { applyParisDestinationEntityLock } from "./destination-entity-lock";
 import { applyResearchRelevanceEngine } from "./research-relevance-engine";
 import { buildScentTrail } from "./scent-expander";
 import { resolveParisPlaces } from "./place-resolver";
+import { verifyIntentEvidence } from "./intent-evidence-bridge";
 
 export type ResearchLead = {
   id: string;
@@ -36,13 +37,15 @@ export type ResearchCollectorBudget = {
   maxLeadsPerCollector?: number;
   maxScentQueries?: number;
   maxPlaceLookups?: number;
+  maxIntentLookups?: number;
   concurrency?: number;
 };
 
-const USER_AGENT = "VelvetPassportResearch/2.1 (semantic scent collector; public data; cached requests)";
+const USER_AGENT = "VelvetPassportResearch/2.2 (semantic scent + place + focused intent verification; public data; cached requests)";
 const DEFAULT_MAX_LEADS_PER_COLLECTOR = 8;
 const DEFAULT_SCENT_QUERIES = 4;
 const DEFAULT_PLACE_LOOKUPS = 18;
+const DEFAULT_INTENT_LOOKUPS = 8;
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 6500) {
   const controller = new AbortController();
@@ -148,6 +151,7 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   const maxCollectors = Math.max(1, Math.min(budget.maxCollectorsPerPacket ?? 4, 4));
   const maxScentQueries = Math.max(2, Math.min(budget.maxScentQueries ?? DEFAULT_SCENT_QUERIES, 8));
   const maxPlaceLookups = Math.max(4, Math.min(budget.maxPlaceLookups ?? DEFAULT_PLACE_LOOKUPS, 30));
+  const maxIntentLookups = Math.max(2, Math.min(budget.maxIntentLookups ?? DEFAULT_INTENT_LOOKUPS, 16));
   const scentTrail = buildScentTrail(packet.theme, packet.query, maxScentQueries);
 
   const results: CollectorResult[] = [];
@@ -160,7 +164,8 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   const placeResolution = await resolveParisPlaces(rawLeads, maxPlaceLookups);
   const enrichedLeads = placeResolution.all.map((item) => item.lead);
   const entityLock = applyParisDestinationEntityLock(enrichedLeads);
-  const relevance = applyResearchRelevanceEngine(entityLock.accepted);
+  const intentEvidence = await verifyIntentEvidence(entityLock.accepted, maxIntentLookups);
+  const relevance = applyResearchRelevanceEngine(intentEvidence.leads);
   const leads = relevance.accepted;
   const trailSignals = buildTrailSignals(leads);
 
@@ -180,6 +185,14 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
       examples: placeResolution.all.slice(0, 12).map((item) => ({ name: item.lead.name, status: item.status, confidence: item.confidence, method: item.method, address: item.lead.address, lat: item.lead.lat, lon: item.lead.lon, reasons: item.reasons })),
       rule: placeResolution.rule,
     },
+    intentEvidence: {
+      lookups: intentEvidence.lookups,
+      confirmed: intentEvidence.confirmed.length,
+      partial: intentEvidence.partial.length,
+      unconfirmed: intentEvidence.unconfirmed.length,
+      examples: intentEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedTerms: item.matchedTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })),
+      rule: intentEvidence.rule,
+    },
     leadCount: leads.length,
     independentSources: new Set(leads.map((lead) => lead.independentKey)).size,
     leads,
@@ -188,15 +201,15 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
       accepted: entityLock.accepted.length,
       rejected: entityLock.rejected.length,
       rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })),
-      rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before candidate merging unless a Paris-France geographic anchor exists.",
+      rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before focused intent research or candidate merging unless a Paris-France geographic anchor exists.",
     },
     researchRelevance: {
       accepted: leads.length,
       rejected: relevance.rejected.length,
       rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, reasons: score.reasons })),
-      rule: "A valid Paris entity must also match the active traveler intent and provide enough Velvet utility before deeper verification.",
+      rule: "A valid Paris entity must also match the active traveler intent. Focused Intent Evidence can strengthen intent relevance, but it cannot verify publication claims or bypass Velvet utility requirements.",
     },
-    note: "Deep Research Collector V2 follows multiple semantic scent queries, resolves place identity and geo-enriches candidates before Destination Entity Lock. Recurrence strengthens a trail, but no resolver or trail score can bypass Relevance, claim verification or publication gates.",
+    note: "Deep Research Collector V2 follows semantic scent queries, resolves physical place identity, verifies the specific theme-place relationship, and only then applies Research Relevance. No resolver, intent bridge or recurrence score can bypass claim verification or publication gates.",
   };
 }
 
