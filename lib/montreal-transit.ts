@@ -4,6 +4,23 @@ export type MontrealTransitMode = "metro" | "bus" | "rem" | "walk" | "taxi";
 
 export const MONTREAL_TRANSIT_MODES: MontrealTransitMode[] = ["metro", "bus", "rem", "walk", "taxi"];
 
+function classifyRemService(html: string): "normal" | "degraded" | "unknown" {
+  const normalized = html.toLowerCase().replace(/\s+/g, " ");
+
+  // Prefer an explicit active normal-state marker over generic text elsewhere on the page
+  // (for example planned/future interruption notices).
+  if (/service\s*-?\s*normal/.test(normalized)) return "normal";
+
+  if (
+    /ralentissement\s+de\s+service/.test(normalized)
+    || /interruption\s+de\s+service/.test(normalized)
+    || /service\s+(?:est\s+)?interrompu/.test(normalized)
+    || /service\s+(?:est\s+)?ralenti/.test(normalized)
+  ) return "degraded";
+
+  return "unknown";
+}
+
 export async function getMontrealTransitHealth() {
   const city = getNowCityConfig("montreal");
   const realtimeConfigured = Boolean(process.env.STM_API_KEY);
@@ -18,12 +35,7 @@ export async function getMontrealTransitHealth() {
     });
     if (response.ok) {
       remStatusReachable = true;
-      const html = (await response.text()).toLowerCase();
-      remService = html.includes("ralentissement de service") || html.includes("interruption de service")
-        ? "degraded"
-        : html.includes("service - normal") || html.includes("service normal")
-          ? "normal"
-          : "unknown";
+      remService = classifyRemService(await response.text());
     }
   } catch {}
 
