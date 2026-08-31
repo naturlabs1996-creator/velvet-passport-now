@@ -10,7 +10,7 @@ export type PlaceResolution = {
   reasons: string[];
 };
 
-const USER_AGENT = "VelvetPassportResearch/2.1 (place resolver; public data; cached requests)";
+const USER_AGENT = "VelvetPassportResearch/2.2 (place resolver + budget guard; public data; cached requests)";
 const PARIS_BOX = { minLat: 48.815, maxLat: 48.902, minLon: 2.224, maxLon: 2.469 };
 
 function insideParis(lat?: number, lon?: number) {
@@ -26,7 +26,18 @@ function cleanCandidateName(value: string) {
 }
 
 function likelyNonPlace(name: string) {
-  return /\b(history|architecture|arrondissement|tourist office|things to do|guide|definition|population|football|fc|attacks?|liberation|renovation|film|movie|album|song|personality|official site)\b/i.test(name);
+  return /\b(history|architecture|arrondissement|tourist office|things to do|guide|definition|population|football|fc|attacks?|liberation|renovation|film|movie|album|song|personality|official site|official website|city pass|exhibitions?|events?|heritage days|right now|actualités|rechercher|contents|origins|geography|climate|administration)\b/i.test(name);
+}
+
+function resolverPriority(lead: ResearchLead) {
+  if (insideParis(lead.lat, lead.lon) && lead.address) return 1000;
+  if (lead.sourceType === "MAP") return 900;
+  if (lead.rawClaims.some((claim) => claim.includes("PLACE_ENTITY_CONFIDENCE HIGH") && claim.includes("JSON_LD"))) return 850;
+  if (lead.sourceType === "WIKIDATA") return 800;
+  if (lead.rawClaims.some((claim) => claim.includes("PLACE_ENTITY_CONFIDENCE HIGH"))) return 700;
+  if (/\b(mus[eé]e|museum|maison|passage|galerie|jardin|garden|librairie|bookshop|atelier|chapelle|church|église|cemetery|cimetière|catacomb|palais|pavillon|villa|théâtre|theatre|bibliothèque|library|fondation|foundation|arcade|marché|market)\b/i.test(lead.name)) return 650;
+  if (lead.sourceType === "OFFICIAL") return 400;
+  return 250;
 }
 
 async function fetchWithTimeout(url: string, timeoutMs = 4500) {
@@ -76,7 +87,7 @@ async function resolveViaNominatim(lead: ResearchLead): Promise<PlaceResolution>
 
   const queries = [
     { q: `${name}, Paris, France`, method: "NOMINATIM_NAME" as const },
-    ...(lead.snippet && lead.snippet.length < 180 ? [{ q: `${name}, ${lead.snippet}, Paris, France`, method: "NOMINATIM_NAME_SNIPPET" as const }] : []),
+    ...(lead.snippet && lead.snippet.length < 180 && !lead.snippet.startsWith("High-confidence named place") ? [{ q: `${name}, ${lead.snippet}, Paris, France`, method: "NOMINATIM_NAME_SNIPPET" as const }] : []),
   ];
 
   for (const query of queries) {
@@ -113,27 +124,35 @@ async function resolveViaNominatim(lead: ResearchLead): Promise<PlaceResolution>
 }
 
 export async function resolveParisPlaces(leads: ResearchLead[], maxLookups = 18) {
-  const results: PlaceResolution[] = [];
+  const ranked = leads.map((lead, index) => ({ lead, index, priority: resolverPriority(lead) })).sort((a, b) => b.priority - a.priority || a.index - b.index);
+  const byOriginalIndex = new Map<number, PlaceResolution>();
   let lookups = 0;
-  for (const lead of leads) {
+
+  for (const item of ranked) {
+    const lead = item.lead;
     if (insideParis(lead.lat, lead.lon) && lead.address) {
-      results.push({ lead, status: "RESOLVED", confidence: 100, method: "EXISTING_GEO", reasons: ["Lead already has an address and coordinates inside Paris."] });
+      byOriginalIndex.set(item.index, { lead, status: "RESOLVED", confidence: 100, method: "EXISTING_GEO", reasons: ["Lead already has an address and coordinates inside Paris."] });
+      continue;
+    }
+    if (likelyNonPlace(cleanCandidateName(lead.name))) {
+      byOriginalIndex.set(item.index, { lead, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["Candidate rejected before lookup as editorial/navigation/non-place noise."] });
       continue;
     }
     if (lookups >= maxLookups) {
-      results.push({ lead, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["Geo-enrichment lookup budget exhausted before this candidate was checked."] });
+      byOriginalIndex.set(item.index, { lead, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["Geo-enrichment lookup budget reserved for stronger physical-place candidates and exhausted before this candidate was checked."] });
       continue;
     }
     lookups += 1;
-    results.push(await resolveViaNominatim(lead));
+    byOriginalIndex.set(item.index, await resolveViaNominatim(lead));
   }
 
+  const results = leads.map((_, index) => byOriginalIndex.get(index)).filter((item): item is PlaceResolution => Boolean(item));
   return {
     resolved: results.filter((item) => item.status === "RESOLVED"),
     partial: results.filter((item) => item.status === "PARTIAL"),
     unresolved: results.filter((item) => item.status === "UNRESOLVED"),
     all: results,
     lookups,
-    rule: "A research trail is enriched into a physical Paris place before Destination Entity Lock whenever enough evidence is available. Geo enrichment cannot promote relevance or factual truth by itself.",
+    rule: "Resolver budget is ranked toward existing geo, map, structured place entities and named venue candidates. Navigation/editorial noise is rejected without spending a lookup. Geo enrichment cannot promote relevance or factual truth by itself.",
   };
 }
