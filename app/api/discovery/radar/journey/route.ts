@@ -7,6 +7,7 @@ import { buildThemeJourney } from "@/lib/discovery/demand-journey";
 import { buildInterceptPortfolio } from "@/lib/discovery/intercept-engine";
 import { buildOpportunityGapPortfolio } from "@/lib/discovery/opportunity-gap";
 import { buildGemPortfolio, GEM_FILTER_RULES } from "@/lib/discovery/gem-filter";
+import { resolveDemandVolume } from "@/lib/discovery/demand-volume-resolver";
 import { buildProductionQueue } from "@/lib/discovery/production-queue";
 import { buildPageFactoryQueue } from "@/lib/discovery/page-factory";
 import { buildResearchVerificationQueue, verifyPageResearch } from "@/lib/discovery/research-verification";
@@ -41,15 +42,20 @@ export async function GET() {
       matchedThemes: [...new Set(result.normalized.map((signal) => signal.theme))],
     }));
 
+    const demandRows = emptyDemandRows(parisUncoveredUniverse);
+    const demandVolume = resolveDemandVolume(parisUncoveredUniverse, demandRows);
+    const demandByTheme = new Map(demandVolume.themes.map((item) => [item.theme, item]));
+
     const decisions = buildVelvetDecisions(signals, buyHealth);
     const portfolio = decisions.map((decision) => {
       const destination = destinationCapture.themes.find((item) => item.theme === decision.theme);
-      return buildThemeJourney({ theme: decision.theme, decision, destinations: destination?.domains ?? [] });
+      return buildThemeJourney({ theme: decision.theme, decision, demand: demandByTheme.get(decision.theme), destinations: destination?.domains ?? [] });
     });
     const interceptPlan = buildInterceptPortfolio(portfolio);
     const opportunityGaps = buildOpportunityGapPortfolio(decisions.map((decision) => ({
       decision,
       destination: destinationCapture.themes.find((item) => item.theme === decision.theme),
+      demand: demandByTheme.get(decision.theme),
     })));
     const gemPortfolio = buildGemPortfolio(opportunityGaps);
     const gemRank = new Map(gemPortfolio.map((item, index) => [item.theme, index]));
@@ -57,7 +63,13 @@ export async function GET() {
     const pageFactory = buildPageFactoryQueue(productionQueue);
     const researchQueue = buildResearchVerificationQueue(pageFactory)
       .sort((a, b) => (gemRank.get(a.packet.theme) ?? 999) - (gemRank.get(b.packet.theme) ?? 999));
-    const researchCollector = await collectResearchQueue(researchQueue.map((item) => item.packet), 2);
+    const researchCollector = await collectResearchQueue(researchQueue.map((item) => item.packet), {
+      maxPackets: 2,
+      maxCollectorsPerPacket: 4,
+      maxLeadsPerCollector: 8,
+      maxScentQueries: 4,
+      concurrency: 2,
+    });
 
     const candidatePortfolio = researchCollector.map((collection) => {
       const candidates = normalizeAndMergeLeads(collection.leads);
@@ -108,8 +120,8 @@ export async function GET() {
       ok: true,
       generatedAt: new Date().toISOString(),
       architecture: [
-        "DEMAND", "DESTINATION", "OPPORTUNITY_GAP", "GEM_FILTER", "THEME_RESOLVER", "PRODUCTION_QUEUE", "PAGE_FACTORY",
-        "RESEARCH_COLLECTOR", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "SOURCE_REPUTATION", "CONFLICT_STALENESS",
+        "DEMAND", "DEMAND_VOLUME_RESOLVER", "DESTINATION", "OPPORTUNITY_GAP", "GEM_FILTER", "THEME_RESOLVER", "PRODUCTION_QUEUE", "PAGE_FACTORY",
+        "SCENT_EXPANDER", "DEEP_RESEARCH_COLLECTOR_V2", "DESTINATION_ENTITY_LOCK", "RESEARCH_RELEVANCE", "EVIDENCE_NORMALIZER", "CANDIDATE_MERGER", "SOURCE_REPUTATION", "CONFLICT_STALENESS",
         "CLAIM_LEVEL_VERIFIER", "SAFE_COPY_COMPOSER", "PAGE_ASSEMBLY", "RENDER_PUBLISH", "FIRST_PARTY_AGGREGATION",
         "PERFORMANCE_MEMORY", "LEARNING_FEEDBACK", "BEHAVIOR_PREDICTION", "PRECISION_TARGETING", "TARGET_REFINEMENT",
         "SPEED_CONTROLLER", "SMART_CACHE_POLICY", "ADAPTIVE_TARGET_BUDGETS", "DYNAMIC_REALLOCATION", "RESOURCE_ALLOCATION",
@@ -117,9 +129,11 @@ export async function GET() {
       ],
       measurementRules: {
         demand: "MEASURED only when a volume source such as Keyword Planner or equivalent supplies numeric demand.",
+        demandVolume: "Suggestions, SERP counts and source recurrence can guide relative prioritization but cannot manufacture monthly search volume.",
         destination: "ESTIMATED from observed public SERP rank visibility. Click share remains unknown until a real clickstream/owned source exists.",
         opportunityGap: "Score combines relative demand, Velvet fit, intent, observed SERP weakness and commercial saturation. Confidence is reported separately and low-confidence gaps cannot become BUILD_IMMEDIATELY.",
         gemFilter: "A priority gem requires measured absolute search volume plus strong relevance, rarity/opportunity scarcity and commercial potential. Unknown volume can never create PRIORITY_GEM status.",
+        deepResearch: "Collector V2 expands semantic scent queries and strengthens trails that recur across independent sources or query variants; recurrence never upgrades a factual claim to VERIFIED.",
         firstParty: "Velvet event metrics are aggregated in Supabase by page/theme. Individual event rows are not returned to Predator. Missing Search Console or commerce data remains unavailable rather than inferred.",
         learningFeedback: "Learning uses measured first-party outcomes only. Small samples cannot amplify or suppress a theme. Purchases and revenue receive weight only when an attributable commerce source exists.",
         performanceMemory: "Long-horizon memory uses real weekly aggregate snapshots, not overlapping cumulative windows. Insufficient history remains INSUFFICIENT_HISTORY.",
@@ -129,6 +143,7 @@ export async function GET() {
         velvetJourney: "MEASURED only from first-party Velvet events, Search Console or attributable commerce inputs.",
         intercept: "FREE channels first. Paid retargeting remains HOLD until first-party intent is measured and spend is explicitly authorized.",
       },
+      demandVolume,
       firstParty: {
         availability: firstParty.availability,
         currentRows: performanceRows.length,
@@ -141,7 +156,7 @@ export async function GET() {
         product: parisUncoveredUniverse.product,
         themes: parisUncoveredUniverse.themes.length,
         keywordCount: universeKeywords.length,
-        keywords: emptyDemandRows(parisUncoveredUniverse),
+        keywords: demandRows,
       },
       destinationCapture: {
         source: destinationCapture.source,
@@ -171,6 +186,7 @@ export async function GET() {
         partial: portfolio.filter((item) => item.readiness === "PARTIAL").length,
         insufficient: portfolio.filter((item) => item.readiness === "INSUFFICIENT").length,
         missingSearchVolume: portfolio.filter((item) => item.gaps.includes("SEARCH_VOLUME")).length,
+        measuredDemandThemes: demandVolume.measuredThemes,
         missingDestinationCapture: portfolio.filter((item) => item.gaps.includes("DESTINATION_CAPTURE")).length,
         missingFirstPartyJourney: portfolio.filter((item) => item.gaps.includes("FIRST_PARTY_JOURNEY")).length,
         firstPartyRows: performanceRows.length,
@@ -184,7 +200,9 @@ export async function GET() {
         productionReady: productionQueue.filter((item) => item.status === "READY").length,
         productionValidate: productionQueue.filter((item) => item.status === "VALIDATE").length,
         researchPacketsCollected: researchCollector.length,
+        researchScentQueries: researchCollector.reduce((sum, item) => sum + item.scentTrail.queryCount, 0),
         researchLeadsCollected: researchCollector.reduce((sum, item) => sum + item.leadCount, 0),
+        recurringTrails: researchCollector.reduce((sum, item) => sum + item.trailSignals.filter((trail) => trail.independentSources >= 2 || trail.queryVariants >= 2).length, 0),
         mergedCandidates: candidatePortfolio.reduce((sum, item) => sum + item.candidateCount, 0),
         verifiedClaims: candidatePortfolio.reduce((sum, item) => sum + item.claimVerification.reduce((inner, result) => inner + result.publishableClaims.length, 0), 0),
         conflictedClaims: candidatePortfolio.reduce((sum, item) => sum + item.claimVerification.reduce((inner, result) => inner + result.conflicts, 0), 0),
