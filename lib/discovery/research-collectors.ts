@@ -4,6 +4,8 @@ import { applyResearchRelevanceEngine } from "./research-relevance-engine";
 import { buildScentTrail } from "./scent-expander";
 import { resolveParisPlaces } from "./place-resolver";
 import { verifyIntentEvidence } from "./intent-evidence-bridge";
+import { extractPlaceEntitiesFromSources } from "./place-entity-extractor";
+import { enrichHistoryEvidence } from "./history-evidence-layer";
 
 export type ResearchLead = {
   id: string;
@@ -38,14 +40,18 @@ export type ResearchCollectorBudget = {
   maxScentQueries?: number;
   maxPlaceLookups?: number;
   maxIntentLookups?: number;
+  maxSourcePages?: number;
+  maxHistoryLookups?: number;
   concurrency?: number;
 };
 
-const USER_AGENT = "VelvetPassportResearch/2.2 (semantic scent + place + focused intent verification; public data; cached requests)";
+const USER_AGENT = "VelvetPassportResearch/2.3 (semantic scent + deep place extraction + geo + intent + history; public data; cached requests)";
 const DEFAULT_MAX_LEADS_PER_COLLECTOR = 8;
 const DEFAULT_SCENT_QUERIES = 4;
 const DEFAULT_PLACE_LOOKUPS = 18;
 const DEFAULT_INTENT_LOOKUPS = 8;
+const DEFAULT_SOURCE_PAGES = 6;
+const DEFAULT_HISTORY_LOOKUPS = 6;
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 6500) {
   const controller = new AbortController();
@@ -152,6 +158,8 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   const maxScentQueries = Math.max(2, Math.min(budget.maxScentQueries ?? DEFAULT_SCENT_QUERIES, 8));
   const maxPlaceLookups = Math.max(4, Math.min(budget.maxPlaceLookups ?? DEFAULT_PLACE_LOOKUPS, 30));
   const maxIntentLookups = Math.max(2, Math.min(budget.maxIntentLookups ?? DEFAULT_INTENT_LOOKUPS, 16));
+  const maxSourcePages = Math.max(1, Math.min(budget.maxSourcePages ?? DEFAULT_SOURCE_PAGES, 10));
+  const maxHistoryLookups = Math.max(1, Math.min(budget.maxHistoryLookups ?? DEFAULT_HISTORY_LOOKUPS, 12));
   const scentTrail = buildScentTrail(packet.theme, packet.query, maxScentQueries);
 
   const results: CollectorResult[] = [];
@@ -161,11 +169,14 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   }
 
   const rawLeads = dedupeLeads(results.flatMap((result) => result.leads));
-  const placeResolution = await resolveParisPlaces(rawLeads, maxPlaceLookups);
+  const placeExtraction = await extractPlaceEntitiesFromSources(rawLeads, maxSourcePages, 8);
+  const combinedLeads = dedupeLeads([...placeExtraction.leads, ...rawLeads]);
+  const placeResolution = await resolveParisPlaces(combinedLeads, maxPlaceLookups);
   const enrichedLeads = placeResolution.all.map((item) => item.lead);
   const entityLock = applyParisDestinationEntityLock(enrichedLeads);
   const intentEvidence = await verifyIntentEvidence(entityLock.accepted, maxIntentLookups);
-  const relevance = applyResearchRelevanceEngine(intentEvidence.leads);
+  const historyEvidence = await enrichHistoryEvidence(intentEvidence.leads, maxHistoryLookups);
+  const relevance = applyResearchRelevanceEngine(historyEvidence.leads);
   const leads = relevance.accepted;
   const trailSignals = buildTrailSignals(leads);
 
@@ -177,6 +188,13 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
       strategy: scentTrail.strategy,
     },
     collectors: results.map((result) => ({ collector: result.collector, query: result.query, ok: result.ok, leads: result.leads.length, error: result.error })),
+    placeEntityExtraction: {
+      sourcePagesAttempted: placeExtraction.sourcePagesAttempted,
+      sourcePagesOpened: placeExtraction.sourcePagesOpened,
+      extractedCount: placeExtraction.extractedCount,
+      examples: placeExtraction.leads.slice(0, 12).map((lead) => ({ name: lead.name, sourceUrl: lead.url, publisher: lead.publisher })),
+      rule: placeExtraction.rule,
+    },
     placeResolver: {
       lookups: placeResolution.lookups,
       resolved: placeResolution.resolved.length,
@@ -193,6 +211,14 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
       examples: intentEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedTerms: item.matchedTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })),
       rule: intentEvidence.rule,
     },
+    historyEvidence: {
+      lookups: historyEvidence.lookups,
+      confirmed: historyEvidence.confirmed.length,
+      partial: historyEvidence.partial.length,
+      unconfirmed: historyEvidence.unconfirmed.length,
+      examples: historyEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedHistoryTerms: item.matchedHistoryTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })),
+      rule: historyEvidence.rule,
+    },
     leadCount: leads.length,
     independentSources: new Set(leads.map((lead) => lead.independentKey)).size,
     leads,
@@ -207,9 +233,9 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
       accepted: leads.length,
       rejected: relevance.rejected.length,
       rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, reasons: score.reasons })),
-      rule: "A valid Paris entity must also match the active traveler intent. Focused Intent Evidence can strengthen intent relevance, but it cannot verify publication claims or bypass Velvet utility requirements.",
+      rule: "A valid Paris entity must match the active traveler intent and remain useful to the Velvet layer. Historical depth can strengthen research value, but never substitutes for intent evidence or factual verification.",
     },
-    note: "Deep Research Collector V2 follows semantic scent queries, resolves physical place identity, verifies the specific theme-place relationship, and only then applies Research Relevance. No resolver, intent bridge or recurrence score can bypass claim verification or publication gates.",
+    note: "Deep Research Collector V2 now opens editorial/official source pages to extract named place entities, resolves physical identity, confirms Paris, verifies intent, researches historical depth, and only then applies Research Relevance. No extraction, resolver, history signal or recurrence score can bypass claim verification or publication gates.",
   };
 }
 
