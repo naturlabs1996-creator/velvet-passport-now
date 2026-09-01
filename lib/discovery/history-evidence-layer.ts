@@ -1,5 +1,5 @@
 import type { ResearchLead } from "./research-collectors";
-import { discoverDirectSourceUrls, fetchDeepEvidenceWindows } from "./deep-source-evidence";
+import { discoverDirectSourceUrls, fetchDeepEvidenceWindows, sourceFamilyOf } from "./deep-source-evidence";
 
 export type HistoryEvidenceStatus = "CONFIRMED" | "PARTIAL" | "UNCONFIRMED";
 
@@ -15,7 +15,7 @@ export type HistoryEvidenceResult = {
   directSourceUrls: number;
 };
 
-const USER_AGENT = "VelvetPassportHistoryLayer/1.4 (wikidata-linked strict place identity + deep history verification; cached public search)";
+const USER_AGENT = "VelvetPassportHistoryLayer/1.5 (source-family aware wikidata-linked history verification; cached public search)";
 const HISTORY_TERMS = [
   "history", "historic", "historical", "founded", "built", "constructed", "opened", "former", "formerly",
   "architect", "architecture", "atelier", "workshop", "printing", "imprimerie", "hotel particulier", "hôtel particulier",
@@ -73,7 +73,7 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
     }
 
     const queries = [`\"${lead.name}\" Paris history heritage`, `\"${lead.name}\" Paris histoire patrimoine architecte`];
-    const searchEvidence: Array<{ text: string; url: string; host: string; trusted: number }> = [];
+    const searchEvidence: Array<{ text: string; url: string; host: string; sourceFamily: string; trusted: number }> = [];
 
     for (const query of queries) {
       lookups += 1;
@@ -86,30 +86,30 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
           if (!identityMatches(lead, rawText)) continue;
           if (!geographicallyCompatible(lead, rawText)) continue;
           const host = hostOf(item.link);
-          searchEvidence.push({ text: normalize(rawText), url: item.link, host, trusted: sourceQuality(host) });
+          searchEvidence.push({ text: normalize(rawText), url: item.link, host, sourceFamily: sourceFamilyOf(item.link), trusted: sourceQuality(host) });
         }
       } catch { /* Failure remains unknown. */ }
     }
 
     const entityId = wikidataEntityId(lead);
-    const directUrls = await discoverDirectSourceUrls(lead.name, 4, entityId);
+    const directUrls = await discoverDirectSourceUrls(lead.name, 5, entityId);
     const deep = await fetchDeepEvidenceWindows(lead.name, [...directUrls, ...searchEvidence.map((item) => item.url)], HISTORY_TERMS, 5);
-    const deepEvidence = deep.windows.filter((item) => item.terms.length > 0 && geographicallyCompatible(lead, item.text)).map((item) => ({ text: normalize(item.text), url: item.url, host: item.host, trusted: sourceQuality(item.host) }));
+    const deepEvidence = deep.windows.filter((item) => item.terms.length > 0 && geographicallyCompatible(lead, item.text)).map((item) => ({ text: normalize(item.text), url: item.url, host: item.host, sourceFamily: item.sourceFamily, trusted: sourceQuality(item.host) }));
     const evidence = [...searchEvidence, ...deepEvidence];
     const relevant = evidence.filter((item) => HISTORY_TERMS.some((term) => item.text.includes(normalize(term))));
     const matchedHistoryTerms = [...new Set(HISTORY_TERMS.filter((term) => relevant.some((item) => item.text.includes(normalize(term)))))];
-    const sources = [...new Set(relevant.map((item) => item.host))];
-    const trustedSources = [...new Set(relevant.filter((item) => item.trusted > 0).map((item) => item.host))];
+    const sourceFamilies = [...new Set(relevant.map((item) => item.sourceFamily))];
+    const trustedFamilies = [...new Set(relevant.filter((item) => item.trusted > 0).map((item) => item.sourceFamily))];
     const evidenceUrls = [...new Set(relevant.map((item) => item.url))].slice(0, 8);
-    const score = Math.min(100, matchedHistoryTerms.length * 7 + Math.min(42, sources.length * 18) + Math.min(18, trustedSources.length * 9) + Math.min(18, deepEvidence.length * 9));
-    const status: HistoryEvidenceStatus = score >= 64 && sources.length >= 2 && trustedSources.length >= 1 ? "CONFIRMED" : score >= 28 ? "PARTIAL" : "UNCONFIRMED";
-    const historyClaim = matchedHistoryTerms.length ? `HISTORY_EVIDENCE: terms=${matchedHistoryTerms.slice(0, 10).join(", ")} | independent_sources=${sources.length} | trusted_sources=${trustedSources.length} | deep_pages=${deepEvidence.length} | direct_sources=${directUrls.length} | status=${status}` : `HISTORY_EVIDENCE: direct_sources=${directUrls.length} | status=${status}`;
+    const score = Math.min(100, matchedHistoryTerms.length * 7 + Math.min(42, sourceFamilies.length * 18) + Math.min(18, trustedFamilies.length * 9) + Math.min(18, deepEvidence.length * 9));
+    const status: HistoryEvidenceStatus = score >= 64 && sourceFamilies.length >= 2 && trustedFamilies.length >= 1 ? "CONFIRMED" : score >= 28 ? "PARTIAL" : "UNCONFIRMED";
+    const historyClaim = matchedHistoryTerms.length ? `HISTORY_EVIDENCE: terms=${matchedHistoryTerms.slice(0, 10).join(", ")} | independent_sources=${sourceFamilies.length} | trusted_sources=${trustedFamilies.length} | deep_pages=${deepEvidence.length} | direct_sources=${directUrls.length} | status=${status}` : `HISTORY_EVIDENCE: direct_sources=${directUrls.length} | status=${status}`;
 
-    const reasons = [status === "CONFIRMED" ? "Historical depth is supported by multiple identity-matched sources including at least one trusted history/official source." : status === "PARTIAL" ? "Historical clues exist, but entity identity, source quality or corroboration remains incomplete." : "No reliable identity-matched historical depth was established from the allocated searches and direct-source deep context windows."];
-    if (entityId) reasons.push(`Pitbull Wikidata identity ${entityId} was reused for canonical historical-source discovery.`);
-    if (directUrls.length) reasons.push(`Direct source discovery found ${directUrls.length} candidate canonical/source URL(s) for historical reading.`);
+    const reasons = [status === "CONFIRMED" ? "Historical depth is supported by at least two independent publisher families including a trusted history/official family." : status === "PARTIAL" ? "Historical clues exist, but independent publisher-family corroboration remains incomplete." : "No reliable identity-matched historical depth was established from the allocated searches and direct-source deep context windows."];
+    if (entityId) reasons.push(`Pitbull Wikidata identity ${entityId} was reused for canonical/official historical-source discovery.`);
+    if (directUrls.length) reasons.push(`Direct source discovery found ${directUrls.length} candidate canonical/official URL(s) for historical reading.`);
     if (deepEvidence.length) reasons.push(`Deep source context found history language near the place identity on ${deepEvidence.length} page(s).`);
-    results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, historyClaim] }, status, score, evidenceUrls, independentSources: sources.length, matchedHistoryTerms, reasons, deepPagesOpened: deep.opened, directSourceUrls: directUrls.length });
+    results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, historyClaim] }, status, score, evidenceUrls, independentSources: sourceFamilies.length, matchedHistoryTerms, reasons, deepPagesOpened: deep.opened, directSourceUrls: directUrls.length });
   }
 
   return {
@@ -121,6 +121,6 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
     lookups,
     deepPagesOpened: results.reduce((sum, item) => sum + item.deepPagesOpened, 0),
     directSourceUrls: results.reduce((sum, item) => sum + item.directSourceUrls, 0),
-    rule: "History reuses Pitbull Wikidata identity when available to reach canonical pages, then reads bounded context around the exact place. Source discovery alone proves nothing. Confirmed history still needs multiple sources including a trusted history/official source; legends remain labeled unless independently established.",
+    rule: "History counts independent publisher families, not language editions or subdomains. Wikidata P856 official pages are preferred alongside canonical sitelinks. Confirmed history still requires at least two independent families including a trusted history/official family; legends remain labeled unless independently established.",
   };
 }
