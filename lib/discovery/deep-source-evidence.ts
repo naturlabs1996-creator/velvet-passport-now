@@ -6,7 +6,7 @@ export type DeepEvidenceWindow = {
   terms: string[];
 };
 
-const USER_AGENT = "VelvetPassportDeepEvidence/1.1 (bounded public source context verification; cached requests)";
+const USER_AGENT = "VelvetPassportDeepEvidence/1.2 (wikidata-linked bounded source context verification; cached requests)";
 const MAX_HTML_BYTES = 900_000;
 
 function normalize(value: string) {
@@ -48,7 +48,7 @@ function identityMatch(name: string, text: string) {
   const matched = tokens.filter((token) => t.includes(token)).length;
   return tokens.length === 1 ? matched === 1 : matched >= Math.min(2, tokens.length);
 }
-function contextWindow(name: string, text: string, radius = 700) {
+function contextWindow(name: string, text: string, radius = 900) {
   const nText = normalize(text);
   const nName = normalize(name);
   let index = nText.indexOf(nName);
@@ -60,8 +60,29 @@ function contextWindow(name: string, text: string, radius = 700) {
   return text.slice(Math.max(0, index - radius), Math.min(text.length, index + radius));
 }
 
-export async function discoverDirectSourceUrls(name: string, maxUrls = 5) {
+async function wikidataSitelinkUrls(wikidataId: string) {
+  if (!/^Q\d+$/i.test(wikidataId)) return [];
+  try {
+    const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 5500);
+    try {
+      const response = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(wikidataId)}&props=sitelinks&sitefilter=enwiki|frwiki&format=json&origin=*`, { headers: { "user-agent": USER_AGENT, accept: "application/json" }, signal: controller.signal, next: { revalidate: 21600 } });
+      if (!response.ok) return [];
+      const json = await response.json() as { entities?: Record<string, { sitelinks?: Record<string, { title?: string }> }> };
+      const sitelinks = json.entities?.[wikidataId]?.sitelinks ?? {};
+      const urls: string[] = [];
+      const en = sitelinks.enwiki?.title;
+      const fr = sitelinks.frwiki?.title;
+      if (en) urls.push(`https://en.wikipedia.org/wiki/${encodeURIComponent(en.replace(/ /g, "_"))}`);
+      if (fr) urls.push(`https://fr.wikipedia.org/wiki/${encodeURIComponent(fr.replace(/ /g, "_"))}`);
+      return urls;
+    } finally { clearTimeout(timer); }
+  } catch { return []; }
+}
+
+export async function discoverDirectSourceUrls(name: string, maxUrls = 5, wikidataId?: string) {
   const urls: string[] = [];
+  if (wikidataId) urls.push(...await wikidataSitelinkUrls(wikidataId));
+
   const encoded = encodeURIComponent(`${name} Paris`);
   try {
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 5500);
@@ -119,6 +140,6 @@ export async function fetchDeepEvidenceWindows(name: string, urls: string[], ter
     attempted,
     opened,
     windows,
-    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears in the page and the evaluated terms occur inside a local context window around that identity. Direct source discovery may find canonical candidate pages, but fetch failure remains unknown and never creates evidence.",
+    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears and evaluated terms occur inside a local context window. Wikidata-linked sitelinks are preferred when the Pitbull resolver already established an entity ID. Source discovery alone never creates evidence.",
   };
 }
