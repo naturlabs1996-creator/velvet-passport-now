@@ -13,31 +13,26 @@ export type IntentEvidenceResult = {
   reasons: string[];
 };
 
-const USER_AGENT = "VelvetPassportIntentBridge/1.0 (focused intent verification; cached public search)";
+const USER_AGENT = "VelvetPassportIntentBridge/2.0 (focused intent verification; cached public search)";
 
 const THEME_TERMS: Record<string, string[]> = {
-  "beyond-the-classics": ["unusual", "less known", "off the beaten", "hidden gem", "independent", "atypical", "insolite"],
-  "quiet-paris": ["quiet", "calm", "peaceful", "tranquil", "away from crowds", "paisible"],
+  "beyond-the-classics": ["unusual", "less known", "off the beaten", "hidden gem", "independent", "atypical", "insolite", "under-the-radar"],
+  "quiet-paris": ["quiet", "calm", "peaceful", "tranquil", "away from crowds", "paisible", "uncrowded"],
   "secret-gardens": ["garden", "jardin", "courtyard", "cour", "green space"],
   "forgotten-passages": ["passage", "covered passage", "galerie", "arcade"],
-  "hidden-bookshops": ["bookshop", "bookstore", "librairie", "literary", "books"],
-  "unusual-museums": ["museum", "musée", "collection", "cabinet", "unusual", "insolite"],
+  "hidden-bookshops": ["bookshop", "bookstore", "librairie", "literary", "books", "independent bookstore"],
+  "unusual-museums": ["museum", "musée", "collection", "cabinet", "unusual", "insolite", "small museum", "house museum"],
   "paris-after-dark": ["night", "evening", "late opening", "open late", "nocturne", "after dark", "soir", "soirée"],
   "rainy-day-paris": ["indoor", "covered", "inside", "museum", "gallery", "bookshop", "arcade"],
 };
 
+const GENERIC_HIGH_EXPOSURE = ["must-see", "must see", "top attraction", "iconic", "most visited", "world famous"];
+
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
-
-function stripHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function hostOf(url: string) {
-  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; }
-}
-
+function stripHtml(value: string) { return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
+function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }
 function xmlItems(xml: string) {
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
   const read = (block: string, tag: string) => {
@@ -46,27 +41,25 @@ function xmlItems(xml: string) {
   };
   return blocks.map((block) => ({ title: read(block, "title"), link: read(block, "link"), description: read(block, "description") })).filter((item) => item.title && item.link);
 }
-
 async function fetchWithTimeout(url: string, timeoutMs = 6500) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 21600 } });
-  } finally { clearTimeout(timer); }
+  try { return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 21600 } }); }
+  finally { clearTimeout(timer); }
 }
-
-function placeLike(lead: ResearchLead) {
-  return typeof lead.lat === "number" && typeof lead.lon === "number" || Boolean(lead.address);
-}
+function placeLike(lead: ResearchLead) { return typeof lead.lat === "number" && typeof lead.lon === "number" || Boolean(lead.address); }
 
 function buildQueries(lead: ResearchLead) {
   const terms = THEME_TERMS[lead.theme] ?? [];
-  const primary = terms.slice(0, 4).join(" OR ");
-  const secondary = terms.slice(4, 8).join(" OR ");
-  return [
-    `\"${lead.name}\" Paris (${primary})`,
-    secondary ? `\"${lead.name}\" Paris (${secondary})` : `\"${lead.name}\" Paris ${lead.query}`,
-  ];
+  const families = [terms.slice(0, 3), terms.slice(3, 6), terms.slice(6, 9)].filter((group) => group.length);
+  return families.map((group) => `\"${lead.name}\" Paris (${group.join(" OR ")})`).concat([
+    `\"${lead.name}\" Paris review ${lead.query}`,
+    `\"${lead.name}\" Paris official ${lead.query}`,
+  ]).slice(0, 5);
+}
+
+function identityTokens(name: string) {
+  return normalize(name).split(/[^a-z0-9]+/).filter((token) => token.length >= 4 && !["musee", "museum", "paris"].includes(token));
 }
 
 export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8) {
@@ -82,6 +75,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
 
     const terms = THEME_TERMS[lead.theme] ?? [];
     const queries = buildQueries(lead);
+    const tokens = identityTokens(lead.name);
     const evidence: Array<{ text: string; url: string; host: string }> = [];
 
     for (const query of queries) {
@@ -92,7 +86,8 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
         const xml = await response.text();
         for (const item of xmlItems(xml).slice(0, 8)) {
           const text = normalize(`${item.title} ${item.description}`);
-          if (!text.includes(normalize(lead.name).split(" ")[0] ?? "")) continue;
+          const identityMatch = tokens.length ? tokens.some((token) => text.includes(token)) : text.includes(normalize(lead.name));
+          if (!identityMatch) continue;
           evidence.push({ text, url: item.link, host: hostOf(item.link) });
         }
       } catch {
@@ -100,14 +95,18 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
       }
     }
 
-    const matchedTerms = [...new Set(terms.filter((term) => evidence.some((item) => item.text.includes(normalize(term)))) )];
-    const sources = [...new Set(evidence.filter((item) => terms.some((term) => item.text.includes(normalize(term)))).map((item) => item.host))];
-    const evidenceUrls = [...new Set(evidence.filter((item) => terms.some((term) => item.text.includes(normalize(term)))).map((item) => item.url))].slice(0, 8);
-    const score = Math.min(100, matchedTerms.length * 22 + Math.min(44, sources.length * 22));
-    const status: IntentEvidenceStatus = score >= 66 && sources.length >= 2 ? "CONFIRMED" : score >= 30 ? "PARTIAL" : "UNCONFIRMED";
+    const themeEvidence = evidence.filter((item) => terms.some((term) => item.text.includes(normalize(term))));
+    const matchedTerms = [...new Set(terms.filter((term) => themeEvidence.some((item) => item.text.includes(normalize(term)))) )];
+    const sources = [...new Set(themeEvidence.map((item) => item.host))];
+    const evidenceUrls = [...new Set(themeEvidence.map((item) => item.url))].slice(0, 8);
+    const highExposureOnly = themeEvidence.length > 0 && themeEvidence.every((item) => GENERIC_HIGH_EXPOSURE.some((term) => item.text.includes(normalize(term))));
+    let score = Math.min(100, matchedTerms.length * 18 + Math.min(48, sources.length * 24));
+    if (highExposureOnly) score = Math.max(0, score - 25);
+    const status: IntentEvidenceStatus = score >= 68 && sources.length >= 2 ? "CONFIRMED" : score >= 32 ? "PARTIAL" : "UNCONFIRMED";
     const reasons = [
-      status === "CONFIRMED" ? "Focused search found theme-specific evidence across at least two independent sources." : status === "PARTIAL" ? "Focused search found some theme-specific evidence, but independent confirmation is still incomplete." : "Focused search did not find enough theme-specific evidence to confirm the traveler-intent fit.",
+      status === "CONFIRMED" ? "Focused V2 search found identity-matched, theme-specific evidence across at least two independent sources." : status === "PARTIAL" ? "Focused V2 search found some identity-matched theme evidence, but independent confirmation is still incomplete." : "Focused V2 search did not find enough identity-matched theme evidence to confirm the traveler-intent fit.",
     ];
+    if (highExposureOnly) reasons.push("Observed intent language appears only in generic high-exposure tourism framing, so confidence is reduced.");
 
     const bridgeClaim = matchedTerms.length ? `INTENT_EVIDENCE ${lead.theme}: ${matchedTerms.join(", ")} | independent_sources=${sources.length} | status=${status}` : `INTENT_EVIDENCE ${lead.theme}: status=${status}`;
     results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, bridgeClaim] }, status, score, matchedTerms, evidenceUrls, independentSources: sources.length, queries, reasons });
@@ -120,6 +119,6 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     partial: results.filter((item) => item.status === "PARTIAL"),
     unconfirmed: results.filter((item) => item.status === "UNCONFIRMED"),
     lookups,
-    rule: "A semantic scent or resolved place may trigger focused research, but intent fit is confirmed only from explicit theme evidence. Search recurrence is investigative evidence and cannot by itself verify publication claims.",
+    rule: "Focused Intent Evidence V2 uses several identity-matched query families and requires explicit theme evidence across independent sources. Generic tourism language reduces confidence and recurrence never upgrades a factual claim to VERIFIED.",
   };
 }
