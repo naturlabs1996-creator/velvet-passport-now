@@ -25,6 +25,7 @@ const THEME_TERMS: Record<string, string[]> = {
 
 const TOURIST_TRAP_TERMS = ["eiffel tower", "louvre museum", "arc de triomphe", "disneyland paris", "champs-élysées"];
 const VELVET_TERMS = ["courtyard", "passage", "garden", "bookshop", "small museum", "atelier", "historic", "literary", "discreet", "unusual", "hidden", "local", "quiet", "independent"];
+const HIGH_EXPOSURE_SOURCES = ["parisjetaime.com"];
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -40,6 +41,16 @@ function lexicalTextOf(lead: ResearchLead) {
 
 function hasAny(text: string, terms: string[]) {
   return terms.some((term) => text.includes(normalize(term)));
+}
+
+function sourceHost(lead: ResearchLead) {
+  try { return new URL(lead.url).hostname.replace(/^www\./, "").toLowerCase(); }
+  catch { return lead.publisher.toLowerCase().replace(/^www\./, ""); }
+}
+
+function isHighExposureSource(lead: ResearchLead) {
+  const host = sourceHost(lead);
+  return HIGH_EXPOSURE_SOURCES.some((source) => host === source || host.endsWith(`.${source}`) || lead.publisher.toLowerCase().includes(source));
 }
 
 function geographyScore(lead: ResearchLead, text: string) {
@@ -62,9 +73,6 @@ function intentEvidenceState(lead: ResearchLead): IntentEvidenceState {
 
 function intentScore(lead: ResearchLead) {
   const evidenceState = intentEvidenceState(lead);
-  // Once focused research has explicitly evaluated the theme-place relationship,
-  // that evidence is authoritative. Lexical collisions such as "late 19th century"
-  // must never rescue an UNCONFIRMED candidate for a night-intent theme.
   if (evidenceState === "CONFIRMED") return 75;
   if (evidenceState === "PARTIAL") return 30;
   if (evidenceState === "UNCONFIRMED") return 0;
@@ -76,11 +84,15 @@ function intentScore(lead: ResearchLead) {
   return matches === 0 ? 0 : Math.min(100, 35 + matches * 20);
 }
 
-function velvetUtilityScore(text: string) {
+function velvetUtilityScore(lead: ResearchLead, text: string) {
   let score = 25;
   const matches = VELVET_TERMS.filter((term) => text.includes(normalize(term))).length;
   score += Math.min(60, matches * 12);
   if (hasAny(text, TOURIST_TRAP_TERMS)) score -= 45;
+  // Paris je t'aime is useful for factual corroboration, but a place surfaced there is
+  // usually already in a highly exposed official-tourism discovery channel. Treat that
+  // as a strong negative Velvet-scarcity signal, not an absolute factual-source ban.
+  if (isHighExposureSource(lead)) score -= 35;
   return Math.max(0, Math.min(100, score));
 }
 
@@ -88,14 +100,15 @@ export function scoreResearchLeadRelevance(lead: ResearchLead): RelevanceScore {
   const text = textOf(lead);
   const geography = geographyScore(lead, text);
   const intent = intentScore(lead);
-  const velvetUtility = velvetUtilityScore(text);
+  const velvetUtility = velvetUtilityScore(lead, text);
   const total = Math.round(geography * 0.35 + intent * 0.45 + velvetUtility * 0.2);
   const reasons: string[] = [];
   const evidenceState = intentEvidenceState(lead);
 
   if (geography < 45) reasons.push("Paris-France anchor is too weak for a research candidate.");
   if (intent < 35) reasons.push("Candidate does not match the active traveler intent strongly enough.");
-  if (velvetUtility < 25) reasons.push("Candidate is too generic or tourist-dominant for the Velvet discovery layer.");
+  if (velvetUtility < 25) reasons.push("Candidate is too generic, too exposed or tourist-dominant for the Velvet discovery layer.");
+  if (isHighExposureSource(lead)) reasons.push("Paris je t'aime / official tourism exposure is a strong negative Velvet-scarcity signal; retain only if independent evidence shows a genuinely distinctive angle.");
   if (evidenceState === "CONFIRMED") reasons.push("Focused Intent Evidence explicitly confirms the theme-place relationship.");
   else if (evidenceState === "PARTIAL") reasons.push("Focused Intent Evidence is only partial, so it cannot satisfy the relevance acceptance threshold yet.");
   else if (evidenceState === "UNCONFIRMED") reasons.push("Focused Intent Evidence explicitly failed to confirm this theme-place relationship; lexical matches are ignored.");
