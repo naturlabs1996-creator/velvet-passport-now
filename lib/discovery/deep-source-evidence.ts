@@ -7,7 +7,17 @@ export type DeepEvidenceWindow = {
   terms: string[];
 };
 
-const USER_AGENT = "VelvetPassportDeepEvidence/1.3 (wikidata-linked official + bounded source context verification; cached requests)";
+export type DeepEvidenceTrace = {
+  url: string;
+  host: string;
+  sourceFamily: string;
+  opened: boolean;
+  matchedIdentity: boolean;
+  windowsScanned: number;
+  matchedTerms: string[];
+};
+
+const USER_AGENT = "VelvetPassportDeepEvidence/1.4 (traced multi-window wikidata-linked source verification; cached requests)";
 const MAX_HTML_BYTES = 900_000;
 
 function normalize(value: string) {
@@ -56,16 +66,21 @@ function identityMatch(name: string, text: string) {
   const matched = tokens.filter((token) => t.includes(token)).length;
   return tokens.length === 1 ? matched === 1 : matched >= Math.min(2, tokens.length);
 }
-function contextWindow(name: string, text: string, radius = 900) {
-  const nText = normalize(text);
-  const nName = normalize(name);
-  let index = nText.indexOf(nName);
-  if (index < 0) {
-    const token = identityTokens(name)[0];
-    index = token ? nText.indexOf(token) : -1;
+function contextWindows(name: string, text: string, radius = 900, maxWindows = 5) {
+  const normalizedText = normalize(text);
+  const needles = [normalize(name), ...identityTokens(name)].filter((value, index, all) => value && all.indexOf(value) === index);
+  const indices: number[] = [];
+  for (const needle of needles) {
+    let from = 0;
+    while (indices.length < maxWindows) {
+      const index = normalizedText.indexOf(needle, from);
+      if (index < 0) break;
+      if (!indices.some((existing) => Math.abs(existing - index) < radius)) indices.push(index);
+      from = index + Math.max(needle.length, 1);
+    }
+    if (indices.length >= maxWindows) break;
   }
-  if (index < 0) return "";
-  return text.slice(Math.max(0, index - radius), Math.min(text.length, index + radius));
+  return indices.slice(0, maxWindows).map((index) => text.slice(Math.max(0, index - radius), Math.min(text.length, index + radius)));
 }
 
 async function wikidataLinkedUrls(wikidataId: string) {
@@ -139,25 +154,42 @@ export async function discoverDirectSourceUrls(name: string, maxUrls = 5, wikida
 export async function fetchDeepEvidenceWindows(name: string, urls: string[], terms: string[], maxPages = 3) {
   const uniqueUrls = [...new Set(urls)].filter((url) => /^https?:\/\//i.test(url)).slice(0, Math.max(1, Math.min(maxPages, 5)));
   const windows: DeepEvidenceWindow[] = [];
+  const trace: DeepEvidenceTrace[] = [];
   let attempted = 0;
   let opened = 0;
   for (const url of uniqueUrls) {
     attempted += 1;
+    const host = hostOf(url);
+    const sourceFamily = sourceFamilyOf(url);
     const page = await fetchPage(url);
-    if (!page) continue;
+    if (!page) {
+      trace.push({ url, host, sourceFamily, opened: false, matchedIdentity: false, windowsScanned: 0, matchedTerms: [] });
+      continue;
+    }
     opened += 1;
     const matchedIdentity = identityMatch(name, page);
-    if (!matchedIdentity) continue;
-    const window = contextWindow(name, page);
-    if (!window) continue;
-    const normalizedWindow = normalize(window);
-    const matchedTerms = [...new Set(terms.filter((term) => normalizedWindow.includes(normalize(term))))];
-    windows.push({ url, host: hostOf(url), sourceFamily: sourceFamilyOf(url), matchedIdentity, text: window, terms: matchedTerms });
+    if (!matchedIdentity) {
+      trace.push({ url, host, sourceFamily, opened: true, matchedIdentity: false, windowsScanned: 0, matchedTerms: [] });
+      continue;
+    }
+    const localWindows = contextWindows(name, page);
+    const allTerms = [...new Set(localWindows.flatMap((window) => {
+      const normalizedWindow = normalize(window);
+      return terms.filter((term) => normalizedWindow.includes(normalize(term)));
+    }))];
+    trace.push({ url, host, sourceFamily, opened: true, matchedIdentity: true, windowsScanned: localWindows.length, matchedTerms: allTerms });
+    for (const window of localWindows) {
+      const normalizedWindow = normalize(window);
+      const matchedTerms = [...new Set(terms.filter((term) => normalizedWindow.includes(normalize(term))))];
+      if (!matchedTerms.length) continue;
+      windows.push({ url, host, sourceFamily, matchedIdentity: true, text: window, terms: matchedTerms });
+    }
   }
   return {
     attempted,
     opened,
     windows,
-    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears and evaluated terms occur inside a local context window. Wikidata official website P856 is preferred alongside canonical sitelinks. Language editions of the same publisher share one source family and never count as independent corroboration.",
+    trace,
+    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears and evaluated terms occur inside one of several local context windows. Wikidata official website P856 is preferred alongside canonical sitelinks. Language editions of the same publisher share one source family and never count as independent corroboration.",
   };
 }
