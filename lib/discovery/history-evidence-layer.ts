@@ -15,7 +15,7 @@ export type HistoryEvidenceResult = {
   directSourceUrls: number;
 };
 
-const USER_AGENT = "VelvetPassportHistoryLayer/1.3 (strict place identity + direct source + deep history verification; cached public search)";
+const USER_AGENT = "VelvetPassportHistoryLayer/1.4 (wikidata-linked strict place identity + deep history verification; cached public search)";
 const HISTORY_TERMS = [
   "history", "historic", "historical", "founded", "built", "constructed", "opened", "former", "formerly",
   "architect", "architecture", "atelier", "workshop", "printing", "imprimerie", "hotel particulier", "hôtel particulier",
@@ -30,6 +30,7 @@ const TRUSTED_HISTORY_HOST_HINTS = ["paris.fr", "parisjetaime.com", "culture.gou
 function normalize(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function stripHtml(value: string) { return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
 function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }
+function wikidataEntityId(lead: ResearchLead) { return lead.rawClaims.map((claim) => claim.match(/^WIKIDATA_ENTITY\s+(Q\d+)$/i)?.[1]).find(Boolean); }
 function xmlItems(xml: string) {
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
   const read = (block: string, tag: string) => {
@@ -90,7 +91,8 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
       } catch { /* Failure remains unknown. */ }
     }
 
-    const directUrls = await discoverDirectSourceUrls(lead.name, 4);
+    const entityId = wikidataEntityId(lead);
+    const directUrls = await discoverDirectSourceUrls(lead.name, 4, entityId);
     const deep = await fetchDeepEvidenceWindows(lead.name, [...directUrls, ...searchEvidence.map((item) => item.url)], HISTORY_TERMS, 5);
     const deepEvidence = deep.windows.filter((item) => item.terms.length > 0 && geographicallyCompatible(lead, item.text)).map((item) => ({ text: normalize(item.text), url: item.url, host: item.host, trusted: sourceQuality(item.host) }));
     const evidence = [...searchEvidence, ...deepEvidence];
@@ -104,6 +106,7 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
     const historyClaim = matchedHistoryTerms.length ? `HISTORY_EVIDENCE: terms=${matchedHistoryTerms.slice(0, 10).join(", ")} | independent_sources=${sources.length} | trusted_sources=${trustedSources.length} | deep_pages=${deepEvidence.length} | direct_sources=${directUrls.length} | status=${status}` : `HISTORY_EVIDENCE: direct_sources=${directUrls.length} | status=${status}`;
 
     const reasons = [status === "CONFIRMED" ? "Historical depth is supported by multiple identity-matched sources including at least one trusted history/official source." : status === "PARTIAL" ? "Historical clues exist, but entity identity, source quality or corroboration remains incomplete." : "No reliable identity-matched historical depth was established from the allocated searches and direct-source deep context windows."];
+    if (entityId) reasons.push(`Pitbull Wikidata identity ${entityId} was reused for canonical historical-source discovery.`);
     if (directUrls.length) reasons.push(`Direct source discovery found ${directUrls.length} candidate canonical/source URL(s) for historical reading.`);
     if (deepEvidence.length) reasons.push(`Deep source context found history language near the place identity on ${deepEvidence.length} page(s).`);
     results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, historyClaim] }, status, score, evidenceUrls, independentSources: sources.length, matchedHistoryTerms, reasons, deepPagesOpened: deep.opened, directSourceUrls: directUrls.length });
@@ -118,6 +121,6 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
     lookups,
     deepPagesOpened: results.reduce((sum, item) => sum + item.deepPagesOpened, 0),
     directSourceUrls: results.reduce((sum, item) => sum + item.directSourceUrls, 0),
-    rule: "History is a value signal and research lead, not a publication fact by itself. Direct candidate-source discovery can supply pages for bounded context reading, but source discovery alone proves nothing. Confirmed history still needs multiple sources including a trusted history/official source; legends remain labeled unless independently established.",
+    rule: "History reuses Pitbull Wikidata identity when available to reach canonical pages, then reads bounded context around the exact place. Source discovery alone proves nothing. Confirmed history still needs multiple sources including a trusted history/official source; legends remain labeled unless independently established.",
   };
 }
