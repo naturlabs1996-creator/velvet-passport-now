@@ -6,7 +6,7 @@ export type DeepEvidenceWindow = {
   terms: string[];
 };
 
-const USER_AGENT = "VelvetPassportDeepEvidence/1.0 (bounded public source context verification; cached requests)";
+const USER_AGENT = "VelvetPassportDeepEvidence/1.1 (bounded public source context verification; cached requests)";
 const MAX_HTML_BYTES = 900_000;
 
 function normalize(value: string) {
@@ -60,6 +60,43 @@ function contextWindow(name: string, text: string, radius = 700) {
   return text.slice(Math.max(0, index - radius), Math.min(text.length, index + radius));
 }
 
+export async function discoverDirectSourceUrls(name: string, maxUrls = 5) {
+  const urls: string[] = [];
+  const encoded = encodeURIComponent(`${name} Paris`);
+  try {
+    const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 5500);
+    try {
+      const response = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encoded}&srlimit=4&format=json&origin=*`, { headers: { "user-agent": USER_AGENT, accept: "application/json" }, signal: controller.signal, next: { revalidate: 21600 } });
+      if (response.ok) {
+        const json = await response.json() as { query?: { search?: Array<{ pageid: number; title: string }> } };
+        for (const item of json.query?.search ?? []) {
+          if (!identityMatch(name, item.title)) continue;
+          urls.push(`https://en.wikipedia.org/?curid=${item.pageid}`);
+        }
+      }
+    } finally { clearTimeout(timer); }
+  } catch { /* Direct discovery failure stays unknown. */ }
+
+  try {
+    const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 5500);
+    try {
+      const response = await fetch(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(`\"${name}\" Paris`)}`, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 21600 } });
+      if (response.ok) {
+        const xml = await response.text();
+        const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
+        for (const block of blocks.slice(0, 8)) {
+          const title = stripHtml(block.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i)?.[1] ?? "");
+          const link = stripHtml(block.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i)?.[1] ?? "");
+          if (!title || !link || !identityMatch(name, title)) continue;
+          urls.push(link);
+        }
+      }
+    } finally { clearTimeout(timer); }
+  } catch { /* Direct discovery failure stays unknown. */ }
+
+  return [...new Set(urls)].filter((url) => /^https?:\/\//i.test(url)).slice(0, Math.max(1, Math.min(maxUrls, 8)));
+}
+
 export async function fetchDeepEvidenceWindows(name: string, urls: string[], terms: string[], maxPages = 3) {
   const uniqueUrls = [...new Set(urls)].filter((url) => /^https?:\/\//i.test(url)).slice(0, Math.max(1, Math.min(maxPages, 5)));
   const windows: DeepEvidenceWindow[] = [];
@@ -82,6 +119,6 @@ export async function fetchDeepEvidenceWindows(name: string, urls: string[], ter
     attempted,
     opened,
     windows,
-    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears in the page and the evaluated terms occur inside a local context window around that identity. Fetch failure remains unknown and never creates evidence.",
+    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears in the page and the evaluated terms occur inside a local context window around that identity. Direct source discovery may find canonical candidate pages, but fetch failure remains unknown and never creates evidence.",
   };
 }
