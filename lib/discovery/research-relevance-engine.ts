@@ -23,34 +23,20 @@ const THEME_TERMS: Record<string, string[]> = {
   "rainy-day-paris": ["indoor", "museum", "gallery", "bookshop", "covered passage", "arcade", "tea room", "café"],
 };
 
-const TOURIST_TRAP_TERMS = ["eiffel tower", "louvre museum", "arc de triomphe", "disneyland paris", "champs-élysées"];
+const TOURIST_TRAP_TERMS = ["eiffel tower", "louvre museum", "musée du louvre", "arc de triomphe", "disneyland paris", "champs-élysées"];
 const VELVET_TERMS = ["courtyard", "passage", "garden", "bookshop", "small museum", "atelier", "historic", "literary", "discreet", "unusual", "hidden", "local", "quiet", "independent"];
-const HIGH_EXPOSURE_SOURCES = ["parisjetaime.com"];
+const HIGH_EXPOSURE_SOURCES = ["parisjetaime.com", "tripadvisor.com", "getyourguide.com", "viator.com", "lonelyplanet.com"];
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
-
-function textOf(lead: ResearchLead) {
-  return normalize([lead.name, lead.snippet, lead.address, ...lead.rawClaims].filter(Boolean).join(" "));
-}
-
-function lexicalTextOf(lead: ResearchLead) {
-  return normalize([lead.name, lead.snippet, lead.address, ...lead.rawClaims.filter((claim) => !claim.startsWith("INTENT_EVIDENCE ") && !claim.startsWith("HISTORY_EVIDENCE:"))].filter(Boolean).join(" "));
-}
-
-function hasAny(text: string, terms: string[]) {
-  return terms.some((term) => text.includes(normalize(term)));
-}
-
-function sourceHost(lead: ResearchLead) {
-  try { return new URL(lead.url).hostname.replace(/^www\./, "").toLowerCase(); }
-  catch { return lead.publisher.toLowerCase().replace(/^www\./, ""); }
-}
-
-function isHighExposureSource(lead: ResearchLead) {
+function textOf(lead: ResearchLead) { return normalize([lead.name, lead.snippet, lead.address, lead.url, lead.publisher, ...lead.rawClaims].filter(Boolean).join(" ")); }
+function lexicalTextOf(lead: ResearchLead) { return normalize([lead.name, lead.snippet, lead.address, ...lead.rawClaims.filter((claim) => !claim.startsWith("INTENT_EVIDENCE ") && !claim.startsWith("HISTORY_EVIDENCE:") && !claim.startsWith("EXPOSURE_EVIDENCE"))].filter(Boolean).join(" ")); }
+function hasAny(text: string, terms: string[]) { return terms.some((term) => text.includes(normalize(term))); }
+function sourceHost(lead: ResearchLead) { try { return new URL(lead.url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return lead.publisher.toLowerCase().replace(/^www\./, ""); } }
+function matchedExposureSources(lead: ResearchLead, text: string) {
   const host = sourceHost(lead);
-  return HIGH_EXPOSURE_SOURCES.some((source) => host === source || host.endsWith(`.${source}`) || lead.publisher.toLowerCase().includes(source));
+  return HIGH_EXPOSURE_SOURCES.filter((source) => host === source || host.endsWith(`.${source}`) || text.includes(source));
 }
 
 function geographyScore(lead: ResearchLead, text: string) {
@@ -62,7 +48,6 @@ function geographyScore(lead: ResearchLead, text: string) {
 }
 
 type IntentEvidenceState = "NONE" | "CONFIRMED" | "PARTIAL" | "UNCONFIRMED";
-
 function intentEvidenceState(lead: ResearchLead): IntentEvidenceState {
   const claims = lead.rawClaims.filter((claim) => claim.startsWith(`INTENT_EVIDENCE ${lead.theme}:`));
   if (!claims.length) return "NONE";
@@ -70,13 +55,11 @@ function intentEvidenceState(lead: ResearchLead): IntentEvidenceState {
   if (claims.some((claim) => /status=PARTIAL/.test(claim))) return "PARTIAL";
   return "UNCONFIRMED";
 }
-
 function intentScore(lead: ResearchLead) {
   const evidenceState = intentEvidenceState(lead);
   if (evidenceState === "CONFIRMED") return 75;
   if (evidenceState === "PARTIAL") return 30;
   if (evidenceState === "UNCONFIRMED") return 0;
-
   const terms = THEME_TERMS[lead.theme] ?? [];
   if (!terms.length) return 50;
   const text = lexicalTextOf(lead);
@@ -89,10 +72,10 @@ function velvetUtilityScore(lead: ResearchLead, text: string) {
   const matches = VELVET_TERMS.filter((term) => text.includes(normalize(term))).length;
   score += Math.min(60, matches * 12);
   if (hasAny(text, TOURIST_TRAP_TERMS)) score -= 45;
-  // Paris je t'aime is useful for factual corroboration, but a place surfaced there is
-  // usually already in a highly exposed official-tourism discovery channel. Treat that
-  // as a strong negative Velvet-scarcity signal, not an absolute factual-source ban.
-  if (isHighExposureSource(lead)) score -= 35;
+  const exposureSources = matchedExposureSources(lead, text);
+  if (exposureSources.includes("parisjetaime.com")) score -= 35;
+  score -= Math.min(30, exposureSources.filter((source) => source !== "parisjetaime.com").length * 12);
+  if (/top 10|top 15|must-see|must see|most visited|iconic|world-famous|world famous/i.test(text)) score -= 20;
   return Math.max(0, Math.min(100, score));
 }
 
@@ -104,31 +87,31 @@ export function scoreResearchLeadRelevance(lead: ResearchLead): RelevanceScore {
   const total = Math.round(geography * 0.35 + intent * 0.45 + velvetUtility * 0.2);
   const reasons: string[] = [];
   const evidenceState = intentEvidenceState(lead);
+  const exposureSources = matchedExposureSources(lead, text);
 
   if (geography < 45) reasons.push("Paris-France anchor is too weak for a research candidate.");
   if (intent < 35) reasons.push("Candidate does not match the active traveler intent strongly enough.");
   if (velvetUtility < 25) reasons.push("Candidate is too generic, too exposed or tourist-dominant for the Velvet discovery layer.");
-  if (isHighExposureSource(lead)) reasons.push("Paris je t'aime / official tourism exposure is a strong negative Velvet-scarcity signal; retain only if independent evidence shows a genuinely distinctive angle.");
+  if (exposureSources.includes("parisjetaime.com")) reasons.push("Paris je t'aime / official tourism exposure is a strong negative Velvet-scarcity signal; retain only if independent evidence shows a genuinely distinctive angle.");
+  if (exposureSources.some((source) => source !== "parisjetaime.com")) reasons.push(`High-exposure travel channels detected: ${exposureSources.filter((source) => source !== "parisjetaime.com").join(", ")}.`);
+  if (/top 10|top 15|must-see|must see|most visited|iconic|world-famous|world famous/i.test(text)) reasons.push("Generic high-exposure tourism framing reduces Velvet priority.");
   if (evidenceState === "CONFIRMED") reasons.push("Focused Intent Evidence explicitly confirms the theme-place relationship.");
   else if (evidenceState === "PARTIAL") reasons.push("Focused Intent Evidence is only partial, so it cannot satisfy the relevance acceptance threshold yet.");
   else if (evidenceState === "UNCONFIRMED") reasons.push("Focused Intent Evidence explicitly failed to confirm this theme-place relationship; lexical matches are ignored.");
 
   const decision: RelevanceDecision = geography >= 45 && intent >= 35 && velvetUtility >= 25 && total >= 50 ? "ACCEPT" : "REJECT";
   if (decision === "ACCEPT") reasons.push("Candidate is geographically anchored, intent-relevant and useful enough for deeper verification.");
-
   return { leadId: lead.id, decision, total, geography, intent, velvetUtility, reasons };
 }
 
 export function applyResearchRelevanceEngine(leads: ResearchLead[]) {
   const accepted: ResearchLead[] = [];
   const rejected: Array<{ lead: ResearchLead; score: RelevanceScore }> = [];
-
   for (const lead of leads) {
     const score = scoreResearchLeadRelevance(lead);
     if (score.decision === "ACCEPT") accepted.push(lead);
     else rejected.push({ lead, score });
   }
-
   accepted.sort((a, b) => scoreResearchLeadRelevance(b).total - scoreResearchLeadRelevance(a).total);
   return { accepted, rejected };
 }
