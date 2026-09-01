@@ -16,7 +16,7 @@ export type IntentEvidenceResult = {
   directSourceUrls: number;
 };
 
-const USER_AGENT = "VelvetPassportIntentBridge/2.2 (focused intent + direct source + deep context verification; cached public search)";
+const USER_AGENT = "VelvetPassportIntentBridge/2.3 (wikidata-linked focused intent + deep context verification; cached public search)";
 
 const THEME_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "less known", "off the beaten", "hidden gem", "independent", "atypical", "insolite", "under-the-radar"],
@@ -34,6 +34,7 @@ const GENERIC_HIGH_EXPOSURE = ["must-see", "must see", "top attraction", "iconic
 function normalize(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function stripHtml(value: string) { return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
 function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }
+function wikidataEntityId(lead: ResearchLead) { return lead.rawClaims.map((claim) => claim.match(/^WIKIDATA_ENTITY\s+(Q\d+)$/i)?.[1]).find(Boolean); }
 function xmlItems(xml: string) {
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
   const read = (block: string, tag: string) => {
@@ -88,7 +89,8 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
       } catch { /* Search failure remains unknown. */ }
     }
 
-    const directUrls = await discoverDirectSourceUrls(lead.name, 4);
+    const entityId = wikidataEntityId(lead);
+    const directUrls = await discoverDirectSourceUrls(lead.name, 4, entityId);
     const deep = await fetchDeepEvidenceWindows(lead.name, [...directUrls, ...searchEvidence.map((item) => item.url)], terms, 5);
     const deepEvidence = deep.windows.filter((item) => item.terms.length > 0).map((item) => ({ text: normalize(item.text), url: item.url, host: item.host }));
     const combined = [...searchEvidence, ...deepEvidence];
@@ -100,7 +102,8 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     let score = Math.min(100, matchedTerms.length * 18 + Math.min(48, sources.length * 24) + Math.min(18, deepEvidence.length * 9));
     if (highExposureOnly) score = Math.max(0, score - 25);
     const status: IntentEvidenceStatus = score >= 68 && sources.length >= 2 ? "CONFIRMED" : score >= 32 ? "PARTIAL" : "UNCONFIRMED";
-    const reasons = [status === "CONFIRMED" ? "Focused search plus direct-source deep context found identity-matched, theme-specific evidence across at least two independent sources." : status === "PARTIAL" ? "Focused/direct-source research found some identity-matched theme evidence, but independent confirmation remains incomplete." : "Focused search and direct-source deep research did not find enough identity-matched theme evidence to confirm the traveler-intent fit."];
+    const reasons = [status === "CONFIRMED" ? "Focused search plus Wikidata-linked direct-source context found identity-matched theme evidence across at least two independent sources." : status === "PARTIAL" ? "Focused/direct-source research found some identity-matched theme evidence, but independent confirmation remains incomplete." : "Focused search and direct-source deep research did not find enough identity-matched theme evidence to confirm the traveler-intent fit."];
+    if (entityId) reasons.push(`Pitbull Wikidata identity ${entityId} was reused for canonical-source discovery.`);
     if (directUrls.length) reasons.push(`Direct source discovery found ${directUrls.length} candidate canonical/source URL(s) for deeper reading.`);
     if (deepEvidence.length) reasons.push(`Deep context verification found theme language near the place identity on ${deepEvidence.length} source page(s).`);
     if (highExposureOnly) reasons.push("Observed intent language appears only in generic high-exposure tourism framing, so confidence is reduced.");
@@ -118,6 +121,6 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     lookups,
     deepPagesOpened: results.reduce((sum, item) => sum + item.deepPagesOpened, 0),
     directSourceUrls: results.reduce((sum, item) => sum + item.directSourceUrls, 0),
-    rule: "Focused Intent Evidence V2.2 combines identity-matched search, direct candidate-source discovery and bounded source-page context windows. Theme terms must occur near the candidate identity; source discovery alone never proves intent and no signal bypasses claim verification.",
+    rule: "Focused Intent Evidence V2.3 reuses Pitbull Wikidata identity when available, then combines canonical-source reading with identity-matched search. Theme terms must occur near the candidate identity; source discovery alone never proves intent and no signal bypasses claim verification.",
   };
 }
