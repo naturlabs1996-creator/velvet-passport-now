@@ -1,4 +1,5 @@
 import type { ResearchLead } from "./research-collectors";
+import { fetchDeepEvidenceWindows } from "./deep-source-evidence";
 
 export type HistoryEvidenceStatus = "CONFIRMED" | "PARTIAL" | "UNCONFIRMED";
 
@@ -10,9 +11,10 @@ export type HistoryEvidenceResult = {
   independentSources: number;
   matchedHistoryTerms: string[];
   reasons: string[];
+  deepPagesOpened: number;
 };
 
-const USER_AGENT = "VelvetPassportHistoryLayer/1.1 (strict place identity + history verification; cached public search)";
+const USER_AGENT = "VelvetPassportHistoryLayer/1.2 (strict place identity + deep history verification; cached public search)";
 const HISTORY_TERMS = [
   "history", "historic", "historical", "founded", "built", "constructed", "opened", "former", "formerly",
   "architect", "architecture", "atelier", "workshop", "printing", "imprimerie", "hotel particulier", "hôtel particulier",
@@ -24,18 +26,9 @@ const GENERIC_ENTITY_TOKENS = new Set(["paris", "musee", "museum", "hotel", "the
 const OUT_OF_PARIS_TERMS = ["las vegas", "seattle", "london", "new york", "tokyo", "orlando", "texas"];
 const TRUSTED_HISTORY_HOST_HINTS = ["paris.fr", "parisjetaime.com", "culture.gouv.fr", "monuments-nationaux.fr", "musee", "museum", "history.com", "britannica.com", "wikipedia.org", "paris-musees.fr"];
 
-function normalize(value: string) {
-  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-function stripHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function hostOf(url: string) {
-  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; }
-}
-
+function normalize(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+function stripHtml(value: string) { return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
+function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }
 function xmlItems(xml: string) {
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
   const read = (block: string, tag: string) => {
@@ -44,44 +37,27 @@ function xmlItems(xml: string) {
   };
   return blocks.map((block) => ({ title: read(block, "title"), link: read(block, "link"), description: read(block, "description") })).filter((item) => item.title && item.link);
 }
-
 async function fetchWithTimeout(url: string, timeoutMs = 6500) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 86400 } });
-  } finally { clearTimeout(timer); }
+  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 86400 } }); }
+  finally { clearTimeout(timer); }
 }
-
-function placeLike(lead: ResearchLead) {
-  return Boolean(lead.address) || (typeof lead.lat === "number" && typeof lead.lon === "number");
-}
-
-function entityTokens(name: string) {
-  return normalize(name).split(/[^a-z0-9]+/).filter((token) => token.length >= 3 && !GENERIC_ENTITY_TOKENS.has(token));
-}
-
+function placeLike(lead: ResearchLead) { return Boolean(lead.address) || (typeof lead.lat === "number" && typeof lead.lon === "number"); }
+function entityTokens(name: string) { return normalize(name).split(/[^a-z0-9]+/).filter((token) => token.length >= 3 && !GENERIC_ENTITY_TOKENS.has(token)); }
 function identityMatches(lead: ResearchLead, text: string) {
-  const normalizedName = normalize(lead.name);
-  const normalizedText = normalize(text);
+  const normalizedName = normalize(lead.name); const normalizedText = normalize(text);
   if (normalizedName.length >= 7 && normalizedText.includes(normalizedName)) return true;
-  const tokens = entityTokens(lead.name);
-  if (!tokens.length) return false;
+  const tokens = entityTokens(lead.name); if (!tokens.length) return false;
   const matched = tokens.filter((token) => normalizedText.includes(token)).length;
   return tokens.length === 1 ? matched === 1 : matched >= Math.min(2, tokens.length);
 }
-
 function geographicallyCompatible(lead: ResearchLead, text: string) {
   const normalizedText = normalize(text);
   if (!OUT_OF_PARIS_TERMS.some((term) => normalizedText.includes(term))) return true;
   const address = normalize(lead.address ?? "");
   return OUT_OF_PARIS_TERMS.some((term) => address.includes(term) && normalizedText.includes(term));
 }
-
-function sourceQuality(host: string) {
-  const normalized = host.toLowerCase();
-  return TRUSTED_HISTORY_HOST_HINTS.some((hint) => normalized.includes(hint)) ? 1 : 0;
-}
+function sourceQuality(host: string) { const normalized = host.toLowerCase(); return TRUSTED_HISTORY_HOST_HINTS.some((hint) => normalized.includes(hint)) ? 1 : 0; }
 
 export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 6) {
   const eligible = leads.filter(placeLike).slice(0, Math.max(1, Math.min(maxLookups, 12)));
@@ -90,15 +66,12 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
 
   for (const lead of leads) {
     if (!eligible.includes(lead)) {
-      results.push({ lead, status: "UNCONFIRMED", score: 0, evidenceUrls: [], independentSources: 0, matchedHistoryTerms: [], reasons: ["History research was not allocated to this candidate or the place identity is not resolved."] });
+      results.push({ lead, status: "UNCONFIRMED", score: 0, evidenceUrls: [], independentSources: 0, matchedHistoryTerms: [], reasons: ["History research was not allocated to this candidate or the place identity is not resolved."], deepPagesOpened: 0 });
       continue;
     }
 
-    const queries = [
-      `\"${lead.name}\" Paris history heritage`,
-      `\"${lead.name}\" Paris histoire patrimoine architecte`,
-    ];
-    const evidence: Array<{ text: string; url: string; host: string; trusted: number }> = [];
+    const queries = [`\"${lead.name}\" Paris history heritage`, `\"${lead.name}\" Paris histoire patrimoine architecte`];
+    const searchEvidence: Array<{ text: string; url: string; host: string; trusted: number }> = [];
 
     for (const query of queries) {
       lookups += 1;
@@ -111,33 +84,26 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
           if (!identityMatches(lead, rawText)) continue;
           if (!geographicallyCompatible(lead, rawText)) continue;
           const host = hostOf(item.link);
-          evidence.push({ text: normalize(rawText), url: item.link, host, trusted: sourceQuality(host) });
+          searchEvidence.push({ text: normalize(rawText), url: item.link, host, trusted: sourceQuality(host) });
         }
-      } catch {
-        // Failure leaves history unconfirmed.
-      }
+      } catch { /* Failure remains unknown. */ }
     }
 
+    const deep = await fetchDeepEvidenceWindows(lead.name, searchEvidence.map((item) => item.url), HISTORY_TERMS, 4);
+    const deepEvidence = deep.windows.filter((item) => item.terms.length > 0 && geographicallyCompatible(lead, item.text)).map((item) => ({ text: normalize(item.text), url: item.url, host: item.host, trusted: sourceQuality(item.host) }));
+    const evidence = [...searchEvidence, ...deepEvidence];
     const relevant = evidence.filter((item) => HISTORY_TERMS.some((term) => item.text.includes(normalize(term))));
     const matchedHistoryTerms = [...new Set(HISTORY_TERMS.filter((term) => relevant.some((item) => item.text.includes(normalize(term)))))];
     const sources = [...new Set(relevant.map((item) => item.host))];
     const trustedSources = [...new Set(relevant.filter((item) => item.trusted > 0).map((item) => item.host))];
     const evidenceUrls = [...new Set(relevant.map((item) => item.url))].slice(0, 8);
-    const score = Math.min(100, matchedHistoryTerms.length * 7 + Math.min(42, sources.length * 18) + Math.min(18, trustedSources.length * 9));
+    const score = Math.min(100, matchedHistoryTerms.length * 7 + Math.min(42, sources.length * 18) + Math.min(18, trustedSources.length * 9) + Math.min(18, deepEvidence.length * 9));
     const status: HistoryEvidenceStatus = score >= 64 && sources.length >= 2 && trustedSources.length >= 1 ? "CONFIRMED" : score >= 28 ? "PARTIAL" : "UNCONFIRMED";
-    const historyClaim = matchedHistoryTerms.length
-      ? `HISTORY_EVIDENCE: terms=${matchedHistoryTerms.slice(0, 10).join(", ")} | independent_sources=${sources.length} | trusted_sources=${trustedSources.length} | status=${status}`
-      : `HISTORY_EVIDENCE: status=${status}`;
+    const historyClaim = matchedHistoryTerms.length ? `HISTORY_EVIDENCE: terms=${matchedHistoryTerms.slice(0, 10).join(", ")} | independent_sources=${sources.length} | trusted_sources=${trustedSources.length} | deep_pages=${deepEvidence.length} | status=${status}` : `HISTORY_EVIDENCE: status=${status}`;
 
-    results.push({
-      lead: { ...lead, rawClaims: [...lead.rawClaims, historyClaim] },
-      status,
-      score,
-      evidenceUrls,
-      independentSources: sources.length,
-      matchedHistoryTerms,
-      reasons: [status === "CONFIRMED" ? "Historical depth is supported by multiple identity-matched sources including at least one trusted history/official source." : status === "PARTIAL" ? "Historical clues exist, but entity identity, source quality or corroboration remains incomplete." : "No reliable identity-matched historical depth was established from the allocated searches."],
-    });
+    const reasons = [status === "CONFIRMED" ? "Historical depth is supported by multiple identity-matched sources including at least one trusted history/official source." : status === "PARTIAL" ? "Historical clues exist, but entity identity, source quality or corroboration remains incomplete." : "No reliable identity-matched historical depth was established from the allocated searches and deep context windows."];
+    if (deepEvidence.length) reasons.push(`Deep source context found history language near the place identity on ${deepEvidence.length} page(s).`);
+    results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, historyClaim] }, status, score, evidenceUrls, independentSources: sources.length, matchedHistoryTerms, reasons, deepPagesOpened: deep.opened });
   }
 
   return {
@@ -147,6 +113,7 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
     partial: results.filter((item) => item.status === "PARTIAL"),
     unconfirmed: results.filter((item) => item.status === "UNCONFIRMED"),
     lookups,
-    rule: "History is a value signal and research lead, not a publication fact by itself. Evidence must match the specific place identity and geography; homonyms and unrelated chain locations are rejected. Confirmed history needs multiple sources including at least one trusted history/official source. Legends and local traditions remain explicitly labeled unless independently established.",
+    deepPagesOpened: results.reduce((sum, item) => sum + item.deepPagesOpened, 0),
+    rule: "History is a value signal and research lead, not a publication fact by itself. Search evidence is strengthened only when bounded source-page context matches the specific place identity and geography. Confirmed history still needs multiple sources including a trusted history/official source; legends remain labeled unless independently established.",
   };
 }
