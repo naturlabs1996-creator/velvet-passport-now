@@ -1,5 +1,5 @@
 import type { ResearchLead } from "./research-collectors";
-import { fetchDeepEvidenceWindows } from "./deep-source-evidence";
+import { discoverDirectSourceUrls, fetchDeepEvidenceWindows } from "./deep-source-evidence";
 
 export type HistoryEvidenceStatus = "CONFIRMED" | "PARTIAL" | "UNCONFIRMED";
 
@@ -12,9 +12,10 @@ export type HistoryEvidenceResult = {
   matchedHistoryTerms: string[];
   reasons: string[];
   deepPagesOpened: number;
+  directSourceUrls: number;
 };
 
-const USER_AGENT = "VelvetPassportHistoryLayer/1.2 (strict place identity + deep history verification; cached public search)";
+const USER_AGENT = "VelvetPassportHistoryLayer/1.3 (strict place identity + direct source + deep history verification; cached public search)";
 const HISTORY_TERMS = [
   "history", "historic", "historical", "founded", "built", "constructed", "opened", "former", "formerly",
   "architect", "architecture", "atelier", "workshop", "printing", "imprimerie", "hotel particulier", "hôtel particulier",
@@ -66,7 +67,7 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
 
   for (const lead of leads) {
     if (!eligible.includes(lead)) {
-      results.push({ lead, status: "UNCONFIRMED", score: 0, evidenceUrls: [], independentSources: 0, matchedHistoryTerms: [], reasons: ["History research was not allocated to this candidate or the place identity is not resolved."], deepPagesOpened: 0 });
+      results.push({ lead, status: "UNCONFIRMED", score: 0, evidenceUrls: [], independentSources: 0, matchedHistoryTerms: [], reasons: ["History research was not allocated to this candidate or the place identity is not resolved."], deepPagesOpened: 0, directSourceUrls: 0 });
       continue;
     }
 
@@ -89,7 +90,8 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
       } catch { /* Failure remains unknown. */ }
     }
 
-    const deep = await fetchDeepEvidenceWindows(lead.name, searchEvidence.map((item) => item.url), HISTORY_TERMS, 4);
+    const directUrls = await discoverDirectSourceUrls(lead.name, 4);
+    const deep = await fetchDeepEvidenceWindows(lead.name, [...directUrls, ...searchEvidence.map((item) => item.url)], HISTORY_TERMS, 5);
     const deepEvidence = deep.windows.filter((item) => item.terms.length > 0 && geographicallyCompatible(lead, item.text)).map((item) => ({ text: normalize(item.text), url: item.url, host: item.host, trusted: sourceQuality(item.host) }));
     const evidence = [...searchEvidence, ...deepEvidence];
     const relevant = evidence.filter((item) => HISTORY_TERMS.some((term) => item.text.includes(normalize(term))));
@@ -99,11 +101,12 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
     const evidenceUrls = [...new Set(relevant.map((item) => item.url))].slice(0, 8);
     const score = Math.min(100, matchedHistoryTerms.length * 7 + Math.min(42, sources.length * 18) + Math.min(18, trustedSources.length * 9) + Math.min(18, deepEvidence.length * 9));
     const status: HistoryEvidenceStatus = score >= 64 && sources.length >= 2 && trustedSources.length >= 1 ? "CONFIRMED" : score >= 28 ? "PARTIAL" : "UNCONFIRMED";
-    const historyClaim = matchedHistoryTerms.length ? `HISTORY_EVIDENCE: terms=${matchedHistoryTerms.slice(0, 10).join(", ")} | independent_sources=${sources.length} | trusted_sources=${trustedSources.length} | deep_pages=${deepEvidence.length} | status=${status}` : `HISTORY_EVIDENCE: status=${status}`;
+    const historyClaim = matchedHistoryTerms.length ? `HISTORY_EVIDENCE: terms=${matchedHistoryTerms.slice(0, 10).join(", ")} | independent_sources=${sources.length} | trusted_sources=${trustedSources.length} | deep_pages=${deepEvidence.length} | direct_sources=${directUrls.length} | status=${status}` : `HISTORY_EVIDENCE: direct_sources=${directUrls.length} | status=${status}`;
 
-    const reasons = [status === "CONFIRMED" ? "Historical depth is supported by multiple identity-matched sources including at least one trusted history/official source." : status === "PARTIAL" ? "Historical clues exist, but entity identity, source quality or corroboration remains incomplete." : "No reliable identity-matched historical depth was established from the allocated searches and deep context windows."];
+    const reasons = [status === "CONFIRMED" ? "Historical depth is supported by multiple identity-matched sources including at least one trusted history/official source." : status === "PARTIAL" ? "Historical clues exist, but entity identity, source quality or corroboration remains incomplete." : "No reliable identity-matched historical depth was established from the allocated searches and direct-source deep context windows."];
+    if (directUrls.length) reasons.push(`Direct source discovery found ${directUrls.length} candidate canonical/source URL(s) for historical reading.`);
     if (deepEvidence.length) reasons.push(`Deep source context found history language near the place identity on ${deepEvidence.length} page(s).`);
-    results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, historyClaim] }, status, score, evidenceUrls, independentSources: sources.length, matchedHistoryTerms, reasons, deepPagesOpened: deep.opened });
+    results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, historyClaim] }, status, score, evidenceUrls, independentSources: sources.length, matchedHistoryTerms, reasons, deepPagesOpened: deep.opened, directSourceUrls: directUrls.length });
   }
 
   return {
@@ -114,6 +117,7 @@ export async function enrichHistoryEvidence(leads: ResearchLead[], maxLookups = 
     unconfirmed: results.filter((item) => item.status === "UNCONFIRMED"),
     lookups,
     deepPagesOpened: results.reduce((sum, item) => sum + item.deepPagesOpened, 0),
-    rule: "History is a value signal and research lead, not a publication fact by itself. Search evidence is strengthened only when bounded source-page context matches the specific place identity and geography. Confirmed history still needs multiple sources including a trusted history/official source; legends remain labeled unless independently established.",
+    directSourceUrls: results.reduce((sum, item) => sum + item.directSourceUrls, 0),
+    rule: "History is a value signal and research lead, not a publication fact by itself. Direct candidate-source discovery can supply pages for bounded context reading, but source discovery alone proves nothing. Confirmed history still needs multiple sources including a trusted history/official source; legends remain labeled unless independently established.",
   };
 }
