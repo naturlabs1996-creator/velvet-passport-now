@@ -1,18 +1,26 @@
 export type DeepEvidenceWindow = {
   url: string;
   host: string;
+  sourceFamily: string;
   matchedIdentity: boolean;
   text: string;
   terms: string[];
 };
 
-const USER_AGENT = "VelvetPassportDeepEvidence/1.2 (wikidata-linked bounded source context verification; cached requests)";
+const USER_AGENT = "VelvetPassportDeepEvidence/1.3 (wikidata-linked official + bounded source context verification; cached requests)";
 const MAX_HTML_BYTES = 900_000;
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }
+export function sourceFamilyOf(urlOrHost: string) {
+  const host = /^https?:\/\//i.test(urlOrHost) ? hostOf(urlOrHost) : urlOrHost.replace(/^www\./, "").toLowerCase();
+  if (host === "wikipedia.org" || host.endsWith(".wikipedia.org")) return "wikipedia.org";
+  if (host === "wikimedia.org" || host.endsWith(".wikimedia.org")) return "wikimedia.org";
+  const parts = host.split(".").filter(Boolean);
+  return parts.length >= 2 ? parts.slice(-2).join(".") : host;
+}
 function stripHtml(html: string) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -60,18 +68,22 @@ function contextWindow(name: string, text: string, radius = 900) {
   return text.slice(Math.max(0, index - radius), Math.min(text.length, index + radius));
 }
 
-async function wikidataSitelinkUrls(wikidataId: string) {
+async function wikidataLinkedUrls(wikidataId: string) {
   if (!/^Q\d+$/i.test(wikidataId)) return [];
   try {
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 5500);
     try {
-      const response = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(wikidataId)}&props=sitelinks&sitefilter=enwiki|frwiki&format=json&origin=*`, { headers: { "user-agent": USER_AGENT, accept: "application/json" }, signal: controller.signal, next: { revalidate: 21600 } });
+      const response = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(wikidataId)}&props=sitelinks|claims&sitefilter=enwiki|frwiki&format=json&origin=*`, { headers: { "user-agent": USER_AGENT, accept: "application/json" }, signal: controller.signal, next: { revalidate: 21600 } });
       if (!response.ok) return [];
-      const json = await response.json() as { entities?: Record<string, { sitelinks?: Record<string, { title?: string }> }> };
-      const sitelinks = json.entities?.[wikidataId]?.sitelinks ?? {};
+      const json = await response.json() as { entities?: Record<string, { sitelinks?: Record<string, { title?: string }>; claims?: { P856?: Array<{ mainsnak?: { datavalue?: { value?: string } } }> } }> };
+      const entity = json.entities?.[wikidataId];
       const urls: string[] = [];
-      const en = sitelinks.enwiki?.title;
-      const fr = sitelinks.frwiki?.title;
+      for (const claim of entity?.claims?.P856 ?? []) {
+        const value = claim.mainsnak?.datavalue?.value;
+        if (typeof value === "string" && /^https?:\/\//i.test(value)) urls.push(value);
+      }
+      const en = entity?.sitelinks?.enwiki?.title;
+      const fr = entity?.sitelinks?.frwiki?.title;
       if (en) urls.push(`https://en.wikipedia.org/wiki/${encodeURIComponent(en.replace(/ /g, "_"))}`);
       if (fr) urls.push(`https://fr.wikipedia.org/wiki/${encodeURIComponent(fr.replace(/ /g, "_"))}`);
       return urls;
@@ -81,7 +93,7 @@ async function wikidataSitelinkUrls(wikidataId: string) {
 
 export async function discoverDirectSourceUrls(name: string, maxUrls = 5, wikidataId?: string) {
   const urls: string[] = [];
-  if (wikidataId) urls.push(...await wikidataSitelinkUrls(wikidataId));
+  if (wikidataId) urls.push(...await wikidataLinkedUrls(wikidataId));
 
   const encoded = encodeURIComponent(`${name} Paris`);
   try {
@@ -115,7 +127,13 @@ export async function discoverDirectSourceUrls(name: string, maxUrls = 5, wikida
     } finally { clearTimeout(timer); }
   } catch { /* Direct discovery failure stays unknown. */ }
 
-  return [...new Set(urls)].filter((url) => /^https?:\/\//i.test(url)).slice(0, Math.max(1, Math.min(maxUrls, 8)));
+  const unique = [...new Set(urls)].filter((url) => /^https?:\/\//i.test(url));
+  unique.sort((a, b) => {
+    const aWiki = sourceFamilyOf(a) === "wikipedia.org" ? 1 : 0;
+    const bWiki = sourceFamilyOf(b) === "wikipedia.org" ? 1 : 0;
+    return aWiki - bWiki;
+  });
+  return unique.slice(0, Math.max(1, Math.min(maxUrls, 8)));
 }
 
 export async function fetchDeepEvidenceWindows(name: string, urls: string[], terms: string[], maxPages = 3) {
@@ -134,12 +152,12 @@ export async function fetchDeepEvidenceWindows(name: string, urls: string[], ter
     if (!window) continue;
     const normalizedWindow = normalize(window);
     const matchedTerms = [...new Set(terms.filter((term) => normalizedWindow.includes(normalize(term))))];
-    windows.push({ url, host: hostOf(url), matchedIdentity, text: window, terms: matchedTerms });
+    windows.push({ url, host: hostOf(url), sourceFamily: sourceFamilyOf(url), matchedIdentity, text: window, terms: matchedTerms });
   }
   return {
     attempted,
     opened,
     windows,
-    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears and evaluated terms occur inside a local context window. Wikidata-linked sitelinks are preferred when the Pitbull resolver already established an entity ID. Source discovery alone never creates evidence.",
+    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears and evaluated terms occur inside a local context window. Wikidata official website P856 is preferred alongside canonical sitelinks. Language editions of the same publisher share one source family and never count as independent corroboration.",
   };
 }
