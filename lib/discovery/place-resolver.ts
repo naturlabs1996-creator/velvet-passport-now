@@ -11,7 +11,7 @@ export type PlaceResolution = {
   reasons: string[];
 };
 
-const USER_AGENT = "VelvetPassportResearch/2.4 (pitbull resolver; wikidata + osm; cached public data)";
+const USER_AGENT = "VelvetPassportResearch/2.5 (pitbull resolver; persistent wikidata identity + osm geo fallback; cached public data)";
 const PARIS_BOX = { minLat: 48.815, maxLat: 48.902, minLon: 2.224, maxLon: 2.469 };
 
 function insideParis(lat?: number, lon?: number) {
@@ -63,7 +63,18 @@ async function fetchWithTimeout(url: string, timeoutMs = 4500) {
 
 type NominatimResult = { place_id: number; display_name: string; lat: string; lon: string; type?: string; category?: string; name?: string; importance?: number };
 type WikidataSearch = { id: string; label?: string; description?: string };
-type WikidataEntity = { labels?: Record<string, { value: string }>; claims?: { P625?: Array<{ mainsnak?: { datavalue?: { value?: { latitude?: number; longitude?: number } } } }> } };
+type WikidataEntity = { labels?: Record<string, { value: string }>; descriptions?: Record<string, { value: string }>; claims?: { P625?: Array<{ mainsnak?: { datavalue?: { value?: { latitude?: number; longitude?: number } } } }> } };
+type WikidataIdentity = { id: string; label: string; lat?: number; lon?: number; nameScore: number };
+
+function existingWikidataId(lead: ResearchLead) {
+  return lead.rawClaims.map((claim) => claim.match(/^WIKIDATA_ENTITY\s+(Q\d+)$/i)?.[1]).find(Boolean);
+}
+
+function attachWikidataIdentity(lead: ResearchLead, identity?: WikidataIdentity | null) {
+  if (!identity) return lead;
+  if (existingWikidataId(lead)) return lead;
+  return { ...lead, rawClaims: [...lead.rawClaims, `WIKIDATA_ENTITY ${identity.id}`] };
+}
 
 function chooseParisMatch(items: NominatimResult[], wantedName: string) {
   const normalizedWanted = normalize(wantedName);
@@ -76,7 +87,7 @@ function chooseParisMatch(items: NominatimResult[], wantedName: string) {
   })[0];
 }
 
-async function resolveViaWikidata(lead: ResearchLead): Promise<PlaceResolution | null> {
+async function lookupWikidataIdentity(lead: ResearchLead): Promise<WikidataIdentity | null> {
   const name = cleanCandidateName(lead.name);
   if (!name || likelyNonPlace(name) || !highConfidencePlace(lead)) return null;
   try {
@@ -86,41 +97,51 @@ async function resolveViaWikidata(lead: ResearchLead): Promise<PlaceResolution |
     const candidates = searchJson.search ?? [];
     if (!candidates.length) return null;
     const ids = candidates.map((item) => item.id).join("|");
-    const entityResponse = await fetchWithTimeout(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(ids)}&props=labels|claims&languages=fr|en&format=json&origin=*`);
+    const entityResponse = await fetchWithTimeout(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(ids)}&props=labels|descriptions|claims&languages=fr|en&format=json&origin=*`);
     if (!entityResponse.ok) return null;
     const entityJson = await entityResponse.json() as { entities?: Record<string, WikidataEntity> };
     const wanted = normalize(name);
     const matches = candidates.map((candidate) => {
       const entity = entityJson.entities?.[candidate.id];
       const coord = entity?.claims?.P625?.[0]?.mainsnak?.datavalue?.value;
-      const lat = coord?.latitude;
-      const lon = coord?.longitude;
       const label = entity?.labels?.fr?.value || entity?.labels?.en?.value || candidate.label || name;
       const labelNorm = normalize(label);
       const nameScore = labelNorm === wanted ? 1 : labelNorm.includes(wanted) || wanted.includes(labelNorm) ? 0.8 : 0;
-      return { candidate, label, lat, lon, nameScore };
-    }).filter((item) => insideParis(item.lat, item.lon) && item.nameScore > 0).sort((a, b) => b.nameScore - a.nameScore);
+      const description = `${entity?.descriptions?.fr?.value ?? ""} ${entity?.descriptions?.en?.value ?? ""} ${candidate.description ?? ""}`;
+      const placeSignal = /museum|musée|garden|jardin|passage|gallery|galerie|library|bibliothèque|bookshop|librairie|building|bâtiment|monument|palace|palais|church|église|cemetery|cimetière|theatre|théâtre|Paris/i.test(description);
+      return { id: candidate.id, label, lat: coord?.latitude, lon: coord?.longitude, nameScore, placeSignal };
+    }).filter((item) => item.nameScore > 0 && (item.placeSignal || insideParis(item.lat, item.lon))).sort((a, b) => {
+      const aParis = insideParis(a.lat, a.lon) ? 1 : 0;
+      const bParis = insideParis(b.lat, b.lon) ? 1 : 0;
+      return bParis - aParis || b.nameScore - a.nameScore;
+    });
     const match = matches[0];
-    if (!match || typeof match.lat !== "number" || typeof match.lon !== "number") return null;
-    const confidence = match.nameScore === 1 ? 98 : 90;
-    const enriched: ResearchLead = {
-      ...lead,
-      name: match.label,
-      address: lead.address || "Paris, France",
-      lat: match.lat,
-      lon: match.lon,
-      rawClaims: [...lead.rawClaims, `WIKIDATA_ENTITY ${match.candidate.id}`, `WIKIDATA_COORDINATES ${match.lat},${match.lon}`],
-    };
-    return { lead: enriched, status: "RESOLVED", confidence, method: "WIKIDATA_DIRECT", reasons: ["High-confidence place resolved directly through Wikidata coordinates inside Paris.", `Wikidata entity: ${match.candidate.id}`] };
+    if (!match) return null;
+    return { id: match.id, label: match.label, lat: match.lat, lon: match.lon, nameScore: match.nameScore };
   } catch { return null; }
 }
 
-async function resolveViaNominatim(lead: ResearchLead): Promise<PlaceResolution> {
-  const name = cleanCandidateName(lead.name);
-  if (!name || likelyNonPlace(name)) return { lead, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["Candidate title looks like a broad topic, organization, media result or non-place entity."] };
+function resolutionFromWikidata(lead: ResearchLead, identity: WikidataIdentity): PlaceResolution | null {
+  if (!insideParis(identity.lat, identity.lon) || typeof identity.lat !== "number" || typeof identity.lon !== "number") return null;
+  const confidence = identity.nameScore === 1 ? 98 : 90;
+  const enriched: ResearchLead = {
+    ...attachWikidataIdentity(lead, identity),
+    name: identity.label,
+    address: lead.address || "Paris, France",
+    lat: identity.lat,
+    lon: identity.lon,
+    rawClaims: [...attachWikidataIdentity(lead, identity).rawClaims, `WIKIDATA_COORDINATES ${identity.lat},${identity.lon}`],
+  };
+  return { lead: enriched, status: "RESOLVED", confidence, method: "WIKIDATA_DIRECT", reasons: ["High-confidence place resolved directly through Wikidata coordinates inside Paris.", `Wikidata entity: ${identity.id}`] };
+}
+
+async function resolveViaNominatim(lead: ResearchLead, identity?: WikidataIdentity | null): Promise<PlaceResolution> {
+  const leadWithIdentity = attachWikidataIdentity(lead, identity);
+  const name = cleanCandidateName(leadWithIdentity.name);
+  if (!name || likelyNonPlace(name)) return { lead: leadWithIdentity, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["Candidate title looks like a broad topic, organization, media result or non-place entity."] };
   const queries = [
     { q: `${name}, Paris, France`, method: "NOMINATIM_NAME" as const },
-    ...(lead.snippet && lead.snippet.length < 180 && !lead.snippet.startsWith("High-confidence named place") ? [{ q: `${name}, ${lead.snippet}, Paris, France`, method: "NOMINATIM_NAME_SNIPPET" as const }] : []),
+    ...(leadWithIdentity.snippet && leadWithIdentity.snippet.length < 180 && !leadWithIdentity.snippet.startsWith("High-confidence named place") ? [{ q: `${name}, ${leadWithIdentity.snippet}, Paris, France`, method: "NOMINATIM_NAME_SNIPPET" as const }] : []),
   ];
   for (const query of queries) {
     try {
@@ -130,13 +151,17 @@ async function resolveViaNominatim(lead: ResearchLead): Promise<PlaceResolution>
       const match = chooseParisMatch(json, name);
       if (!match) continue;
       const canonicalName = match.item.name || match.item.display_name.split(",")[0] || name;
-      const enriched: ResearchLead = { ...lead, name: canonicalName, address: match.item.display_name, lat: match.lat, lon: match.lon, rawClaims: [...lead.rawClaims, match.item.display_name, match.item.category, match.item.type].filter((value): value is string => Boolean(value)) };
+      const enriched: ResearchLead = { ...leadWithIdentity, name: canonicalName, address: match.item.display_name, lat: match.lat, lon: match.lon, rawClaims: [...leadWithIdentity.rawClaims, match.item.display_name, match.item.category, match.item.type].filter((value): value is string => Boolean(value)) };
       const textMatch = normalize(canonicalName) === normalize(name) ? 1 : normalize(canonicalName).includes(normalize(name)) || normalize(name).includes(normalize(canonicalName)) ? 0.75 : 0.45;
       const confidence = Math.round(65 + textMatch * 25 + Math.min(10, (match.item.importance ?? 0) * 10));
-      return { lead: enriched, status: confidence >= 82 ? "RESOLVED" : "PARTIAL", confidence: Math.min(100, confidence), method: query.method, reasons: ["Candidate resolved to coordinates inside the Paris bounding box.", `Resolved address: ${match.item.display_name}`] };
+      const reasons = ["Candidate resolved to coordinates inside the Paris bounding box.", `Resolved address: ${match.item.display_name}`];
+      if (identity) reasons.push(`Wikidata identity preserved across Nominatim fallback: ${identity.id}`);
+      return { lead: enriched, status: confidence >= 82 ? "RESOLVED" : "PARTIAL", confidence: Math.min(100, confidence), method: query.method, reasons };
     } catch { /* continue */ }
   }
-  return { lead, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["No Paris geocoding match was strong enough to enrich this candidate."] };
+  const reasons = ["No Paris geocoding match was strong enough to enrich this candidate."];
+  if (identity) reasons.push(`Wikidata identity preserved despite geo fallback failure: ${identity.id}`);
+  return { lead: leadWithIdentity, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons };
 }
 
 export async function resolveParisPlaces(leads: ResearchLead[], maxLookups = 18) {
@@ -145,6 +170,7 @@ export async function resolveParisPlaces(leads: ResearchLead[], maxLookups = 18)
   let lookups = 0;
   let wikidataLookups = 0;
   let nominatimLookups = 0;
+  let wikidataIdentitiesPreserved = 0;
   const reservedHighConfidence = Math.max(4, Math.min(maxLookups, Math.ceil(maxLookups * 0.65)));
   let highConfidenceSpent = 0;
 
@@ -164,20 +190,30 @@ export async function resolveParisPlaces(leads: ResearchLead[], maxLookups = 18)
       byOriginalIndex.set(item.index, { lead, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["Geo-enrichment budget exhausted after reserving capacity for strongest physical-place candidates."] });
       continue;
     }
+
+    let identity: WikidataIdentity | null = null;
     if (item.highConfidence) {
-      const wikidata = await resolveViaWikidata(lead);
+      identity = await lookupWikidataIdentity(lead);
       wikidataLookups += 1;
       lookups += 1;
       highConfidenceSpent += 1;
-      if (wikidata) { byOriginalIndex.set(item.index, wikidata); continue; }
+      if (identity) wikidataIdentitiesPreserved += 1;
+      if (identity) {
+        const direct = resolutionFromWikidata(lead, identity);
+        if (direct) { byOriginalIndex.set(item.index, direct); continue; }
+      }
       if (lookups >= maxLookups) {
-        byOriginalIndex.set(item.index, { lead, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons: ["Direct Wikidata resolution failed and the remaining general resolver budget is exhausted."] });
+        const preserved = attachWikidataIdentity(lead, identity);
+        const reasons = ["Direct Wikidata coordinate resolution did not finish the geo step and the remaining general resolver budget is exhausted."];
+        if (identity) reasons.push(`Wikidata identity preserved for downstream canonical-source discovery: ${identity.id}`);
+        byOriginalIndex.set(item.index, { lead: preserved, status: "UNRESOLVED", confidence: 0, method: "NONE", reasons });
         continue;
       }
     }
+
     nominatimLookups += 1;
     lookups += 1;
-    byOriginalIndex.set(item.index, await resolveViaNominatim(lead));
+    byOriginalIndex.set(item.index, await resolveViaNominatim(lead, identity));
   }
 
   const results = leads.map((_, index) => byOriginalIndex.get(index)).filter((item): item is PlaceResolution => Boolean(item));
@@ -189,8 +225,9 @@ export async function resolveParisPlaces(leads: ResearchLead[], maxLookups = 18)
     lookups,
     wikidataLookups,
     nominatimLookups,
+    wikidataIdentitiesPreserved,
     reservedHighConfidence,
     highConfidenceSpent,
-    rule: "Pitbull resolver: reserve most lookup capacity for extracted high-confidence physical places, try direct Wikidata coordinates first, then fall back to Nominatim. Navigation noise spends no lookup. Resolution never bypasses Paris Entity Lock, intent verification, relevance or claim verification.",
+    rule: "Pitbull resolver V2.5 separates entity identity from geo method. High-confidence candidates retain a matched Wikidata QID even when coordinates fall back to Nominatim or geo resolution fails, so downstream official/canonical source discovery is not erased by a transient geocoder path. Identity preservation never bypasses Paris Entity Lock, intent verification, relevance or claim verification.",
   };
 }
