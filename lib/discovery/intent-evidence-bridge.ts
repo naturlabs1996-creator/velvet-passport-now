@@ -1,5 +1,6 @@
 import type { ResearchLead } from "./research-collectors";
 import { discoverDirectSourceUrls, fetchDeepEvidenceWindows, sourceFamilyOf } from "./deep-source-evidence";
+import { huntIndependentEvidence } from "./entity-specific-evidence-hunter";
 
 export type IntentEvidenceStatus = "CONFIRMED" | "PARTIAL" | "UNCONFIRMED";
 
@@ -14,9 +15,13 @@ export type IntentEvidenceResult = {
   reasons: string[];
   deepPagesOpened: number;
   directSourceUrls: number;
+  hunterSearches: number;
+  hunterPagesOpened: number;
+  hunterHits: number;
+  hunterFamiliesAdded: string[];
 };
 
-const USER_AGENT = "VelvetPassportIntentBridge/2.4 (source-family aware focused intent + deep context verification; cached public search)";
+const USER_AGENT = "VelvetPassportIntentBridge/2.5 (source-family aware focused intent + entity-specific independent evidence hunting; cached public search)";
 
 const THEME_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "less known", "off the beaten", "hidden gem", "independent", "atypical", "insolite", "under-the-radar"],
@@ -65,7 +70,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
 
   for (const lead of leads) {
     if (!eligible.includes(lead)) {
-      results.push({ lead, status: "UNCONFIRMED", score: 0, matchedTerms: [], evidenceUrls: [], independentSources: 0, queries: [], reasons: ["Focused intent verification was not allocated to this candidate or it lacks a resolved physical place identity."], deepPagesOpened: 0, directSourceUrls: 0 });
+      results.push({ lead, status: "UNCONFIRMED", score: 0, matchedTerms: [], evidenceUrls: [], independentSources: 0, queries: [], reasons: ["Focused intent verification was not allocated to this candidate or it lacks a resolved physical place identity."], deepPagesOpened: 0, directSourceUrls: 0, hunterSearches: 0, hunterPagesOpened: 0, hunterHits: 0, hunterFamiliesAdded: [] });
       continue;
     }
 
@@ -94,22 +99,51 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     const deep = await fetchDeepEvidenceWindows(lead.name, [...directUrls, ...searchEvidence.map((item) => item.url)], terms, 5);
     const deepEvidence = deep.windows.filter((item) => item.terms.length > 0).map((item) => ({ text: normalize(item.text), url: item.url, host: item.host, sourceFamily: item.sourceFamily }));
     const combined = [...searchEvidence, ...deepEvidence];
-    const themeEvidence = combined.filter((item) => terms.some((term) => item.text.includes(normalize(term))));
-    const matchedTerms = [...new Set(terms.filter((term) => themeEvidence.some((item) => item.text.includes(normalize(term)))))];
-    const sourceFamilies = [...new Set(themeEvidence.map((item) => item.sourceFamily))];
-    const evidenceUrls = [...new Set(themeEvidence.map((item) => item.url))].slice(0, 8);
+    let themeEvidence = combined.filter((item) => terms.some((term) => item.text.includes(normalize(term))));
+    let matchedTerms = [...new Set(terms.filter((term) => themeEvidence.some((item) => item.text.includes(normalize(term)))))];
+    let sourceFamilies = [...new Set(themeEvidence.map((item) => item.sourceFamily))];
+    let evidenceUrls = [...new Set(themeEvidence.map((item) => item.url))].slice(0, 8);
+
+    let hunterSearches = 0;
+    let hunterPagesOpened = 0;
+    let hunterHits = 0;
+    let hunterFamiliesAdded: string[] = [];
+
+    if (matchedTerms.length > 0 && sourceFamilies.length === 1) {
+      const hunter = await huntIndependentEvidence({
+        name: lead.name,
+        claimTerms: matchedTerms,
+        existingFamilies: sourceFamilies,
+        existingUrls: evidenceUrls,
+        maxSearches: 3,
+        maxPages: 5,
+      });
+      hunterSearches = hunter.attemptedSearches;
+      hunterPagesOpened = hunter.deepPagesOpened;
+      hunterHits = hunter.hits.length;
+      hunterFamiliesAdded = hunter.independentFamiliesAdded;
+      const hunterEvidence = hunter.hits.map((hit) => ({ text: normalize(hit.text), url: hit.url, host: hostOf(hit.url), sourceFamily: hit.sourceFamily }));
+      themeEvidence = [...themeEvidence, ...hunterEvidence];
+      matchedTerms = [...new Set(terms.filter((term) => themeEvidence.some((item) => item.text.includes(normalize(term)))))];
+      sourceFamilies = [...new Set(themeEvidence.map((item) => item.sourceFamily))];
+      evidenceUrls = [...new Set(themeEvidence.map((item) => item.url))].slice(0, 10);
+    }
+
     const highExposureOnly = themeEvidence.length > 0 && themeEvidence.every((item) => GENERIC_HIGH_EXPOSURE.some((term) => item.text.includes(normalize(term))));
-    let score = Math.min(100, matchedTerms.length * 18 + Math.min(48, sourceFamilies.length * 24) + Math.min(18, deepEvidence.length * 9));
+    let score = Math.min(100, matchedTerms.length * 18 + Math.min(48, sourceFamilies.length * 24) + Math.min(18, deepEvidence.length * 9) + Math.min(12, hunterHits * 6));
     if (highExposureOnly) score = Math.max(0, score - 25);
     const status: IntentEvidenceStatus = score >= 68 && sourceFamilies.length >= 2 ? "CONFIRMED" : score >= 32 ? "PARTIAL" : "UNCONFIRMED";
-    const reasons = [status === "CONFIRMED" ? "Focused search plus direct-source context found identity-matched theme evidence across at least two independent publisher families." : status === "PARTIAL" ? "Focused/direct-source research found some identity-matched theme evidence, but independent publisher-family confirmation remains incomplete." : "Focused search and direct-source deep research did not find enough identity-matched theme evidence to confirm the traveler-intent fit."];
+    const reasons = [status === "CONFIRMED" ? "Focused research plus entity-specific hunting found identity-matched theme evidence across at least two independent publisher families." : status === "PARTIAL" ? "Focused/direct-source research found some identity-matched theme evidence, but independent publisher-family confirmation remains incomplete." : "Focused search and direct-source deep research did not find enough identity-matched theme evidence to confirm the traveler-intent fit."];
     if (entityId) reasons.push(`Pitbull Wikidata identity ${entityId} was reused for canonical-source discovery.`);
     if (directUrls.length) reasons.push(`Direct source discovery found ${directUrls.length} candidate canonical/official URL(s) for deeper reading.`);
     if (deepEvidence.length) reasons.push(`Deep context verification found theme language near the place identity on ${deepEvidence.length} source page(s).`);
+    if (hunterSearches) reasons.push(`Entity-specific hunter ran ${hunterSearches} targeted corroboration search(es) against the already-observed claim terms.`);
+    if (hunterFamiliesAdded.length) reasons.push(`Independent evidence hunter added ${hunterFamiliesAdded.length} new publisher family/families: ${hunterFamiliesAdded.join(", ")}.`);
+    else if (hunterSearches) reasons.push("Independent evidence hunter found no new publisher family that repeated the same claim inside an identity-matched context window.");
     if (highExposureOnly) reasons.push("Observed intent language appears only in generic high-exposure tourism framing, so confidence is reduced.");
 
-    const bridgeClaim = matchedTerms.length ? `INTENT_EVIDENCE ${lead.theme}: ${matchedTerms.join(", ")} | independent_sources=${sourceFamilies.length} | deep_pages=${deepEvidence.length} | direct_sources=${directUrls.length} | status=${status}` : `INTENT_EVIDENCE ${lead.theme}: direct_sources=${directUrls.length} | status=${status}`;
-    results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, bridgeClaim] }, status, score, matchedTerms, evidenceUrls, independentSources: sourceFamilies.length, queries, reasons, deepPagesOpened: deep.opened, directSourceUrls: directUrls.length });
+    const bridgeClaim = matchedTerms.length ? `INTENT_EVIDENCE ${lead.theme}: ${matchedTerms.join(", ")} | independent_sources=${sourceFamilies.length} | deep_pages=${deepEvidence.length} | hunter_hits=${hunterHits} | direct_sources=${directUrls.length} | status=${status}` : `INTENT_EVIDENCE ${lead.theme}: direct_sources=${directUrls.length} | hunter_hits=${hunterHits} | status=${status}`;
+    results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, bridgeClaim] }, status, score, matchedTerms, evidenceUrls, independentSources: sourceFamilies.length, queries, reasons, deepPagesOpened: deep.opened, directSourceUrls: directUrls.length, hunterSearches, hunterPagesOpened, hunterHits, hunterFamiliesAdded });
   }
 
   return {
@@ -121,6 +155,10 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     lookups,
     deepPagesOpened: results.reduce((sum, item) => sum + item.deepPagesOpened, 0),
     directSourceUrls: results.reduce((sum, item) => sum + item.directSourceUrls, 0),
-    rule: "Focused Intent Evidence V2.4 counts independent publisher families rather than host/language variants. Wikidata P856 official pages may supplement canonical pages, but source discovery alone never proves intent and no signal bypasses claim verification.",
+    hunterSearches: results.reduce((sum, item) => sum + item.hunterSearches, 0),
+    hunterPagesOpened: results.reduce((sum, item) => sum + item.hunterPagesOpened, 0),
+    hunterHits: results.reduce((sum, item) => sum + item.hunterHits, 0),
+    hunterFamiliesAdded: [...new Set(results.flatMap((item) => item.hunterFamiliesAdded))],
+    rule: "Focused Intent Evidence V2.5 activates Entity-Specific Independent Evidence Hunter only after a concrete entity already has claim-specific evidence from one publisher family. The hunter repeats the same claim search, excludes existing publisher families and URLs, and can promote evidence only when a new independent family contains the claim terms in an identity-matched local context window. Search recurrence alone never counts as corroboration and no signal bypasses claim verification.",
   };
 }
