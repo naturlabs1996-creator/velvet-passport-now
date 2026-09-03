@@ -5,7 +5,7 @@ export type ClaimEquivalenceFamily = {
 };
 
 const FAMILIES: ClaimEquivalenceFamily[] = [
-  { id: "LATE_OPENING", themes: ["paris-after-dark"], terms: ["late opening", "open late", "open in the evening", "evening opening", "evening hours", "late hours", "nocturne", "ouverture nocturne", "ouvert le soir", "ouvert en soirée"] },
+  { id: "LATE_OPENING", themes: ["paris-after-dark"], terms: ["late opening", "open late", "open in the evening", "evening opening", "evening hours", "late hours", "late night", "late-night", "nocturne", "ouverture nocturne", "ouvert le soir", "ouvert en soirée"] },
   { id: "NIGHT_VISIT", themes: ["paris-after-dark"], terms: ["night visit", "night visits", "night tour", "night tours", "night opening", "after dark", "visite nocturne", "visites nocturnes", "visite de nuit", "soirée"] },
   { id: "QUIET_ATMOSPHERE", themes: ["quiet-paris"], terms: ["quiet", "calm", "peaceful", "tranquil", "paisible"] },
   { id: "LOW_CROWD_FRAMING", themes: ["quiet-paris", "beyond-the-classics"], terms: ["away from crowds", "uncrowded", "less crowded", "loin de la foule", "peu fréquenté"] },
