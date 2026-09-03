@@ -23,6 +23,7 @@ export type ResearchLead = {
   lat?: number;
   lon?: number;
   rawClaims: string[];
+  evidenceTrace?: ResearchEvidence[];
 };
 
 export type CollectorResult = {
@@ -120,135 +121,81 @@ function canonicalEntityName(value: string) {
 
 function dedupeLeads(leads: ResearchLead[]) {
   const seen = new Set<string>();
-  return leads.filter((lead) => { const key = `${lead.independentKey}|${canonicalEntityName(lead.name)}`; if (seen.has(key)) return false; seen.add(key); return true; });
+  return leads.filter((lead) => {
+    const key = `${canonicalEntityName(lead.name)}|${lead.independentKey}`;
+    if (!canonicalEntityName(lead.name) || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
-function buildTrailSignals(leads: ResearchLead[]) {
-  const groups = new Map<string, ResearchLead[]>();
-  for (const lead of leads) {
-    const key = canonicalEntityName(lead.name);
-    if (!key) continue;
-    const current = groups.get(key) ?? [];
-    current.push(lead);
-    groups.set(key, current);
-  }
-  return [...groups.entries()].map(([entityKey, items]) => ({
-    entityKey,
-    displayName: items[0]?.name ?? entityKey,
-    appearances: items.length,
-    independentSources: new Set(items.map((item) => item.independentKey)).size,
-    queryVariants: new Set(items.map((item) => item.query)).size,
-    strength: Math.min(100, 25 + Math.max(0, items.length - 1) * 12 + Math.max(0, new Set(items.map((item) => item.independentKey)).size - 1) * 24 + Math.max(0, new Set(items.map((item) => item.query)).size - 1) * 10),
-  })).sort((a, b) => b.strength - a.strength || b.independentSources - a.independentSources);
-}
-
-async function runCollectorsForQuery(packet: ResearchPacket, query: string, maxLeads: number, maxCollectors: number) {
-  const tasks = [
-    () => collectOpenStreetMap(packet, query, maxLeads),
-    () => collectBingRss(packet, query, "OFFICIAL_SEARCH", maxLeads),
-    () => collectBingRss(packet, query, "EDITORIAL_SEARCH", maxLeads),
-    () => collectWikimedia(packet, query, maxLeads),
-  ].slice(0, maxCollectors);
-  return Promise.all(tasks.map((task) => task()));
-}
+function sleep(ms: number) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 export async function collectResearchPacket(packet: ResearchPacket, budget: ResearchCollectorBudget = {}) {
-  const maxLeads = Math.max(1, Math.min(budget.maxLeadsPerCollector ?? DEFAULT_MAX_LEADS_PER_COLLECTOR, 12));
   const maxCollectors = Math.max(1, Math.min(budget.maxCollectorsPerPacket ?? 4, 4));
-  const maxScentQueries = Math.max(2, Math.min(budget.maxScentQueries ?? DEFAULT_SCENT_QUERIES, 8));
-  const maxPlaceLookups = Math.max(4, Math.min(budget.maxPlaceLookups ?? DEFAULT_PLACE_LOOKUPS, 30));
-  const maxIntentLookups = Math.max(2, Math.min(budget.maxIntentLookups ?? DEFAULT_INTENT_LOOKUPS, 16));
+  const maxLeads = Math.max(2, Math.min(budget.maxLeadsPerCollector ?? DEFAULT_MAX_LEADS_PER_COLLECTOR, 12));
+  const maxScentQueries = Math.max(1, Math.min(budget.maxScentQueries ?? DEFAULT_SCENT_QUERIES, 8));
+  const maxPlaceLookups = Math.max(1, Math.min(budget.maxPlaceLookups ?? DEFAULT_PLACE_LOOKUPS, 24));
+  const maxIntentLookups = Math.max(1, Math.min(budget.maxIntentLookups ?? DEFAULT_INTENT_LOOKUPS, 16));
   const maxSourcePages = Math.max(1, Math.min(budget.maxSourcePages ?? DEFAULT_SOURCE_PAGES, 10));
   const maxHistoryLookups = Math.max(1, Math.min(budget.maxHistoryLookups ?? DEFAULT_HISTORY_LOOKUPS, 12));
-  const scentTrail = buildScentTrail(packet.theme, packet.query, maxScentQueries);
-
+  const scentTrail = buildScentTrail(packet, maxScentQueries);
   const results: CollectorResult[] = [];
+
   for (const query of scentTrail.queries) {
-    const queryResults = await runCollectorsForQuery(packet, query, maxLeads, maxCollectors);
-    results.push(...queryResults);
+    const collectors = [
+      () => collectOpenStreetMap(packet, query, maxLeads),
+      () => collectBingRss(packet, query, "OFFICIAL_SEARCH", maxLeads),
+      () => collectBingRss(packet, query, "EDITORIAL_SEARCH", maxLeads),
+      () => collectWikimedia(packet, query, maxLeads),
+    ].slice(0, maxCollectors);
+    for (const collector of collectors) {
+      results.push(await collector());
+      await sleep(75);
+    }
   }
 
-  const rawLeads = dedupeLeads(results.flatMap((result) => result.leads));
-  const placeExtraction = await extractPlaceEntitiesFromSources(rawLeads, maxSourcePages, 8);
-  const combinedLeads = dedupeLeads([...placeExtraction.leads, ...rawLeads]);
-  const placeResolution = await resolveParisPlaces(combinedLeads, maxPlaceLookups);
-  const enrichedLeads = placeResolution.all.map((item) => item.lead);
-  const entityLock = applyParisDestinationEntityLock(enrichedLeads);
-  const intentEvidence = await verifyIntentEvidence(entityLock.accepted, maxIntentLookups);
-  const historyEvidence = await enrichHistoryEvidence(intentEvidence.leads, maxHistoryLookups);
-  const relevance = applyResearchRelevanceEngine(historyEvidence.leads);
-  const leads = relevance.accepted;
-  const trailSignals = buildTrailSignals(leads);
+  const initialLeads = dedupeLeads(results.flatMap((result) => result.leads));
+  const extraction = await extractPlaceEntitiesFromSources(initialLeads, maxSourcePages);
+  const combined = dedupeLeads([...initialLeads, ...extraction.leads]);
+  const resolution = await resolveParisPlaces(combined, maxPlaceLookups);
+  const destinationLocked = applyParisDestinationEntityLock(resolution.leads);
+  const intent = await verifyIntentEvidence(destinationLocked.accepted, maxIntentLookups);
+  const history = await enrichHistoryEvidence(intent.leads, maxHistoryLookups);
+  const relevance = applyResearchRelevanceEngine(history.leads);
+  const accepted = relevance.accepted;
+
+  const entityCounts = new Map<string, { displayName: string; appearances: number; sources: Set<string>; queries: Set<string> }>();
+  for (const lead of accepted) {
+    const key = canonicalEntityName(lead.name);
+    if (!key) continue;
+    const current = entityCounts.get(key) ?? { displayName: lead.name, appearances: 0, sources: new Set<string>(), queries: new Set<string>() };
+    current.appearances += 1; current.sources.add(lead.independentKey); current.queries.add(lead.query); entityCounts.set(key, current);
+  }
+  const trailSignals = [...entityCounts.entries()].map(([entityKey, value]) => ({ entityKey, displayName: value.displayName, appearances: value.appearances, independentSources: value.sources.size, queryVariants: value.queries.size, strength: Math.min(100, value.appearances * 10 + value.sources.size * 15 + value.queries.size * 10) })).sort((a, b) => b.strength - a.strength);
 
   return {
     packet,
-    scentTrail: {
-      queryCount: scentTrail.queries.length,
-      queries: scentTrail.queries,
-      strategy: scentTrail.strategy,
-    },
+    scentTrail,
     collectors: results.map((result) => ({ collector: result.collector, query: result.query, ok: result.ok, leads: result.leads.length, error: result.error })),
-    placeEntityExtraction: {
-      sourcePagesAttempted: placeExtraction.sourcePagesAttempted,
-      sourcePagesOpened: placeExtraction.sourcePagesOpened,
-      extractedCount: placeExtraction.extractedCount,
-      examples: placeExtraction.leads.slice(0, 12).map((lead) => ({ name: lead.name, sourceUrl: lead.url, publisher: lead.publisher })),
-      rule: placeExtraction.rule,
-    },
-    placeResolver: {
-      lookups: placeResolution.lookups,
-      resolved: placeResolution.resolved.length,
-      partial: placeResolution.partial.length,
-      unresolved: placeResolution.unresolved.length,
-      examples: placeResolution.all.slice(0, 12).map((item) => ({ name: item.lead.name, status: item.status, confidence: item.confidence, method: item.method, address: item.lead.address, lat: item.lead.lat, lon: item.lead.lon, reasons: item.reasons })),
-      rule: placeResolution.rule,
-    },
-    intentEvidence: {
-      lookups: intentEvidence.lookups,
-      confirmed: intentEvidence.confirmed.length,
-      partial: intentEvidence.partial.length,
-      unconfirmed: intentEvidence.unconfirmed.length,
-      examples: intentEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedTerms: item.matchedTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })),
-      rule: intentEvidence.rule,
-    },
-    historyEvidence: {
-      lookups: historyEvidence.lookups,
-      confirmed: historyEvidence.confirmed.length,
-      partial: historyEvidence.partial.length,
-      unconfirmed: historyEvidence.unconfirmed.length,
-      examples: historyEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedHistoryTerms: item.matchedHistoryTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })),
-      rule: historyEvidence.rule,
-    },
-    leadCount: leads.length,
-    independentSources: new Set(leads.map((lead) => lead.independentKey)).size,
-    leads,
-    trailSignals: trailSignals.slice(0, 12),
-    destinationEntityLock: {
-      accepted: entityLock.accepted.length,
-      rejected: entityLock.rejected.length,
-      rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })),
-      rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before focused intent research or candidate merging unless a Paris-France geographic anchor exists.",
-    },
-    researchRelevance: {
-      accepted: leads.length,
-      rejected: relevance.rejected.length,
-      rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, reasons: score.reasons })),
-      rule: "A valid Paris entity must match the active traveler intent and remain useful to the Velvet layer. Historical depth can strengthen research value, but never substitutes for intent evidence or factual verification.",
-    },
+    placeEntityExtraction: { sourcePagesAttempted: extraction.sourcePagesAttempted, sourcePagesOpened: extraction.sourcePagesOpened, extractedCount: extraction.leads.length, examples: extraction.examples, rule: extraction.rule },
+    placeResolver: { lookups: resolution.lookups, resolved: resolution.resolved.length, partial: resolution.partial.length, unresolved: resolution.unresolved.length, examples: resolution.results.slice(0, 12).map((item) => ({ name: item.lead.name, status: item.resolution.status, confidence: item.resolution.confidence, method: item.resolution.method, address: item.resolution.address, lat: item.resolution.lat, lon: item.resolution.lon, reasons: item.resolution.reasons })), rule: resolution.rule },
+    intentEvidence: { lookups: intent.lookups, confirmed: intent.confirmed.length, partial: intent.partial.length, unconfirmed: intent.unconfirmed.length, examples: intent.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedTerms: item.matchedTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })), rule: intent.rule },
+    historyEvidence: { lookups: history.lookups, confirmed: history.confirmed.length, partial: history.partial.length, unconfirmed: history.unconfirmed.length, examples: history.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedHistoryTerms: item.matchedHistoryTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })), rule: history.rule },
+    leadCount: accepted.length,
+    independentSources: new Set(accepted.map((lead) => lead.independentKey)).size,
+    leads: accepted,
+    trailSignals,
+    destinationEntityLock: { accepted: destinationLocked.accepted.length, rejected: destinationLocked.rejected.length, rejectedExamples: destinationLocked.rejected.slice(0, 8).map((item) => ({ name: item.lead.name, reasons: item.lock.reasons })), rule: destinationLocked.rule },
+    researchRelevance: { accepted: relevance.accepted.length, rejected: relevance.rejected.length, rejectedExamples: relevance.rejected.slice(0, 8).map((item) => ({ name: item.lead.name, score: item.relevance.score, geography: item.relevance.geography, intent: item.relevance.intent, velvetUtility: item.relevance.velvetUtility, reasons: item.relevance.reasons })), rule: relevance.rule },
     note: "Deep Research Collector V2 now opens editorial/official source pages to extract named place entities, resolves physical identity, confirms Paris, verifies intent, researches historical depth, and only then applies Research Relevance. No extraction, resolver, history signal or recurrence score can bypass claim verification or publication gates.",
   };
 }
 
-export async function collectResearchQueue(packets: ResearchPacket[], budgetOrMaxPackets: ResearchCollectorBudget | number = {}) {
-  const budget = typeof budgetOrMaxPackets === "number" ? { maxPackets: budgetOrMaxPackets } : budgetOrMaxPackets;
-  const maxPackets = Math.max(1, Math.min(budget.maxPackets ?? 3, 5));
-  const concurrency = Math.max(1, Math.min(budget.concurrency ?? 2, 4));
-  const selected = packets.slice(0, maxPackets);
-  const collections: Awaited<ReturnType<typeof collectResearchPacket>>[] = [];
-  for (let i = 0; i < selected.length; i += concurrency) {
-    const batch = selected.slice(i, i + concurrency);
-    const batchResults = await Promise.all(batch.map((packet) => collectResearchPacket(packet, budget)));
-    collections.push(...batchResults);
-  }
+export async function collectResearchPackets(packets: ResearchPacket[], budget: ResearchCollectorBudget = {}) {
+  const maxPackets = Math.max(1, Math.min(budget.maxPackets ?? 2, 5));
+  const selected = packets.filter((packet) => packet.theme !== "hidden-bookshops").slice(0, maxPackets);
+  const collections = [];
+  for (const packet of selected) collections.push(await collectResearchPacket(packet, budget));
   return collections;
 }
