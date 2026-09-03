@@ -3,8 +3,7 @@ const INTERNAL_PREFIXES = [
   "PLACE_ENTITY_CONFIDENCE",
   "PLACE_ENTITY_METHOD",
   "SOURCE_CONTEXT",
-  "WIKIDATA_ENTITY",
-  "WIKIDATA_SOURCE_URL",
+  "WIKIDATA_",
   "INTENT_EVIDENCE",
   "HISTORY_EVIDENCE",
   "EXPOSURE_EVIDENCE",
@@ -32,4 +31,4 @@ export function isHumanFacingClaim(value: string) {
 }
 
 export const INTERNAL_CLAIM_FIREWALL_RULE =
-  "Internal research metadata, telemetry, resolver labels, evidence bridge markers and machine-only provenance tokens are never traveler-facing factual claims and can never enter Safe Copy.";
+  "Internal research metadata, telemetry, resolver labels, Wikidata machine provenance, evidence bridge markers and machine-only provenance tokens are never traveler-facing factual claims and can never enter Safe Copy.";
