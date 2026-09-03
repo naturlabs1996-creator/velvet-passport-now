@@ -110,13 +110,13 @@ function chooseCanonicalName(leads: ResearchLead[]) {
 
 function mergeConfidence(leads: ResearchLead[]): { confidence: MergeConfidence; reasons: string[] } {
   const reasons: string[] = [];
-  const sources = new Set(leads.map((lead) => lead.independentKey));
+  const sources = new Set(leads.flatMap((lead) => [lead.independentKey, ...(lead.evidenceTrace ?? []).map((item) => item.independentKey)]));
   const names = leads.map((lead) => lead.name);
   const hasGeo = leads.filter((lead) => typeof lead.lat === "number" && typeof lead.lon === "number").length >= 1;
   const hasAddress = leads.some((lead) => Boolean(lead.address));
   const nameAgreement = names.length <= 1 ? 1 : Math.min(...names.slice(1).map((name) => tokenSimilarity(names[0], name)));
 
-  if (sources.size >= 2) reasons.push(`${sources.size} independent sources merged.`);
+  if (sources.size >= 2) reasons.push(`${sources.size} independent sources merged or carried as evidence traces.`);
   if (hasGeo) reasons.push("At least one geocoded observation supports entity identity.");
   if (hasAddress) reasons.push("At least one address observation is available.");
   if (nameAgreement >= 0.7) reasons.push("Source names show strong lexical agreement.");
@@ -128,7 +128,8 @@ function mergeConfidence(leads: ResearchLead[]): { confidence: MergeConfidence; 
 
 function mergeGroup(group: ResearchLead[]): MergedCandidate {
   const canonicalName = chooseCanonicalName(group);
-  const evidence = group.map(leadEvidence);
+  const evidence = [...group.map(leadEvidence), ...group.flatMap((lead) => lead.evidenceTrace ?? [])];
+  const dedupedEvidence = [...new Map(evidence.map((item) => [`${item.independentKey}|${item.url}|${item.sourceId}`, item])).values()];
   const aliases = [...new Set(group.map((lead) => lead.name).filter((name) => name !== canonicalName))];
   const address = group.find((lead) => lead.address)?.address;
   const candidateClaims = [...new Set(group.flatMap((lead) => lead.rawClaims).filter(Boolean))].slice(0, 20);
@@ -143,12 +144,13 @@ function mergeGroup(group: ResearchLead[]): MergedCandidate {
     address,
     factualClaims: candidateClaims,
     timeSensitiveClaims: candidateClaims.filter((claim) => /open|opening|hours|price|ticket|reservation|closed|access/i.test(claim)),
-    evidence,
+    evidence: dedupedEvidence,
     velvetFit: undefined,
     sourceLeadIds: group.map((lead) => lead.id),
     mergeConfidence: merge.confidence,
     mergeReasons: [
       ...merge.reasons,
+      "Downstream intent/history/hunter evidence traces are preserved as evidence but never promoted into traveler-facing claims automatically.",
       "Raw research observations are candidate claims only; the normalizer does not assign editorial Velvet fit or factual truth.",
     ],
   };
