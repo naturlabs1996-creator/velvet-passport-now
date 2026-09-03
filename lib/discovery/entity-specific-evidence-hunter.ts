@@ -1,9 +1,11 @@
 import { fetchDeepEvidenceWindows, sourceFamilyOf } from "./deep-source-evidence";
+import { CLAIM_EQUIVALENCE_RULE, equivalentClaimMatch, expandEquivalentClaimTerms } from "./claim-equivalence";
 
 export type IndependentEvidenceHit = {
   url: string;
   sourceFamily: string;
   matchedTerms: string[];
+  equivalentFamilies: string[];
   text: string;
 };
 
@@ -14,10 +16,11 @@ export type IndependentEvidenceHunterResult = {
   deepPagesOpened: number;
   hits: IndependentEvidenceHit[];
   independentFamiliesAdded: string[];
+  equivalenceFamiliesUsed: string[];
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.0 (entity-specific independent corroboration; bounded public search + deep context)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/1.1 (entity-specific independent corroboration + allowlisted claim equivalence; bounded public search + deep context)";
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -58,23 +61,26 @@ function identityMatch(name: string, text: string) {
   return tokens.length === 1 ? normalized.includes(tokens[0]) : tokens.filter((token) => normalized.includes(token)).length >= Math.min(2, tokens.length);
 }
 function buildQueries(name: string, claimTerms: string[]) {
-  const terms = claimTerms.slice(0, 4);
-  const quotedTerms = terms.map((term) => `\"${term}\"`).join(" OR ");
+  const terms = claimTerms.slice(0, 6);
+  const quotedTerms = terms.slice(0, 4).map((term) => `\"${term}\"`).join(" OR ");
   const primary = `\"${name}\" Paris (${quotedTerms})`;
-  const corroborate = `\"${name}\" Paris ${terms.join(" ")} -site:wikipedia.org`;
-  const editorial = `\"${name}\" Paris review ${terms.join(" ")}`;
+  const corroborate = `\"${name}\" Paris ${terms.slice(0, 4).join(" ")} -site:wikipedia.org`;
+  const editorial = `\"${name}\" Paris review ${terms.slice(0, 4).join(" ")}`;
   return [...new Set([primary, corroborate, editorial])].slice(0, 3);
 }
 
 export async function huntIndependentEvidence(params: {
   name: string;
+  theme?: string;
   claimTerms: string[];
   existingFamilies: string[];
   existingUrls?: string[];
   maxSearches?: number;
   maxPages?: number;
 }): Promise<IndependentEvidenceHunterResult> {
-  const claimTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 6);
+  const observedTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 6);
+  const equivalence = expandEquivalentClaimTerms(params.theme, observedTerms);
+  const claimTerms = equivalence.terms.slice(0, 18);
   const existingFamilies = new Set(params.existingFamilies.map((family) => family.toLowerCase()));
   const existingUrls = new Set(params.existingUrls ?? []);
   const queries = buildQueries(params.name, claimTerms).slice(0, Math.max(1, Math.min(params.maxSearches ?? 3, 4)));
@@ -104,10 +110,19 @@ export async function huntIndependentEvidence(params: {
   const hits = deep.windows
     .filter((window) => window.terms.length > 0)
     .filter((window) => !existingFamilies.has(window.sourceFamily.toLowerCase()))
-    .map((window) => ({
+    .map((window) => {
+      const match = equivalentClaimMatch(params.theme, observedTerms, window.terms);
+      return {
+        window,
+        match,
+      };
+    })
+    .filter(({ match }) => match.matched)
+    .map(({ window, match }) => ({
       url: window.url,
       sourceFamily: window.sourceFamily,
       matchedTerms: window.terms,
+      equivalentFamilies: match.sharedFamilies,
       text: window.text,
     }));
   const independentFamiliesAdded = [...new Set(hits.map((hit) => hit.sourceFamily))];
@@ -119,6 +134,7 @@ export async function huntIndependentEvidence(params: {
     deepPagesOpened: deep.opened,
     hits,
     independentFamiliesAdded,
-    rule: "The hunter activates only after a concrete entity already has claim-specific evidence. It searches for the same claim around the same entity, excludes already-counted publisher families and URLs, and adds corroboration only when a new publisher family contains the claim terms inside an identity-matched local context window. Search recurrence alone never counts as corroboration.",
+    equivalenceFamiliesUsed: equivalence.families,
+    rule: `The hunter activates only after a concrete entity already has claim-specific evidence. It searches the same claim or an allowlisted equivalent around the same entity, excludes already-counted publisher families and URLs, and adds corroboration only when a new publisher family contains an exact or same-family claim expression inside an identity-matched local context window. Search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
