@@ -1,6 +1,7 @@
 import type { MergedCandidate } from "./evidence-normalizer";
 import type { ResearchEvidence } from "./research-verification";
 import { sourceSupportsDomain, type FactDomain } from "./source-reputation";
+import { isInternalResearchClaim } from "./internal-claim-firewall";
 
 export type ClaimStatus = "VERIFIED" | "PARTIAL" | "UNVERIFIED" | "REJECTED" | "CONFLICTED" | "STALE";
 export type ClaimRisk = "LOW" | "MEDIUM" | "HIGH";
@@ -110,6 +111,24 @@ function conflictingEvidence(evidence: ResearchEvidence[], type: ClaimType) {
 }
 export function verifyClaim(candidate: MergedCandidate, claim: string, now = new Date()): VerifiedClaim {
   const type = typeFor(claim); const risk = riskFor(type);
+  if (isInternalResearchClaim(claim)) {
+    return {
+      claim,
+      type,
+      status: "REJECTED",
+      risk,
+      confidence: 0,
+      evidence: [],
+      independentSources: 0,
+      officialSourcePresent: false,
+      currentEvidencePresent: false,
+      preferredSourcePresent: false,
+      conflictDetected: false,
+      staleEvidenceOnly: false,
+      publishable: false,
+      reasons: ["Internal Predator research metadata is machine-only and is permanently blocked from traveler-facing claim verification."],
+    };
+  }
   const evidence = candidate.evidence.filter((item) => evidenceSupportsClaim(item, claim, type));
   const independentSources = new Set(evidence.map((item) => item.independentKey.toLowerCase())).size;
   const officialSourcePresent = evidence.some((item) => item.sourceType === "OFFICIAL");
@@ -136,7 +155,8 @@ export function verifyClaim(candidate: MergedCandidate, claim: string, now = new
 }
 export function verifyCandidateClaims(candidate: MergedCandidate, now = new Date()): ClaimVerificationResult {
   const claims = candidate.factualClaims.map((claim) => verifyClaim(candidate, claim, now));
-  const publishableClaims = claims.filter((claim) => claim.publishable); const excludedClaims = claims.filter((claim) => !claim.publishable);
+  const publishableClaims = claims.filter((claim) => claim.publishable && !isInternalResearchClaim(claim.claim));
+  const excludedClaims = claims.filter((claim) => !claim.publishable || isInternalResearchClaim(claim.claim));
   const minimumSafeClaimSet = publishableClaims.filter((claim) => ["IDENTITY", "LOCATION", "HISTORY", "OTHER"].includes(claim.type)).map((claim) => claim.claim).slice(0, 6);
   return { candidateId: candidate.id, candidateName: candidate.name, claims, publishableClaims, excludedClaims, minimumSafeClaimSet, candidateSafeForCopy: minimumSafeClaimSet.length >= 1, conflicts: claims.filter((claim) => claim.status === "CONFLICTED").length, staleClaims: claims.filter((claim) => claim.status === "STALE").length };
 }
