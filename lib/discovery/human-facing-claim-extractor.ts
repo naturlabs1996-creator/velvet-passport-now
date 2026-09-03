@@ -3,7 +3,7 @@ import { isInternalResearchClaim } from "./internal-claim-firewall";
 import { claimEquivalenceFamilies } from "./claim-equivalence";
 
 function normalize(value: string) {
-  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[-–—]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function usableClaims(evidence: ResearchEvidence[]) {
@@ -33,7 +33,6 @@ export function extractHumanFacingClaims(input: {
   const normalized = normalize(joined);
   const name = input.name.trim();
 
-  // Identity/location claims are generated only when a resolved address is present.
   if (input.address && /\bparis\b/i.test(input.address)) {
     addUnique(claims, `${name} is in Paris, France.`);
     if (/\bmus[eé]e\b|\bmuseum\b/i.test(name)) addUnique(claims, `${name} is a museum in Paris.`);
@@ -41,9 +40,8 @@ export function extractHumanFacingClaims(input: {
     else if (/\bpassage\b/i.test(name)) addUnique(claims, `${name} is a passage in Paris.`);
   }
 
-  // Operational claims use closed allowlisted equivalence families only.
   const observedTerms = [
-    "late opening", "open late", "open in the evening", "evening opening", "evening hours", "late hours",
+    "late opening", "open late", "open in the evening", "evening opening", "evening hours", "late hours", "late night", "late-night",
     "nocturne", "ouverture nocturne", "ouvert le soir", "ouvert en soirée",
     "night visit", "night visits", "night tour", "night tours", "night opening", "after dark",
     "visite nocturne", "visites nocturnes", "visite de nuit", "soirée",
@@ -61,18 +59,13 @@ export function extractHumanFacingClaims(input: {
   if (families.has("LESS_KNOWN")) addUnique(claims, `${name} is described as less known or under-the-radar.`);
   if (families.has("UNUSUAL")) addUnique(claims, `${name} is described as unusual or atypical.`);
 
-  // Stable history extraction is deliberately narrow: only explicit year + opening/building language.
   for (const { claim } of observations) {
     const text = normalize(claim);
     const foundYears = years(claim);
     if (!foundYears.length) continue;
     const year = foundYears[0];
-    if (/\b(opened|inaugurated|opened to the public|ouvre|ouvert|inaugure)\b/.test(text)) {
-      addUnique(claims, `${name} opened in ${year}.`);
-    }
-    if (/\b(built|constructed|erected|construit|edifie|batie|bati)\b/.test(text)) {
-      addUnique(claims, `${name} was built in ${year}.`);
-    }
+    if (/\b(opened|inaugurated|opened to the public|ouvre|ouvert|inaugure)\b/.test(text)) addUnique(claims, `${name} opened in ${year}.`);
+    if (/\b(built|constructed|erected|construit|edifie|batie|bati)\b/.test(text)) addUnique(claims, `${name} was built in ${year}.`);
   }
 
   return claims.slice(0, 10);
