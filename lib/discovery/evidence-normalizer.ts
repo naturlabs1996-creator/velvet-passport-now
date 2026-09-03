@@ -1,6 +1,7 @@
 import type { ResearchLead } from "./research-collectors";
 import type { CandidateDiscovery, ResearchEvidence } from "./research-verification";
 import { extractHumanFacingClaims } from "./human-facing-claim-extractor";
+import { canonicalSourceFamily } from "./source-family";
 
 export type MergeConfidence = "HIGH" | "MEDIUM" | "LOW";
 
@@ -48,7 +49,7 @@ function shouldMerge(a: ResearchLead, b: ResearchLead) {
 function leadEvidence(lead: ResearchLead): ResearchEvidence {
   return {
     sourceId: lead.id, sourceType: lead.sourceType, publisher: lead.publisher, url: lead.url, title: lead.name, observedAt: lead.observedAt,
-    claims: [...lead.rawClaims, ...(lead.address ? [lead.address] : [])], independentKey: lead.independentKey,
+    claims: [...lead.rawClaims, ...(lead.address ? [lead.address] : [])], independentKey: canonicalSourceFamily(lead.independentKey),
   };
 }
 function chooseCanonicalName(leads: ResearchLead[]) {
@@ -58,10 +59,10 @@ function chooseCanonicalName(leads: ResearchLead[]) {
 }
 function mergeConfidence(leads: ResearchLead[]): { confidence: MergeConfidence; reasons: string[] } {
   const reasons: string[] = [];
-  const sources = new Set(leads.flatMap((lead) => [lead.independentKey, ...(lead.evidenceTrace ?? []).map((item) => item.independentKey)]));
+  const sources = new Set(leads.flatMap((lead) => [canonicalSourceFamily(lead.independentKey), ...(lead.evidenceTrace ?? []).map((item) => canonicalSourceFamily(item.independentKey))]));
   const names = leads.map((lead) => lead.name); const hasGeo = leads.some((lead) => typeof lead.lat === "number" && typeof lead.lon === "number");
   const hasAddress = leads.some((lead) => Boolean(lead.address)); const nameAgreement = names.length <= 1 ? 1 : Math.min(...names.slice(1).map((name) => tokenSimilarity(names[0], name)));
-  if (sources.size >= 2) reasons.push(`${sources.size} independent sources merged or carried as evidence traces.`);
+  if (sources.size >= 2) reasons.push(`${sources.size} canonical independent publisher families merged or carried as evidence traces.`);
   if (hasGeo) reasons.push("At least one geocoded observation supports entity identity."); if (hasAddress) reasons.push("At least one address observation is available.");
   if (nameAgreement >= 0.7) reasons.push("Source names show strong lexical agreement.");
   if (sources.size >= 2 && (hasGeo || hasAddress) && nameAgreement >= 0.45) return { confidence: "HIGH", reasons };
@@ -69,8 +70,8 @@ function mergeConfidence(leads: ResearchLead[]): { confidence: MergeConfidence; 
 }
 function mergeGroup(group: ResearchLead[]): MergedCandidate {
   const canonicalName = chooseCanonicalName(group);
-  const evidence = [...group.map(leadEvidence), ...group.flatMap((lead) => lead.evidenceTrace ?? [])];
-  const dedupedEvidence = [...new Map(evidence.map((item) => [`${item.independentKey}|${item.url}|${item.sourceId}`, item])).values()];
+  const evidence = [...group.map(leadEvidence), ...group.flatMap((lead) => (lead.evidenceTrace ?? []).map((item) => ({ ...item, independentKey: canonicalSourceFamily(item.independentKey) })))];
+  const dedupedEvidence = [...new Map(evidence.map((item) => [`${canonicalSourceFamily(item.independentKey)}|${item.url}|${item.sourceId}`, item])).values()];
   const aliases = [...new Set(group.map((lead) => lead.name).filter((name) => name !== canonicalName))];
   const address = group.find((lead) => lead.address)?.address; const merge = mergeConfidence(group);
   const humanClaims = extractHumanFacingClaims({ name: canonicalName, theme: group[0].theme, city: "Paris", address, evidence: dedupedEvidence });
@@ -95,7 +96,7 @@ export function normalizeAndMergeLeads(leads: ResearchLead[]): MergedCandidate[]
   }
   return groups.map(mergeGroup).sort((a, b) => {
     const rank: Record<MergeConfidence, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-    const sourceDelta = new Set(b.evidence.map((item) => item.independentKey)).size - new Set(a.evidence.map((item) => item.independentKey)).size;
+    const sourceDelta = new Set(b.evidence.map((item) => canonicalSourceFamily(item.independentKey))).size - new Set(a.evidence.map((item) => canonicalSourceFamily(item.independentKey))).size;
     return rank[b.mergeConfidence] - rank[a.mergeConfidence] || sourceDelta;
   });
 }
