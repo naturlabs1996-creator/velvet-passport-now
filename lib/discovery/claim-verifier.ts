@@ -3,6 +3,7 @@ import type { ResearchEvidence } from "./research-verification";
 import { sourceSupportsDomain, type FactDomain } from "./source-reputation";
 import { isInternalResearchClaim } from "./internal-claim-firewall";
 import { claimTermsInText, equivalentClaimMatch } from "./claim-equivalence";
+import { canonicalSourceFamily } from "./source-family";
 
 export type ClaimStatus = "VERIFIED" | "PARTIAL" | "UNVERIFIED" | "REJECTED" | "CONFLICTED" | "STALE";
 export type ClaimRisk = "LOW" | "MEDIUM" | "HIGH";
@@ -58,7 +59,7 @@ export function verifyClaim(candidate: MergedCandidate, claim: string, now = new
   const type = typeFor(claim); const risk = riskFor(type);
   if (isInternalResearchClaim(claim)) return { claim, type, status: "REJECTED", risk, confidence: 0, evidence: [], independentSources: 0, officialSourcePresent: false, currentEvidencePresent: false, preferredSourcePresent: false, conflictDetected: false, staleEvidenceOnly: false, publishable: false, reasons: ["Internal Predator research metadata is machine-only and is permanently blocked from traveler-facing claim verification."] };
   const evidence = candidate.evidence.filter((item) => evidenceSupportsClaim(item, claim, type, candidate.theme));
-  const independentSources = new Set(evidence.map((item) => item.independentKey.toLowerCase())).size;
+  const independentSources = new Set(evidence.map((item) => canonicalSourceFamily(item.independentKey))).size;
   const officialSourcePresent = evidence.some((item) => item.sourceType === "OFFICIAL"); const currentEvidencePresent = evidence.some((item) => evidenceIsCurrent(item, now));
   const preferredSourcePresent = evidence.some((item) => sourceSupportsDomain(item, type as FactDomain).domainPreferred);
   const staleEvidenceOnly = evidence.length > 0 && evidence.every((item) => evidenceIsStale(item, now, type)); const conflictDetected = conflictingEvidence(evidence, type); const reasons: string[] = [];
@@ -66,7 +67,7 @@ export function verifyClaim(candidate: MergedCandidate, claim: string, now = new
   if (!evidence.length) reasons.push("No evidence source directly supports this human-facing claim.");
   else if (conflictDetected) { status = "CONFLICTED"; reasons.push("Independent evidence contains contradictory operational values; publication is blocked until resolved."); }
   else if (staleEvidenceOnly) { status = "STALE"; reasons.push("All supporting evidence is beyond the freshness window for this claim type."); }
-  else if (risk === "HIGH") { if (independentSources >= 2 && preferredSourcePresent && currentEvidencePresent) { status = "VERIFIED"; reasons.push("High-risk human-facing claim has two independent sources, current evidence and a source preferred for this fact domain."); } else if (independentSources >= 1) { status = "PARTIAL"; reasons.push("High-risk human-facing claim has support but lacks full independence, freshness or source authority."); } }
+  else if (risk === "HIGH") { if (independentSources >= 2 && preferredSourcePresent && currentEvidencePresent) { status = "VERIFIED"; reasons.push("High-risk human-facing claim has two canonical independent publisher families, current evidence and a source preferred for this fact domain."); } else if (independentSources >= 1) { status = "PARTIAL"; reasons.push("High-risk human-facing claim has support but lacks full independence, freshness or source authority."); } }
   else if (risk === "MEDIUM") { if ((independentSources >= 2 && currentEvidencePresent) || (officialSourcePresent && !staleEvidenceOnly)) { status = "VERIFIED"; reasons.push("Medium-risk human-facing claim has corroborated current support or non-stale official support."); } else if (independentSources >= 1) { status = "PARTIAL"; reasons.push("Medium-risk human-facing claim has only limited corroboration."); } }
   else if (independentSources >= 1 && !staleEvidenceOnly) { status = "VERIFIED"; reasons.push("Low-risk human-facing claim has at least one usable supporting source."); }
   if (type === "SECRECY" && status !== "VERIFIED") reasons.push("Secret/hidden wording is excluded unless explicitly corroborated.");
