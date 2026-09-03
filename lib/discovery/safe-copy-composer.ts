@@ -1,5 +1,6 @@
 import type { MergedCandidate } from "./evidence-normalizer";
 import type { ClaimVerificationResult, VerifiedClaim } from "./claim-verifier";
+import { isHumanFacingClaim, isInternalResearchClaim } from "./internal-claim-firewall";
 
 export type SafeCopyStatus = "READY" | "PARTIAL" | "HOLD";
 
@@ -39,9 +40,12 @@ function sentenceFromClaim(claim: VerifiedClaim): SafeCopySentence {
 }
 
 function selectClaims(result: ClaimVerificationResult) {
-  // Strict whitelist: only claims marked publishable by the Claim-Level Verifier.
-  // No excluded claim may be paraphrased or reconstructed here.
-  return result.publishableClaims.filter((claim) => claim.status === "VERIFIED" && claim.publishable);
+  return result.publishableClaims.filter((claim) =>
+    claim.status === "VERIFIED" &&
+    claim.publishable &&
+    !isInternalResearchClaim(claim.claim) &&
+    isHumanFacingClaim(claim.claim)
+  );
 }
 
 function rankClaim(claim: VerifiedClaim) {
@@ -76,14 +80,16 @@ export function composeSafeDiscoveryCopy(candidate: MergedCandidate, verificatio
   }
 
   const allowed = selectClaims(verification).sort((a, b) => rankClaim(b) - rankClaim(a));
-  const core = allowed.filter((claim) => ["IDENTITY", "LOCATION", "HISTORY", "OTHER"].includes(claim.type));
+  const core = allowed.filter((claim) => ["IDENTITY", "LOCATION", "HISTORY"].includes(claim.type));
   const contextual = allowed.filter((claim) => !["IDENTITY", "LOCATION", "HISTORY", "OTHER"].includes(claim.type));
   const summaryClaims = [...core.slice(0, 2), ...contextual.slice(0, 1)].slice(0, 3);
   const factsClaims = allowed.filter((claim) => !summaryClaims.includes(claim)).slice(0, 6);
   const sourceCount = new Set(allowed.flatMap((claim) => claim.evidence.map((item) => item.independentKey))).size;
-  const omittedClaims = verification.excludedClaims.map((claim) => claim.claim);
+  const blockedInternalClaims = verification.claims.filter((claim) => isInternalResearchClaim(claim.claim)).map((claim) => claim.claim);
+  const omittedClaims = [...new Set([...verification.excludedClaims.map((claim) => claim.claim), ...blockedInternalClaims])];
   const qualityNotes: string[] = [
     "Copy is composed only from Claim-Level Verifier whitelist entries.",
+    "Internal Predator metadata is blocked again at Safe Copy even if an upstream regression ever marks it publishable.",
     "Excluded claims are never paraphrased, softened or reintroduced.",
     "Every factual sentence retains source IDs and URLs for auditability.",
   ];
@@ -91,7 +97,7 @@ export function composeSafeDiscoveryCopy(candidate: MergedCandidate, verificatio
   let status: SafeCopyStatus = "HOLD";
   if (core.length >= 1 && allowed.length >= 2) status = "READY";
   else if (allowed.length >= 1) status = "PARTIAL";
-  else qualityNotes.push("No verified claim is available for safe copy.");
+  else qualityNotes.push("No verified human-facing claim is available for safe copy.");
 
   return {
     candidateId: candidate.id,
