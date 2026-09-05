@@ -23,7 +23,7 @@ export type IntentEvidenceResult = {
   hunterFamiliesAdded: string[];
 };
 
-const USER_AGENT = "VelvetPassportIntentBridge/2.8 (official Paris venue handles + canonical aliases + theme-aware independent corroboration)";
+const USER_AGENT = "VelvetPassportIntentBridge/2.9 (official venue identity + high-precision cold-start hunter + independent corroboration)";
 const THEME_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "less known", "off the beaten", "hidden gem", "independent", "atypical", "insolite", "under-the-radar"],
   "quiet-paris": ["quiet", "calm", "peaceful", "tranquil", "away from crowds", "paisible", "uncrowded"],
@@ -35,6 +35,7 @@ const THEME_TERMS: Record<string, string[]> = {
   "rainy-day-paris": ["indoor", "covered", "inside", "museum", "gallery", "bookshop", "arcade"],
 };
 const GENERIC_HIGH_EXPOSURE = ["must-see", "must see", "top attraction", "iconic", "most visited", "world famous"];
+
 function normalize(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function stripHtml(value: string) { return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
 function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }
@@ -61,7 +62,11 @@ function xmlItems(xml: string) {
   const read = (block: string, tag: string) => { const match = block.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i")); return stripHtml((match?.[1] ?? "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'")); };
   return blocks.map((block) => ({ title: read(block, "title"), link: read(block, "link"), description: read(block, "description") })).filter((item) => item.title && item.link);
 }
-async function fetchWithTimeout(url: string, timeoutMs = 6500) { const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs); try { return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 21600 } }); } finally { clearTimeout(timer); } }
+async function fetchWithTimeout(url: string, timeoutMs = 6500) {
+  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 21600 } }); }
+  finally { clearTimeout(timer); }
+}
 function placeLike(lead: ResearchLead) { return typeof lead.lat === "number" && typeof lead.lon === "number" || Boolean(lead.address); }
 function buildQueries(lead: ResearchLead) {
   const terms = THEME_TERMS[lead.theme] ?? [];
@@ -154,6 +159,30 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     let hunterHits = 0;
     let hunterFamiliesAdded: string[] = [];
     let hunterEvidence: Array<{ text: string; url: string; host: string; sourceFamily: string; matchedTerms: string[] }> = [];
+    let hunterMode: "CORROBORATE" | "COLD_START" | "NONE" = "NONE";
+
+    if (matchedTerms.length === 0 && terms.length > 0) {
+      const hunter = await huntIndependentEvidence({
+        name: searchName,
+        theme: lead.theme,
+        claimTerms: [],
+        existingFamilies: [],
+        existingUrls: directUrls,
+        maxSearches: 3,
+        maxPages: 5,
+        allowColdStart: true,
+      });
+      hunterMode = hunter.mode;
+      hunterSearches += hunter.attemptedSearches;
+      hunterPagesOpened += hunter.deepPagesOpened;
+      hunterHits += hunter.hits.length;
+      hunterFamiliesAdded = [...new Set([...hunterFamiliesAdded, ...hunter.independentFamiliesAdded])];
+      hunterEvidence.push(...hunter.hits.map((hit) => ({ text: normalize(hit.text), url: hit.url, host: hostOf(hit.url), sourceFamily: hit.sourceFamily, matchedTerms: hit.matchedTerms })));
+      themeEvidence = [...themeEvidence, ...hunterEvidence];
+      matchedTerms = [...new Set(hunterEvidence.flatMap((item) => item.matchedTerms))];
+      sourceFamilies = [...new Set(themeEvidence.map((item) => item.sourceFamily))];
+      evidenceUrls = [...new Set(themeEvidence.map((item) => item.url))].slice(0, 10);
+    }
 
     if (matchedTerms.length > 0 && sourceFamilies.length === 1) {
       const hunter = await huntIndependentEvidence({
@@ -161,17 +190,19 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
         theme: lead.theme,
         claimTerms: matchedTerms,
         existingFamilies: sourceFamilies,
-        existingUrls: evidenceUrls,
+        existingUrls: [...new Set([...evidenceUrls, ...directUrls])],
         maxSearches: 3,
         maxPages: 5,
       });
-      hunterSearches = hunter.attemptedSearches;
-      hunterPagesOpened = hunter.deepPagesOpened;
-      hunterHits = hunter.hits.length;
-      hunterFamiliesAdded = hunter.independentFamiliesAdded;
-      hunterEvidence = hunter.hits.map((hit) => ({ text: normalize(hit.text), url: hit.url, host: hostOf(hit.url), sourceFamily: hit.sourceFamily, matchedTerms: hit.matchedTerms }));
-      themeEvidence = [...themeEvidence, ...hunterEvidence];
-      matchedTerms = [...new Set(terms.filter((term) => themeEvidence.some((item) => item.text.includes(normalize(term)))))];
+      if (hunterMode === "NONE") hunterMode = hunter.mode;
+      hunterSearches += hunter.attemptedSearches;
+      hunterPagesOpened += hunter.deepPagesOpened;
+      hunterHits += hunter.hits.length;
+      hunterFamiliesAdded = [...new Set([...hunterFamiliesAdded, ...hunter.independentFamiliesAdded])];
+      const newEvidence = hunter.hits.map((hit) => ({ text: normalize(hit.text), url: hit.url, host: hostOf(hit.url), sourceFamily: hit.sourceFamily, matchedTerms: hit.matchedTerms }));
+      hunterEvidence = [...hunterEvidence, ...newEvidence];
+      themeEvidence = [...themeEvidence, ...newEvidence];
+      matchedTerms = [...new Set([...matchedTerms, ...newEvidence.flatMap((item) => item.matchedTerms)])];
       sourceFamilies = [...new Set(themeEvidence.map((item) => item.sourceFamily))];
       evidenceUrls = [...new Set(themeEvidence.map((item) => item.url))].slice(0, 10);
     }
@@ -186,12 +217,13 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     if (carriedUrls.length) reasons.push(`Collector carried ${carriedUrls.length} official/canonical source URL(s) directly into intent research.`);
     if (directUrls.length) reasons.push(`Direct source pool contains ${directUrls.length} candidate canonical/official URL(s) for deeper reading.`);
     if (deepEvidence.length) reasons.push(`Deep context verification found theme language near the place identity on ${deepEvidence.length} source page(s).`);
-    if (hunterSearches) reasons.push(`Entity-specific hunter ran ${hunterSearches} targeted corroboration search(es) against the already-observed claim terms for theme ${lead.theme}.`);
+    if (hunterMode === "COLD_START") reasons.push(`Cold-start hunter searched only the high-precision allowlist for theme ${lead.theme}; generic category membership was not accepted as intent evidence.`);
+    if (hunterSearches) reasons.push(`Entity-specific hunter ran ${hunterSearches} targeted search(es) for the same entity.`);
     if (hunterFamiliesAdded.length) reasons.push(`Independent evidence hunter added ${hunterFamiliesAdded.length} new publisher family/families: ${hunterFamiliesAdded.join(", ")}.`);
-    else if (hunterSearches) reasons.push("Independent evidence hunter found no new publisher family that repeated the same claim inside an identity-matched context window.");
+    else if (hunterSearches) reasons.push("Independent evidence hunter found no qualifying new publisher family inside an identity-matched context window.");
     if (highExposureOnly) reasons.push("Observed intent language appears only in generic high-exposure tourism framing, so confidence is reduced.");
 
-    const bridgeClaim = matchedTerms.length ? `INTENT_EVIDENCE ${lead.theme}: ${matchedTerms.join(", ")} | independent_sources=${sourceFamilies.length} | deep_pages=${deepEvidence.length} | hunter_hits=${hunterHits} | direct_sources=${directUrls.length} | carried_sources=${carriedUrls.length} | status=${status}` : `INTENT_EVIDENCE ${lead.theme}: direct_sources=${directUrls.length} | carried_sources=${carriedUrls.length} | hunter_hits=${hunterHits} | status=${status}`;
+    const bridgeClaim = matchedTerms.length ? `INTENT_EVIDENCE ${lead.theme}: ${matchedTerms.join(", ")} | independent_sources=${sourceFamilies.length} | deep_pages=${deepEvidence.length} | hunter_hits=${hunterHits} | hunter_mode=${hunterMode} | direct_sources=${directUrls.length} | carried_sources=${carriedUrls.length} | status=${status}` : `INTENT_EVIDENCE ${lead.theme}: direct_sources=${directUrls.length} | carried_sources=${carriedUrls.length} | hunter_hits=${hunterHits} | hunter_mode=${hunterMode} | status=${status}`;
     const evidenceTrace = traceEvidence(lead, [...deepEvidence, ...hunterEvidence].map((item) => ({ url: item.url, sourceFamily: item.sourceFamily, text: item.text, matchedTerms: item.matchedTerms })));
     results.push({ lead: { ...lead, rawClaims: [...lead.rawClaims, bridgeClaim], evidenceTrace: [...(lead.evidenceTrace ?? []), ...evidenceTrace] }, status, score, matchedTerms, evidenceUrls, independentSources: sourceFamilies.length, queries, reasons, deepPagesOpened: deep.opened, directSourceUrls: directUrls.length, carriedSourceUrls: carriedUrls.length, hunterSearches, hunterPagesOpened, hunterHits, hunterFamiliesAdded });
   }
@@ -210,6 +242,6 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     hunterPagesOpened: results.reduce((sum, item) => sum + item.hunterPagesOpened, 0),
     hunterHits: results.reduce((sum, item) => sum + item.hunterHits, 0),
     hunterFamiliesAdded: [...new Set(results.flatMap((item) => item.hunterFamiliesAdded))],
-    rule: "Focused Intent Evidence V2.8 carries official Paris Data/paris.fr handles into deep reading, uses conservative canonical venue aliases for identity-matched search, and passes the active theme into allowlisted claim-equivalence hunting. CONFIRMED still requires score >=68 and at least two independent publisher families; no threshold is relaxed.",
+    rule: "Focused Intent Evidence V2.9 keeps the V2.8 official Paris Data/paris.fr identity handles and canonical aliases, then permits a bounded cold-start hunt only from a strong theme-specific allowlist when baseline sources contain no theme language. Generic category membership never counts as intent evidence. CONFIRMED still requires score >=68 and at least two independent publisher families; no threshold is relaxed.",
   };
 }
