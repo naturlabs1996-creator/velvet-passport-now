@@ -7,15 +7,18 @@ export type ScentTrail = {
 
 const THEME_SCENTS: Record<string, string[]> = {
   "beyond-the-classics": [
+    "small museum Paris France",
+    "historic house museum Paris France",
     "unusual places Paris France",
     "less known places Paris France",
     "independent places Paris France",
     "historic courtyard Paris France",
-    "small museum Paris France",
     "covered passage Paris France",
     "atelier visit Paris France",
   ],
   "quiet-paris": [
+    "small museum Paris France",
+    "garden courtyard Paris France",
     "quiet places Paris France",
     "peaceful courtyard Paris France",
     "calm garden Paris France",
@@ -24,13 +27,15 @@ const THEME_SCENTS: Record<string, string[]> = {
     "quiet library Paris France",
   ],
   "secret-gardens": [
+    "garden Paris France",
+    "historic garden Paris France",
     "hidden garden Paris France",
     "small garden Paris France",
     "courtyard garden Paris France",
     "jardin confidentiel Paris",
-    "historic garden Paris France",
   ],
   "forgotten-passages": [
+    "passage Paris France",
     "covered passage Paris France",
     "historic passage Paris France",
     "galerie passage Paris France",
@@ -38,6 +43,7 @@ const THEME_SCENTS: Record<string, string[]> = {
     "passage couvert Paris",
   ],
   "hidden-bookshops": [
+    "bookshop Paris France",
     "independent bookshop Paris France",
     "literary bookstore Paris France",
     "rare books Paris France",
@@ -46,13 +52,16 @@ const THEME_SCENTS: Record<string, string[]> = {
     "specialist bookshop Paris France",
   ],
   "unusual-museums": [
-    "small unusual museum Paris France",
+    "museum Paris France",
     "house museum Paris France",
+    "small unusual museum Paris France",
     "private collection museum Paris France",
     "cabinet collection Paris France",
     "musée insolite Paris",
   ],
   "paris-after-dark": [
+    "museum Paris France",
+    "cultural venue Paris France",
     "late opening museum Paris France",
     "night visit Paris France",
     "evening cultural place Paris France",
@@ -60,11 +69,11 @@ const THEME_SCENTS: Record<string, string[]> = {
     "late open gallery Paris France",
   ],
   "rainy-day-paris": [
+    "small museum Paris France",
+    "covered passage Paris France",
     "covered place Paris France",
     "indoor unusual place Paris France",
-    "covered passage Paris France",
     "independent bookshop Paris France",
-    "small museum Paris France",
   ],
 };
 
@@ -96,6 +105,7 @@ export function buildScentTrail(theme: string, primaryQuery: string, maxQueries 
     queries,
     microLocations: MICRO_LOCATIONS,
     strategy: [
+      "Acquire a concrete physical-place pool before asking whether each place fits the active traveler intent.",
       "Expand the traveler intent into several place-oriented semantic formulations.",
       "Prefer concrete venue/place terms over generic listicle language.",
       "Use micro-location follow-up only after a promising trail exists; do not fan out across all arrondissements blindly.",
