@@ -1,5 +1,6 @@
 import type { AnswerPageSpec } from "./page-factory";
 import { isInternalResearchClaim } from "./internal-claim-firewall";
+import { canonicalSourceFamily } from "./source-family";
 
 export type VerificationStatus = "VERIFIED" | "PARTIAL" | "UNVERIFIED" | "REJECTED";
 export type PublishStatus = "PUBLISHABLE" | "RESEARCH_REQUIRED" | "HOLD";
@@ -22,7 +23,7 @@ function evidenceSupportsAnyHumanClaim(evidence: ResearchEvidence, claims: strin
 }
 function daysBetween(iso: string, now: Date) { const then = new Date(iso).getTime(); if (!Number.isFinite(then)) return Number.POSITIVE_INFINITY; return Math.max(0, (now.getTime() - then) / 86_400_000); }
 function evidenceFreshness(evidence: ResearchEvidence[], now: Date): EvidenceFreshness { if (!evidence.length) return "UNDATED"; const dated = evidence.map((item) => item.publishedAt ?? item.observedAt).filter(Boolean); if (!dated.length) return "UNDATED"; const newest = Math.min(...dated.map((date) => daysBetween(date, now))); if (newest <= 30) return "CURRENT"; if (newest <= 180) return "AGING"; return "STALE"; }
-function independentSourceCount(evidence: ResearchEvidence[]) { return new Set(evidence.map((item) => item.independentKey.trim().toLowerCase()).filter(Boolean)).size; }
+function independentSourceCount(evidence: ResearchEvidence[]) { return new Set(evidence.map((item) => canonicalSourceFamily(item.independentKey || item.url)).filter(Boolean)).size; }
 function hasOfficialSource(evidence: ResearchEvidence[]) { return evidence.some((item) => item.sourceType === "OFFICIAL"); }
 
 export function verifyDiscovery(candidate: CandidateDiscovery, now = new Date()): VerifiedDiscovery {
@@ -48,7 +49,16 @@ export function verifyPageResearch(page: AnswerPageSpec, candidates: CandidateDi
   const verifiedDiscoveries = candidates.filter((candidate) => candidate.theme === page.theme && candidate.city.toLowerCase() === page.city.toLowerCase()).map((candidate) => verifyDiscovery(candidate, now));
   const usableDiscoveries = verifiedDiscoveries.filter((item) => item.verificationStatus === "VERIFIED"); const rejectedDiscoveries = verifiedDiscoveries.filter((item) => item.verificationStatus === "REJECTED"); const unresolvedRequirements: string[] = [];
   if (usableDiscoveries.length < 5) unresolvedRequirements.push("MINIMUM_5_VERIFIED_DISCOVERIES"); if (usableDiscoveries.some((item) => item.independentSources < 2)) unresolvedRequirements.push("TWO_CLAIM_SUPPORTING_INDEPENDENT_SOURCES_PER_DISCOVERY"); if (usableDiscoveries.some((item) => item.timeSensitiveClaims.length > 0 && item.freshness !== "CURRENT")) unresolvedRequirements.push("REFRESH_TIME_SENSITIVE_FACTS");
-  const status: PublishStatus = unresolvedRequirements.length ? "RESEARCH_REQUIRED" : "PUBLISHABLE"; const publishReasons = status === "PUBLISHABLE" ? [`${usableDiscoveries.length} discoveries passed the verification threshold.`, "Each usable discovery has at least two independent sources that support human-facing claims.", "Time-sensitive claims are current or absent."] : ["Verification gate remains closed until every unresolved requirement is satisfied."];
+  const status: PublishStatus = unresolvedRequirements.length ? "RESEARCH_REQUIRED" : "PUBLISHABLE"; const publishReasons = status === "PUBLISHABLE" ? [`${usableDiscoveries.length} discoveries passed the verification threshold.`, "Each usable discovery has at least two canonical independent publisher families supporting human-facing claims.", "Time-sensitive claims are current or absent."] : ["Verification gate remains closed until every unresolved requirement is satisfied."];
   return { pageId: page.id, theme: page.theme, status, verifiedDiscoveries, usableDiscoveries, rejectedDiscoveries, unresolvedRequirements, robots: status === "PUBLISHABLE" ? "index,follow" : "noindex,nofollow", publishReasons };
 }
-export function buildResearchVerificationQueue(pages: AnswerPageSpec[]) { return pages.filter((page) => page.status !== "HOLD").map((page) => ({ packet: buildResearchPacket(page), verification: verifyPageResearch(page, []) })); }
+
+export function buildResearchVerificationQueue(pages: AnswerPageSpec[]) {
+  const unique = new Map<string, AnswerPageSpec>();
+  for (const page of pages) {
+    if (page.status === "HOLD") continue;
+    const key = `${page.id}|${page.theme}`;
+    if (!unique.has(key)) unique.set(key, page);
+  }
+  return [...unique.values()].map((page) => ({ packet: buildResearchPacket(page), verification: verifyPageResearch(page, []) }));
+}
