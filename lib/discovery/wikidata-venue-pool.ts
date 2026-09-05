@@ -20,14 +20,16 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/1.4 (Wikidata identity + structured Paris venue categories; discovery seeds only)";
+const USER_AGENT = "VelvetPassportVenuePool/1.5 (Wikidata identity + recursive Paris venue categories; discovery seeds only)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 
-const THEME_SPECS: Record<string, {
+type VenueSpec = {
   direct: Array<{ query: string; category: string }>;
   categories: Array<{ title: string; category: string }>;
-}> = {
+};
+
+const THEME_SPECS: Record<string, VenueSpec> = {
   "paris-after-dark": {
     direct: [
       { query: "musée Paris", category: "museum" },
@@ -97,7 +99,7 @@ const THEME_SPECS: Record<string, {
 type SearchRow = { id?: string; label?: string };
 type Claim = { mainsnak?: { datavalue?: { value?: unknown } } };
 type Entity = { labels?: Record<string, { value?: string }>; claims?: Record<string, Claim[]> };
-type CategoryMember = { pageid?: number; title?: string };
+type CategoryMember = { pageid?: number; ns?: number; title?: string };
 type WikiPage = {
   pageid?: number;
   title?: string;
@@ -123,32 +125,52 @@ async function fetchJson<T>(url: string, timeoutMs = 5500): Promise<T> {
 
 function wdSearchUrl(query: string) {
   const params = new URLSearchParams({
-    action: "wbsearchentities", search: query, language: "fr", uselang: "fr",
-    type: "item", limit: "12", format: "json", origin: "*",
+    action: "wbsearchentities",
+    search: query,
+    language: "fr",
+    uselang: "fr",
+    type: "item",
+    limit: "12",
+    format: "json",
+    origin: "*",
   });
   return `${WIKIDATA_API}?${params}`;
 }
 
 function wdEntitiesUrl(ids: string[]) {
   const params = new URLSearchParams({
-    action: "wbgetentities", ids: ids.join("|"), props: "claims|labels",
-    languages: "fr|en", format: "json", origin: "*",
+    action: "wbgetentities",
+    ids: ids.join("|"),
+    props: "claims|labels",
+    languages: "fr|en",
+    format: "json",
+    origin: "*",
   });
   return `${WIKIDATA_API}?${params}`;
 }
 
 function categoryUrl(title: string) {
   const params = new URLSearchParams({
-    action: "query", list: "categorymembers", cmtitle: title, cmnamespace: "0",
-    cmlimit: "50", cmtype: "page", format: "json", origin: "*",
+    action: "query",
+    list: "categorymembers",
+    cmtitle: title,
+    cmnamespace: "0|14",
+    cmlimit: "100",
+    cmtype: "page|subcat",
+    format: "json",
+    origin: "*",
   });
   return `${WIKIPEDIA_API}?${params}`;
 }
 
 function pageDetailsUrl(ids: number[]) {
   const params = new URLSearchParams({
-    action: "query", pageids: ids.join("|"), prop: "pageprops|coordinates",
-    colimit: "1", format: "json", origin: "*",
+    action: "query",
+    pageids: ids.join("|"),
+    prop: "pageprops|coordinates",
+    colimit: "1",
+    format: "json",
+    origin: "*",
   });
   return `${WIKIPEDIA_API}?${params}`;
 }
@@ -157,7 +179,8 @@ function coordinateFromClaims(claims: Record<string, Claim[]> | undefined) {
   const value = claims?.P625?.[0]?.mainsnak?.datavalue?.value;
   if (!value || typeof value !== "object") return {};
   const row = value as { latitude?: unknown; longitude?: unknown };
-  const lat = Number(row.latitude); const lon = Number(row.longitude);
+  const lat = Number(row.latitude);
+  const lon = Number(row.longitude);
   return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : {};
 }
 
@@ -180,94 +203,176 @@ function chunks<T>(items: T[], size: number) {
   return result;
 }
 
-async function directSeeds(spec: NonNullable<(typeof THEME_SPECS)[string]>, cap: number) {
+async function directSeeds(spec: VenueSpec, cap: number) {
   const searches = await Promise.all(spec.direct.map(async (entry) => {
     try {
       const json = await fetchJson<{ search?: SearchRow[] }>(wdSearchUrl(entry.query));
       return { entry, rows: json.search ?? [] };
-    } catch { return { entry, rows: [] as SearchRow[] }; }
+    } catch {
+      return { entry, rows: [] as SearchRow[] };
+    }
   }));
+
   const meta = new Map<string, { category: string; fallback: string }>();
-  for (const search of searches) for (const row of search.rows) {
-    if (row.id && /^Q\d+$/.test(row.id) && !meta.has(row.id)) meta.set(row.id, { category: search.entry.category, fallback: row.label ?? "" });
+  for (const search of searches) {
+    for (const row of search.rows) {
+      if (row.id && /^Q\d+$/.test(row.id) && !meta.has(row.id)) {
+        meta.set(row.id, { category: search.entry.category, fallback: row.label ?? "" });
+      }
+    }
   }
+
   const ids = [...meta.keys()].slice(0, 40);
   if (!ids.length) return [] as VenuePoolSeed[];
+
   try {
     const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(ids), 6500);
     const seeds: VenuePoolSeed[] = [];
     for (const qid of ids) {
-      const entity = json.entities?.[qid]; const coords = coordinateFromClaims(entity?.claims);
+      const entity = json.entities?.[qid];
+      const coords = coordinateFromClaims(entity?.claims);
       if (!inParis(coords.lat, coords.lon)) continue;
-      const info = meta.get(qid); const name = label(entity, info?.fallback);
+      const info = meta.get(qid);
+      const name = label(entity, info?.fallback);
       if (!name) continue;
-      seeds.push({ id: `venue-direct:${qid}`, name, qid, lat: coords.lat, lon: coords.lon, officialUrl: officialUrl(entity?.claims), category: info?.category ?? "physical venue" });
+      seeds.push({
+        id: `venue-direct:${qid}`,
+        name,
+        qid,
+        lat: coords.lat,
+        lon: coords.lon,
+        officialUrl: officialUrl(entity?.claims),
+        category: info?.category ?? "physical venue",
+      });
       if (seeds.length >= cap) break;
     }
     return seeds;
-  } catch { return [] as VenuePoolSeed[]; }
+  } catch {
+    return [] as VenuePoolSeed[];
+  }
 }
 
-async function categorySeeds(spec: NonNullable<(typeof THEME_SPECS)[string]>, cap: number) {
-  const categoryResults = await Promise.all(spec.categories.map(async (entry) => {
-    try {
-      const json = await fetchJson<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(entry.title));
-      return { entry, rows: json.query?.categorymembers ?? [] };
-    } catch { return { entry, rows: [] as CategoryMember[] }; }
-  }));
+async function fetchCategoryMembers(title: string) {
+  try {
+    const json = await fetchJson<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(title));
+    return json.query?.categorymembers ?? [];
+  } catch {
+    return [] as CategoryMember[];
+  }
+}
+
+async function categorySeeds(spec: VenueSpec, cap: number) {
+  const rootResults = await Promise.all(spec.categories.map(async (entry) => ({
+    entry,
+    rows: await fetchCategoryMembers(entry.title),
+  })));
+
+  const expanded: Array<{ entry: VenueSpec["categories"][number]; rows: CategoryMember[] }> = [];
+  for (const root of rootResults) {
+    expanded.push(root);
+    const subcats = root.rows.filter((row) => row.ns === 14 && row.title).slice(0, 16);
+    const childResults = await Promise.all(subcats.map(async (row) => ({
+      entry: root.entry,
+      rows: await fetchCategoryMembers(row.title as string),
+    })));
+    expanded.push(...childResults);
+  }
+
   const categoryByPage = new Map<number, string>();
   const pageIds: number[] = [];
-  for (const result of categoryResults) for (const row of result.rows) {
-    if (typeof row.pageid !== "number") continue;
-    if (!categoryByPage.has(row.pageid)) categoryByPage.set(row.pageid, result.entry.category);
-    pageIds.push(row.pageid);
+  for (const result of expanded) {
+    for (const row of result.rows) {
+      if (row.ns !== 0 || typeof row.pageid !== "number") continue;
+      if (!categoryByPage.has(row.pageid)) categoryByPage.set(row.pageid, result.entry.category);
+      pageIds.push(row.pageid);
+    }
   }
+
   const pages: WikiPage[] = [];
-  for (const batch of chunks([...new Set(pageIds)].slice(0, 150), 50)) {
+  for (const batch of chunks([...new Set(pageIds)].slice(0, 300), 50)) {
     try {
       const json = await fetchJson<{ query?: { pages?: Record<string, WikiPage> } }>(pageDetailsUrl(batch));
       pages.push(...Object.values(json.query?.pages ?? {}));
     } catch {}
   }
+
   const seeds: VenuePoolSeed[] = [];
   const seen = new Set<string>();
   for (const page of pages) {
-    const qid = page.pageprops?.wikibase_item; const coord = page.coordinates?.[0];
+    const qid = page.pageprops?.wikibase_item;
+    const coord = page.coordinates?.[0];
     if (!qid || !/^Q\d+$/.test(qid) || !inParis(coord?.lat, coord?.lon) || seen.has(qid)) continue;
-    const name = page.title?.trim(); if (!name) continue;
+    const name = page.title?.trim();
+    if (!name) continue;
     seen.add(qid);
-    seeds.push({ id: `venue-category:${qid}`, name, qid, lat: coord?.lat, lon: coord?.lon, category: typeof page.pageid === "number" ? categoryByPage.get(page.pageid) ?? "physical venue" : "physical venue" });
+    seeds.push({
+      id: `venue-category:${qid}`,
+      name,
+      qid,
+      lat: coord?.lat,
+      lon: coord?.lon,
+      category: typeof page.pageid === "number" ? categoryByPage.get(page.pageid) ?? "physical venue" : "physical venue",
+    });
     if (seeds.length >= cap) break;
   }
 
-  // One batch against Wikidata adds official URLs without making those URLs claim evidence.
   const qids = seeds.map((seed) => seed.qid);
-  if (qids.length) {
+  for (const batch of chunks(qids, 40)) {
     try {
-      const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(qids), 6500);
-      for (const seed of seeds) seed.officialUrl = officialUrl(json.entities?.[seed.qid]?.claims);
+      const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(batch), 6500);
+      for (const seed of seeds) {
+        if (!batch.includes(seed.qid)) continue;
+        seed.officialUrl = officialUrl(json.entities?.[seed.qid]?.claims);
+      }
     } catch {}
   }
+
   return seeds;
 }
 
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme];
   const cap = Math.max(1, Math.min(maxSeeds, 24));
-  const rule = "Venue Pool V1.4 combines Wikidata identity search with structured French-Wikipedia Paris venue categories. Category membership is used only to discover concrete physical entities; QID plus coordinates inside the Paris bounding box are mandatory. No venue-pool seed receives intent, rarity, exposure, history or publication credit until downstream independent evidence verifies it.";
-  if (!spec) return { theme, ok: true, queried: false, returned: 0, directReturned: 0, categoryReturned: 0, seeds: [], rule };
+  const rule = "Venue Pool V1.5 combines Wikidata identity search with structured French-Wikipedia Paris venue categories expanded one subcategory level. Only namespace-0 physical pages carrying a QID and coordinates inside the Paris bounding box become discovery seeds. Category membership grants discovery priority only and never traveler-intent, rarity, exposure, history or publication credit.";
+
+  if (!spec) {
+    return { theme, ok: true, queried: false, returned: 0, directReturned: 0, categoryReturned: 0, seeds: [], rule };
+  }
+
   try {
     const direct = await directSeeds(spec, cap);
     const categorized = await categorySeeds(spec, cap * 2);
     const merged: VenuePoolSeed[] = [];
     const seen = new Set<string>();
+
     for (const seed of [...categorized, ...direct]) {
       if (seen.has(seed.qid)) continue;
-      seen.add(seed.qid); merged.push(seed);
+      seen.add(seed.qid);
+      merged.push(seed);
       if (merged.length >= cap) break;
     }
-    return { theme, ok: true, queried: true, returned: merged.length, directReturned: direct.length, categoryReturned: categorized.length, seeds: merged, rule };
+
+    return {
+      theme,
+      ok: true,
+      queried: true,
+      returned: merged.length,
+      directReturned: direct.length,
+      categoryReturned: categorized.length,
+      seeds: merged,
+      rule,
+    };
   } catch (error) {
-    return { theme, ok: false, queried: true, returned: 0, directReturned: 0, categoryReturned: 0, seeds: [], error: error instanceof Error ? error.message : "venue_pool_failed", rule };
+    return {
+      theme,
+      ok: false,
+      queried: true,
+      returned: 0,
+      directReturned: 0,
+      categoryReturned: 0,
+      seeds: [],
+      error: error instanceof Error ? error.message : "venue_pool_failed",
+      rule,
+    };
   }
 }
