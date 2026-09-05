@@ -11,13 +11,13 @@ export type PlaceExtractionResult = {
 type SelectedEntity = {
   name: string;
   confidence: "HIGH";
-  method: "JSON_LD" | "PLACE_TYPE_TEXT";
+  method: "JSON_LD" | "PLACE_TYPE_TEXT" | "SEARCH_CONTEXT_RECOVERY";
   address?: string;
   lat?: number;
   lon?: number;
 };
 
-const USER_AGENT = "VelvetPassportPlaceExtractor/1.2 (focused source ranking + precision place extraction; cached public pages)";
+const USER_AGENT = "VelvetPassportPlaceExtractor/1.3 (collector recovery + focused source ranking + precision place extraction; cached public pages)";
 const GENERIC = /^(paris|france|home|menu|visit|guide|travel|read more|learn more|about|contact|official website|wikipedia|contents|history|origins|etymology|geography|climate|administration|actualités|rechercher)$/i;
 const EDITORIAL_NOISE = /\b(what to do|things to do|best |top |exhibitions?|events?|autumn|september|october|november|december|january|february|march|april|may|june|july|august|right now|discover the|heritage days|city pass|tourist office|official website|newsletter|privacy|cookie|facebook|instagram|youtube|tripadvisor|terms|login|sign in|subscribe|booking|all you must know|must-see|guide to|tips|news|agenda)\b/i;
 const PLACE_TYPE = /\b(mus[eé]e|museum|maison|h[oô]tel particulier|passage|galerie|jardin|garden|square|cour|courtyard|librairie|bookshop|bookstore|atelier|chapelle|church|église|cemetery|cimetière|catacomb|palais|pavillon|villa|théâtre|theatre|café|cafe|bibliothèque|library|fondation|foundation|rue|street|arcade|halle|market|marché|canal|parc|park|temple|synagogue|basilique|basilica|monument|tower|tour|crypt|crypte)\b/i;
@@ -56,7 +56,7 @@ function sourcePriority(lead: ResearchLead) {
 async function fetchWithTimeout(url: string, timeoutMs = 6500) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" }, signal: controller.signal, next: { revalidate: 21600 } }); }
+  try { return await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" }, signal: controller.signal, redirect: "follow", next: { revalidate: 21600 } }); }
   finally { clearTimeout(timer); }
 }
 function asTypeList(value: unknown): string[] { if (typeof value === "string") return [value]; if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string"); return []; }
@@ -92,7 +92,23 @@ function visibleCandidates(html: string) {
   for (const pattern of patterns) { let match: RegExpExecArray | null; while ((match = pattern.exec(html)) !== null && texts.length < 200) { const candidate = plausiblePlaceName(match[1] ?? ""); if (candidate) texts.push(candidate); } }
   return [...new Set(texts)];
 }
+
+function searchContextCandidates(lead: ResearchLead) {
+  const haystack = clean(`${lead.name}. ${lead.snippet ?? ""}`);
+  const candidates: string[] = [];
+  const title = plausiblePlaceName(lead.name); if (title) candidates.push(title);
+  const patterns = [
+    /\b((?:Mus[eé]e|Museum|Maison|Fondation|Foundation|Jardin|Garden|Passage|Galerie|Gallery|Palais|Pavillon|Villa|Chapelle|Church|Église|Theatre|Théâtre|Bibliothèque|Library|Librairie|Bookshop|Bookstore|Caf[eé]|Cemetery|Cimetière)\s+(?:de\s+|du\s+|des\s+|d['’]|of\s+|the\s+)?[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+(?:\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+){0,4})/g,
+    /\b((?:H[oô]tel particulier|Square|Cour|Courtyard|Arcade|Market|March[eé]|Parc|Park)\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+(?:\s+[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+){0,3})/g,
+  ];
+  for (const pattern of patterns) { let match: RegExpExecArray | null; while ((match = pattern.exec(haystack)) !== null && candidates.length < 10) { const candidate = plausiblePlaceName(match[1] ?? ""); if (candidate) candidates.push(candidate); } }
+  return [...new Set(candidates)].slice(0, 6);
+}
 function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }
+function recoveredLeads(lead: ResearchLead, names: string[]): ResearchLead[] {
+  const observedAt = new Date().toISOString();
+  return names.map((name, index) => ({ id: `recovered:${Buffer.from(`${lead.id}:${name}`).toString("base64url").slice(0, 28)}:${index}`, pageId: lead.pageId, theme: lead.theme, query: lead.query, name, snippet: `Candidate place recovered from search-result context for later independent verification.`, url: lead.url, sourceType: lead.sourceType, publisher: lead.publisher, independentKey: hostOf(lead.url), observedAt, rawClaims: [`PLACE_ENTITY_RECOVERED_FROM_SEARCH_CONTEXT ${lead.url}`, `PLACE_ENTITY_CONFIDENCE HIGH`, `PLACE_ENTITY_METHOD SEARCH_CONTEXT_RECOVERY`, `SOURCE_CONTEXT ${lead.name}`] }));
+}
 
 export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], maxSourcePages = 6, maxEntitiesPerPage = 8) {
   const maxPages = Math.max(1, Math.min(maxSourcePages, 12));
@@ -106,21 +122,23 @@ export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], max
   const results: PlaceExtractionResult[] = [];
 
   for (const lead of eligible) {
+    const recovery = recoveredLeads(lead, searchContextCandidates(lead));
     try {
       const response = await fetchWithTimeout(lead.url);
-      if (!response.ok || !(response.headers.get("content-type") ?? "").includes("text/html")) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: [], ok: false, error: `http_${response.status}` }); continue; }
+      if (!response.ok || !(response.headers.get("content-type") ?? "").includes("text/html")) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: recovery, ok: false, error: `http_${response.status}` }); continue; }
       const html = (await response.text()).slice(0, 900_000);
       const structured = structuredCandidates(html); const structuredNames = new Set(structured.map((item) => item.name.toLowerCase())); const visible = visibleCandidates(html).filter((name) => !structuredNames.has(name.toLowerCase()));
       const selected: SelectedEntity[] = [...structured.map((item): SelectedEntity => ({ ...item, method: "JSON_LD" })), ...visible.map((name): SelectedEntity => ({ name, confidence: "HIGH", method: "PLACE_TYPE_TEXT" }))]
         .filter((item) => item.name.toLowerCase() !== lead.name.toLowerCase()).slice(0, Math.max(1, Math.min(maxEntitiesPerPage, 8)));
       const observedAt = new Date().toISOString(); const host = hostOf(lead.url);
       const extracted = selected.map((item, index): ResearchLead => ({ id: `extracted:${Buffer.from(`${lead.id}:${item.name}`).toString("base64url").slice(0, 28)}:${index}`, pageId: lead.pageId, theme: lead.theme, query: lead.query, name: item.name, snippet: `High-confidence named place extracted from ${lead.name}`, url: lead.url, sourceType: lead.sourceType, publisher: lead.publisher, independentKey: host, observedAt, address: item.address, lat: item.lat, lon: item.lon, rawClaims: [`PLACE_ENTITY_EXTRACTED_FROM ${lead.url}`, `PLACE_ENTITY_CONFIDENCE HIGH`, `PLACE_ENTITY_METHOD ${item.method}`, `SOURCE_CONTEXT ${lead.name}`] }));
-      results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted, ok: true });
-    } catch (error) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: [], ok: false, error: error instanceof Error ? error.message : "source_fetch_failed" }); }
+      const existingNames = new Set(extracted.map((item) => normalize(item.name)));
+      results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: [...extracted, ...recovery.filter((item) => !existingNames.has(normalize(item.name)))], ok: true });
+    } catch (error) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: recovery, ok: false, error: error instanceof Error ? error.message : "source_fetch_failed" }); }
   }
 
   const extracted = results.flatMap((item) => item.extracted); const seen = new Set<string>();
   const deduped = extracted.filter((lead) => { const key = normalize(lead.name); if (!key || seen.has(key)) return false; seen.add(key); return true; });
   return { results, leads: deduped, sourcePagesAttempted: eligible.length, sourcePagesOpened: results.filter((item) => item.ok).length, extractedCount: deduped.length,
-    rule: "Focused claim-relevant official/editorial pages are ranked ahead of generic Paris overview pages. Generic city-overview Wikipedia pages are fallback only. JSON-LD place data is preferred, navigation/editorial headings are rejected, and every entity must still pass geo, Paris lock, intent, exposure, relevance and claim verification." };
+    rule: "Collector Recovery V1.3: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. If a page cannot be opened, only explicit named physical-place patterns recovered from the search-result context may enter the candidate pool, and those recovery candidates receive no truth credit: they must still pass geo resolution, Paris lock, intent, exposure, relevance and independent claim verification. JSON-LD remains preferred when a page opens." };
 }
