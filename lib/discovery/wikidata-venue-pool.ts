@@ -18,8 +18,9 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/1.1 (Wikidata API physical entities; discovery seeds only; cached public data)";
-const API = "https://www.wikidata.org/w/api.php";
+const USER_AGENT = "VelvetPassportVenuePool/1.2 (Wikidata API + Wikipedia geo sweep; discovery seeds only; cached public data)";
+const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
+const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 
 const THEME_SEARCHES: Record<string, Array<{ query: string; category: string }>> = {
   "paris-after-dark": [
@@ -60,13 +61,19 @@ const THEME_SEARCHES: Record<string, Array<{ query: string; category: string }>>
   ],
 };
 
+const PARIS_SWEEP_CENTERS = [
+  { lat: 48.8566, lon: 2.3522 },
+  { lat: 48.885, lon: 2.35 },
+  { lat: 48.835, lon: 2.35 },
+  { lat: 48.86, lon: 2.41 },
+  { lat: 48.86, lon: 2.29 },
+];
+
 type SearchRow = { id?: string; label?: string; description?: string };
 type EntityClaim = { mainsnak?: { datavalue?: { value?: unknown } } };
-type EntityRow = {
-  id?: string;
-  labels?: Record<string, { value?: string }>;
-  claims?: Record<string, EntityClaim[]>;
-};
+type EntityRow = { id?: string; labels?: Record<string, { value?: string }>; claims?: Record<string, EntityClaim[]> };
+type GeoRow = { pageid?: number; title?: string; lat?: number; lon?: number };
+type WikiPage = { pageid?: number; title?: string; pageprops?: { wikibase_item?: string }; categories?: Array<{ title?: string }> };
 
 async function fetchWithTimeout(url: string, timeoutMs = 5000) {
   const controller = new AbortController();
@@ -83,37 +90,30 @@ async function fetchWithTimeout(url: string, timeoutMs = 5000) {
 }
 
 function searchUrl(query: string) {
-  const params = new URLSearchParams({
-    action: "wbsearchentities",
-    search: query,
-    language: "fr",
-    uselang: "fr",
-    type: "item",
-    limit: "10",
-    format: "json",
-    origin: "*",
-  });
-  return `${API}?${params.toString()}`;
+  const params = new URLSearchParams({ action: "wbsearchentities", search: query, language: "fr", uselang: "fr", type: "item", limit: "10", format: "json", origin: "*" });
+  return `${WIKIDATA_API}?${params.toString()}`;
 }
 
 function entitiesUrl(ids: string[]) {
-  const params = new URLSearchParams({
-    action: "wbgetentities",
-    ids: ids.join("|"),
-    props: "claims|labels",
-    languages: "fr|en",
-    format: "json",
-    origin: "*",
-  });
-  return `${API}?${params.toString()}`;
+  const params = new URLSearchParams({ action: "wbgetentities", ids: ids.join("|"), props: "claims|labels", languages: "fr|en", format: "json", origin: "*" });
+  return `${WIKIDATA_API}?${params.toString()}`;
+}
+
+function geoSearchUrl(lat: number, lon: number) {
+  const params = new URLSearchParams({ action: "query", list: "geosearch", gscoord: `${lat}|${lon}`, gsradius: "6500", gslimit: "50", gsnamespace: "0", format: "json", origin: "*" });
+  return `${WIKIPEDIA_API}?${params.toString()}`;
+}
+
+function wikiDetailsUrl(pageIds: number[]) {
+  const params = new URLSearchParams({ action: "query", pageids: pageIds.join("|"), prop: "pageprops|categories", cllimit: "max", clshow: "!hidden", format: "json", origin: "*" });
+  return `${WIKIPEDIA_API}?${params.toString()}`;
 }
 
 function coordinateFromClaims(claims: Record<string, EntityClaim[]> | undefined) {
   const value = claims?.P625?.[0]?.mainsnak?.datavalue?.value;
   if (!value || typeof value !== "object") return {};
   const row = value as { latitude?: unknown; longitude?: unknown };
-  const lat = Number(row.latitude);
-  const lon = Number(row.longitude);
+  const lat = Number(row.latitude); const lon = Number(row.longitude);
   return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : {};
 }
 
@@ -130,9 +130,91 @@ function labelOf(entity: EntityRow, fallback?: string) {
   return entity.labels?.fr?.value?.trim() || entity.labels?.en?.value?.trim() || fallback?.trim() || "";
 }
 
+function categoryText(page: WikiPage) {
+  return `${page.title ?? ""} ${(page.categories ?? []).map((item) => item.title ?? "").join(" ")}`.toLowerCase();
+}
+
+function geoCategory(theme: string, page: WikiPage) {
+  const text = categoryText(page);
+  const tests: Record<string, Array<[RegExp, string]>> = {
+    "paris-after-dark": [
+      [/mus[eé]e|museum/, "museum"],
+      [/th[eé][aâ]tre|salle de spectacle|salle de concert|op[eé]ra/, "performing arts venue"],
+      [/galerie d['’]art|centre culturel|fondation d['’]art/, "cultural venue"],
+    ],
+    "unusual-museums": [[/mus[eé]e|museum|maison-mus[eé]e/, "museum"]],
+    "beyond-the-classics": [
+      [/mus[eé]e|museum|maison-mus[eé]e/, "museum"],
+      [/passage couvert|galerie couverte/, "passage"],
+      [/fondation d['’]art|maison d['’][eé]crivain|maison d['’]artiste/, "cultural venue"],
+    ],
+    "quiet-paris": [
+      [/jardin|parc|square/, "garden"],
+      [/biblioth[eè]que/, "library"],
+      [/mus[eé]e|museum/, "museum"],
+    ],
+    "secret-gardens": [[/jardin|parc|square/, "garden"]],
+    "rainy-day-paris": [
+      [/mus[eé]e|museum/, "museum"],
+      [/biblioth[eè]que/, "library"],
+      [/passage couvert|galerie couverte/, "covered passage"],
+    ],
+  };
+  for (const [pattern, category] of tests[theme] ?? []) if (pattern.test(text)) return category;
+  return null;
+}
+
+function chunks<T>(items: T[], size: number) {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+async function collectGeoSweep(theme: string, maxSeeds: number): Promise<VenuePoolSeed[]> {
+  const geoResponses = await Promise.all(PARIS_SWEEP_CENTERS.map(async (center) => {
+    try {
+      const response = await fetchWithTimeout(geoSearchUrl(center.lat, center.lon), 4500);
+      if (!response.ok) return [] as GeoRow[];
+      const json = await response.json() as { query?: { geosearch?: GeoRow[] } };
+      return json.query?.geosearch ?? [];
+    } catch { return [] as GeoRow[]; }
+  }));
+
+  const geoByPage = new Map<number, GeoRow>();
+  for (const row of geoResponses.flat()) {
+    if (typeof row.pageid !== "number" || typeof row.lat !== "number" || typeof row.lon !== "number" || !inParis(row.lat, row.lon)) continue;
+    if (!geoByPage.has(row.pageid)) geoByPage.set(row.pageid, row);
+  }
+
+  const detailBatches = await Promise.all(chunks([...geoByPage.keys()].slice(0, 200), 50).map(async (pageIds) => {
+    try {
+      const response = await fetchWithTimeout(wikiDetailsUrl(pageIds), 5000);
+      if (!response.ok) return [] as WikiPage[];
+      const json = await response.json() as { query?: { pages?: Record<string, WikiPage> } };
+      return Object.values(json.query?.pages ?? {});
+    } catch { return [] as WikiPage[]; }
+  }));
+
+  const seeds: VenuePoolSeed[] = [];
+  const seen = new Set<string>();
+  for (const page of detailBatches.flat()) {
+    const qid = page.pageprops?.wikibase_item;
+    const category = geoCategory(theme, page);
+    const geo = typeof page.pageid === "number" ? geoByPage.get(page.pageid) : undefined;
+    if (!qid || !/^Q\d+$/i.test(qid) || !category || !geo || seen.has(qid)) continue;
+    const name = page.title?.trim();
+    if (!name) continue;
+    seen.add(qid);
+    seeds.push({ id: `venue-geo:${qid}`, name, qid, lat: geo.lat, lon: geo.lon, category });
+    if (seeds.length >= maxSeeds) break;
+  }
+  return seeds;
+}
+
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const searches = THEME_SEARCHES[theme] ?? [];
-  const rule = "Wikidata Venue Pool supplies concrete physical-place discovery seeds only. Search results are batch-resolved to Wikidata coordinates and must fall inside the Paris bounding box. A seed receives no traveler-intent, rarity, exposure, history or publication credit merely for existing in Wikidata; every seed must still pass Paris geo lock, focused intent evidence, exposure, relevance, claim verification and Safe Copy.";
+  const cap = Math.max(1, Math.min(maxSeeds, 24));
+  const rule = "Venue Pool V1.2 combines fast Wikidata entity search with a bounded French-Wikipedia geosearch sweep. Only pages whose categories match the active physical venue family and whose coordinates fall inside the Paris bounding box become discovery seeds. Pool membership grants no traveler-intent, rarity, exposure, history or publication credit; every seed must still pass Paris geo lock, focused intent evidence, exposure, relevance, claim verification and Safe Copy.";
   if (!searches.length) return { theme, ok: true, queried: false, returned: 0, seeds: [], rule };
 
   try {
@@ -142,9 +224,7 @@ export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Pr
         if (!response.ok) return { spec, rows: [] as SearchRow[] };
         const json = await response.json() as { search?: SearchRow[] };
         return { spec, rows: json.search ?? [] };
-      } catch {
-        return { spec, rows: [] as SearchRow[] };
-      }
+      } catch { return { spec, rows: [] as SearchRow[] }; }
     }));
 
     const metadata = new Map<string, { category: string; fallbackLabel?: string }>();
@@ -156,35 +236,32 @@ export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Pr
     }
 
     const ids = [...metadata.keys()].slice(0, 40);
-    if (!ids.length) return { theme, ok: true, queried: true, returned: 0, seeds: [], rule };
-
-    const entityResponse = await fetchWithTimeout(entitiesUrl(ids), 6000);
-    if (!entityResponse.ok) throw new Error(`entity_http_${entityResponse.status}`);
-    const entityJson = await entityResponse.json() as { entities?: Record<string, EntityRow> };
-
-    const seeds: VenuePoolSeed[] = [];
-    for (const qid of ids) {
-      const entity = entityJson.entities?.[qid];
-      if (!entity) continue;
-      const coords = coordinateFromClaims(entity.claims);
-      if (!inParis(coords.lat, coords.lon)) continue;
-      const meta = metadata.get(qid);
-      const name = labelOf(entity, meta?.fallbackLabel);
-      if (!name || /^Q\d+$/i.test(name)) continue;
-      seeds.push({
-        id: `venue-pool:${qid}`,
-        name,
-        qid,
-        lat: coords.lat,
-        lon: coords.lon,
-        officialUrl: officialUrlFromClaims(entity.claims),
-        category: meta?.category ?? "physical venue",
-      });
-      if (seeds.length >= Math.max(1, Math.min(maxSeeds, 24))) break;
+    const directSeeds: VenuePoolSeed[] = [];
+    if (ids.length) {
+      const entityResponse = await fetchWithTimeout(entitiesUrl(ids), 6000);
+      if (entityResponse.ok) {
+        const entityJson = await entityResponse.json() as { entities?: Record<string, EntityRow> };
+        for (const qid of ids) {
+          const entity = entityJson.entities?.[qid]; if (!entity) continue;
+          const coords = coordinateFromClaims(entity.claims); if (!inParis(coords.lat, coords.lon)) continue;
+          const meta = metadata.get(qid); const name = labelOf(entity, meta?.fallbackLabel); if (!name || /^Q\d+$/i.test(name)) continue;
+          directSeeds.push({ id: `venue-pool:${qid}`, name, qid, lat: coords.lat, lon: coords.lon, officialUrl: officialUrlFromClaims(entity.claims), category: meta?.category ?? "physical venue" });
+          if (directSeeds.length >= cap) break;
+        }
+      }
     }
 
-    return { theme, ok: true, queried: true, returned: seeds.length, seeds, rule };
+    const geoSeeds = directSeeds.length >= cap ? [] : await collectGeoSweep(theme, cap * 2);
+    const merged: VenuePoolSeed[] = [];
+    const seen = new Set<string>();
+    for (const seed of [...directSeeds, ...geoSeeds]) {
+      if (seen.has(seed.qid)) continue;
+      seen.add(seed.qid); merged.push(seed);
+      if (merged.length >= cap) break;
+    }
+
+    return { theme, ok: true, queried: true, returned: merged.length, seeds: merged, rule };
   } catch (error) {
-    return { theme, ok: false, queried: true, returned: 0, seeds: [], error: error instanceof Error ? error.message : "wikidata_venue_pool_failed", rule };
+    return { theme, ok: false, queried: true, returned: 0, seeds: [], error: error instanceof Error ? error.message : "venue_pool_failed", rule };
   }
 }
