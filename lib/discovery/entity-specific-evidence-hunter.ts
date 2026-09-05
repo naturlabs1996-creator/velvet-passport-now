@@ -17,10 +17,22 @@ export type IndependentEvidenceHunterResult = {
   hits: IndependentEvidenceHit[];
   independentFamiliesAdded: string[];
   equivalenceFamiliesUsed: string[];
+  mode: "CORROBORATE" | "COLD_START";
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.1 (entity-specific independent corroboration + allowlisted claim equivalence; bounded public search + deep context)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/1.2 (high-precision cold-start + independent corroboration + allowlisted equivalence)";
+
+const COLD_START_TERMS: Record<string, string[]> = {
+  "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar"],
+  "quiet-paris": ["quiet", "peaceful", "calm", "tranquil", "away from crowds"],
+  "secret-gardens": ["hidden garden", "secret garden", "jardin secret", "courtyard garden"],
+  "forgotten-passages": ["covered passage", "passage couvert", "historic passage", "hidden passage"],
+  "hidden-bookshops": ["independent bookstore", "independent bookshop", "literary bookshop", "librairie indépendante"],
+  "unusual-museums": ["unusual", "insolite", "atypical", "house museum", "specialist museum", "quirky"],
+  "paris-after-dark": ["late opening", "open late", "nocturne", "evening opening", "night visit", "soirée"],
+  "rainy-day-paris": ["indoor", "covered", "inside", "sheltered"],
+};
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -77,13 +89,16 @@ export async function huntIndependentEvidence(params: {
   existingUrls?: string[];
   maxSearches?: number;
   maxPages?: number;
+  allowColdStart?: boolean;
 }): Promise<IndependentEvidenceHunterResult> {
-  const observedTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 6);
+  const explicitTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 6);
+  const coldStart = explicitTerms.length === 0 && Boolean(params.allowColdStart && params.theme);
+  const observedTerms = coldStart ? (COLD_START_TERMS[params.theme ?? ""] ?? []).slice(0, 6) : explicitTerms;
   const equivalence = expandEquivalentClaimTerms(params.theme, observedTerms);
-  const claimTerms = equivalence.terms.slice(0, 18);
+  const claimTerms = [...new Set([...observedTerms, ...equivalence.terms])].slice(0, 18);
   const existingFamilies = new Set(params.existingFamilies.map((family) => family.toLowerCase()));
   const existingUrls = new Set(params.existingUrls ?? []);
-  const queries = buildQueries(params.name, claimTerms).slice(0, Math.max(1, Math.min(params.maxSearches ?? 3, 4)));
+  const queries = claimTerms.length ? buildQueries(params.name, claimTerms).slice(0, Math.max(1, Math.min(params.maxSearches ?? 3, 4))) : [];
   const candidateUrls: string[] = [];
   let attemptedSearches = 0;
 
@@ -110,13 +125,7 @@ export async function huntIndependentEvidence(params: {
   const hits = deep.windows
     .filter((window) => window.terms.length > 0)
     .filter((window) => !existingFamilies.has(window.sourceFamily.toLowerCase()))
-    .map((window) => {
-      const match = equivalentClaimMatch(params.theme, observedTerms, window.terms);
-      return {
-        window,
-        match,
-      };
-    })
+    .map((window) => ({ window, match: equivalentClaimMatch(params.theme, observedTerms, window.terms) }))
     .filter(({ match }) => match.matched)
     .map(({ window, match }) => ({
       url: window.url,
@@ -135,6 +144,7 @@ export async function huntIndependentEvidence(params: {
     hits,
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
-    rule: `The hunter activates only after a concrete entity already has claim-specific evidence. It searches the same claim or an allowlisted equivalent around the same entity, excludes already-counted publisher families and URLs, and adds corroboration only when a new publisher family contains an exact or same-family claim expression inside an identity-matched local context window. Search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    mode: coldStart ? "COLD_START" : "CORROBORATE",
+    rule: `Hunter V1.2 may cold-start only from a small theme-specific allowlist when a concrete resolved entity has no initial theme evidence. Cold-start terms are deliberately stronger than generic category words (for example, unusual/insolite rather than museum). It still requires identity-matched local context, excludes already-counted families/URLs, and never grants CONFIRMED status by itself. Corroboration mode continues to search only the observed claim or an allowlisted equivalent. Search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
