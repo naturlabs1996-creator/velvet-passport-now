@@ -8,6 +8,7 @@ import { extractPlaceEntitiesFromSources } from "./place-entity-extractor";
 import { enrichHistoryEvidence } from "./history-evidence-layer";
 import { canonicalSourceFamily } from "./source-family";
 import { collectWikidataVenuePool } from "./wikidata-venue-pool";
+import { applyPhysicalEntityTypeGate } from "./physical-entity-type-gate";
 
 export type ResearchLead = {
   id: string; pageId: string; theme: string; query: string; name: string; snippet?: string; url: string;
@@ -17,7 +18,7 @@ export type ResearchLead = {
 export type CollectorResult = { collector: "WIKIMEDIA" | "OPENSTREETMAP" | "OFFICIAL_SEARCH" | "EDITORIAL_SEARCH"; ok: boolean; query: string; leads: ResearchLead[]; error?: string; };
 export type ResearchCollectorBudget = { maxPackets?: number; maxCollectorsPerPacket?: number; maxLeadsPerCollector?: number; maxScentQueries?: number; maxPlaceLookups?: number; maxIntentLookups?: number; maxSourcePages?: number; maxHistoryLookups?: number; concurrency?: number; };
 
-const USER_AGENT = "VelvetPassportResearch/3.0 (physical venue pool + strict official hosts + canonical publisher families)";
+const USER_AGENT = "VelvetPassportResearch/3.1 (official physical venue pool + P31 type gate + strict publisher provenance)";
 const DEFAULT_MAX_LEADS_PER_COLLECTOR = 8;
 const DEFAULT_SCENT_QUERIES = 6;
 const DEFAULT_PLACE_LOOKUPS = 20;
@@ -121,37 +122,52 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   for (const query of searchQueries) results.push(...await runCollectorsForQuery(packet, query, maxLeads, maxCollectors));
 
   const venuePool = await collectWikidataVenuePool(packet.theme, Math.min(18, maxPlaceLookups));
-  const venueLeads: ResearchLead[] = venuePool.seeds.map((seed) => ({
-    id: seed.id,
-    pageId: packet.pageId,
-    theme: packet.theme,
-    query: `physical venue pool ${packet.theme}`,
-    name: seed.name,
-    snippet: `${seed.category} in the Paris physical-venue discovery pool`,
-    url: seed.officialUrl ?? `https://www.wikidata.org/wiki/${seed.qid}`,
-    sourceType: "WIKIDATA",
-    publisher: "Wikidata Venue Pool",
-    independentKey: "wikidata.org",
-    observedAt: new Date().toISOString(),
-    lat: seed.lat,
-    lon: seed.lon,
-    address: "Paris, France",
-    rawClaims: [
-      `WIKIDATA_ENTITY ${seed.qid}`,
-      `WIKIDATA_COORDINATES ${seed.lat},${seed.lon}`,
-      ...(seed.officialUrl ? [`WIKIDATA_SOURCE_URL ${seed.officialUrl}`] : []),
-      `VENUE_POOL_CATEGORY ${seed.category}`,
-      "VENUE_POOL_DISCOVERY_ONLY",
-    ],
-  }));
+  const venueLeads: ResearchLead[] = venuePool.seeds.map((seed) => {
+    const fromParisData = seed.source === "PARIS_DATA";
+    return {
+      id: seed.id,
+      pageId: packet.pageId,
+      theme: packet.theme,
+      query: `physical venue pool ${packet.theme}`,
+      name: seed.name,
+      snippet: `${seed.category} in the Paris physical-venue discovery pool`,
+      url: seed.officialUrl ?? (seed.qid ? `https://www.wikidata.org/wiki/${seed.qid}` : "https://www.paris.fr/"),
+      sourceType: fromParisData ? "OFFICIAL" as const : "WIKIDATA" as const,
+      publisher: fromParisData ? "City of Paris / Paris.fr" : "Wikidata Venue Pool",
+      independentKey: fromParisData ? "paris.fr" : "wikidata.org",
+      observedAt: new Date().toISOString(),
+      lat: seed.lat,
+      lon: seed.lon,
+      address: "Paris, France",
+      rawClaims: [
+        ...(seed.qid ? [`WIKIDATA_ENTITY ${seed.qid}`, `WIKIDATA_COORDINATES ${seed.lat},${seed.lon}`] : []),
+        ...(seed.qid && seed.officialUrl ? [`WIKIDATA_SOURCE_URL ${seed.officialUrl}`] : []),
+        ...(fromParisData ? ["PARIS_DATA_OFFICIAL_VENUE", ...(seed.officialUrl ? [`PARIS_DATA_SOURCE_URL ${seed.officialUrl}`] : [])] : []),
+        `VENUE_POOL_CATEGORY ${seed.category}`,
+        "VENUE_POOL_DISCOVERY_ONLY",
+      ],
+    };
+  });
 
-  const rawLeads = dedupeLeads([...venueLeads, ...results.flatMap((result) => result.leads)]); const placeExtraction = await extractPlaceEntitiesFromSources(rawLeads, maxSourcePages, 8); const combinedLeads = dedupeLeads([...venueLeads, ...placeExtraction.leads, ...rawLeads]); const placeResolution = await resolveParisPlaces(combinedLeads, maxPlaceLookups); const enrichedLeads = placeResolution.all.map(resolverEvidence); const entityLock = applyParisDestinationEntityLock(enrichedLeads); const intentEvidence = await verifyIntentEvidence(entityLock.accepted, maxIntentLookups); const historyEvidence = await enrichHistoryEvidence(intentEvidence.leads, maxHistoryLookups); const relevance = applyResearchRelevanceEngine(historyEvidence.leads); const leads = relevance.accepted; const trailSignals = buildTrailSignals(leads);
+  const rawLeads = dedupeLeads([...venueLeads, ...results.flatMap((result) => result.leads)]);
+  const placeExtraction = await extractPlaceEntitiesFromSources(rawLeads, maxSourcePages, 8);
+  const combinedLeads = dedupeLeads([...venueLeads, ...placeExtraction.leads, ...rawLeads]);
+  const physicalEntityGate = await applyPhysicalEntityTypeGate(combinedLeads);
+  const placeResolution = await resolveParisPlaces(physicalEntityGate.leads, maxPlaceLookups);
+  const enrichedLeads = placeResolution.all.map(resolverEvidence);
+  const entityLock = applyParisDestinationEntityLock(enrichedLeads);
+  const intentEvidence = await verifyIntentEvidence(entityLock.accepted, maxIntentLookups);
+  const historyEvidence = await enrichHistoryEvidence(intentEvidence.leads, maxHistoryLookups);
+  const relevance = applyResearchRelevanceEngine(historyEvidence.leads);
+  const leads = relevance.accepted;
+  const trailSignals = buildTrailSignals(leads);
 
   return {
     packet,
     scentTrail: { queryCount: searchQueries.length, queries: searchQueries, strategy: [...scentTrail.strategy, "Focused venue-source seeds run before broad scent queries so the entity extractor sees claim-relevant venue pages instead of generic Paris overview pages first."] },
     collectors: results.map((result) => ({ collector: result.collector, query: result.query, ok: result.ok, leads: result.leads.length, error: result.error })),
-    venuePool: { queried: venuePool.queried, ok: venuePool.ok, returned: venuePool.returned, error: venuePool.error, examples: venuePool.seeds.slice(0, 12).map((seed) => ({ name: seed.name, qid: seed.qid, category: seed.category, lat: seed.lat, lon: seed.lon, officialUrl: seed.officialUrl })), rule: venuePool.rule },
+    venuePool: { queried: venuePool.queried, ok: venuePool.ok, returned: venuePool.returned, officialReturned: venuePool.officialReturned, directReturned: venuePool.directReturned, categoryReturned: venuePool.categoryReturned, error: venuePool.error, examples: venuePool.seeds.slice(0, 12).map((seed) => ({ name: seed.name, qid: seed.qid, source: seed.source, category: seed.category, lat: seed.lat, lon: seed.lon, officialUrl: seed.officialUrl })), rule: venuePool.rule },
+    physicalEntityGate: { input: combinedLeads.length, kept: physicalEntityGate.leads.length, rejected: physicalEntityGate.rejected.length, rejectedExamples: physicalEntityGate.rejected.slice(0, 10).map((item) => ({ name: item.lead.name, qid: item.qid, instanceOf: item.instanceOf, reasons: item.reasons })), rule: physicalEntityGate.rule },
     placeEntityExtraction: { sourcePagesAttempted: placeExtraction.sourcePagesAttempted, sourcePagesOpened: placeExtraction.sourcePagesOpened, extractedCount: placeExtraction.extractedCount, examples: placeExtraction.leads.slice(0, 12).map((lead) => ({ name: lead.name, sourceUrl: lead.url, publisher: lead.publisher })), rule: placeExtraction.rule },
     placeResolver: { lookups: placeResolution.lookups, resolved: placeResolution.resolved.length, partial: placeResolution.partial.length, unresolved: placeResolution.unresolved.length, examples: placeResolution.all.slice(0, 12).map((item) => ({ name: item.lead.name, status: item.status, confidence: item.confidence, method: item.method, address: item.lead.address, lat: item.lead.lat, lon: item.lead.lon, reasons: item.reasons })), rule: `${placeResolution.rule} Resolved coordinates are preserved as a separate MAP/WIKIDATA evidence trace; resolver provenance never masquerades as the original editorial publisher.` },
     intentEvidence: { lookups: intentEvidence.lookups, confirmed: intentEvidence.confirmed.length, partial: intentEvidence.partial.length, unconfirmed: intentEvidence.unconfirmed.length, examples: intentEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedTerms: item.matchedTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })), rule: intentEvidence.rule },
@@ -159,7 +175,7 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
     leadCount: leads.length, independentSources: new Set(leads.map((lead) => canonicalSourceFamily(lead.independentKey))).size, leads, trailSignals: trailSignals.slice(0, 12),
     destinationEntityLock: { accepted: entityLock.accepted.length, rejected: entityLock.rejected.length, rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })), rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before focused intent research or candidate merging unless a Paris-France geographic anchor exists." },
     researchRelevance: { accepted: leads.length, rejected: relevance.rejected.length, rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, exposureLevel: score.exposureLevel, exposureScore: score.exposureScore, reasons: score.reasons })), rule: "A valid Paris entity must match the active traveler intent and remain useful to the Velvet layer. Exposure Intelligence is applied before acceptance. Historical depth can strengthen research value, but never substitutes for intent evidence or factual verification." },
-    note: "Deep Research Collector V3.0 seeds a bounded Wikidata physical-venue pool before noisy semantic search results. Venue-pool membership grants discovery priority only, never traveler-intent, exposure, history or truth credit. Strict official-host, canonical-family, Paris lock, intent, history, exposure, relevance, claim verification and publication gates remain mandatory.",
+    note: "Deep Research Collector V3.1 seeds official City of Paris physical venues without requiring Wikidata, preserves true publisher provenance, and applies an explicit P31 physical-entity gate before resolver/intent budgets. Venue-pool membership grants discovery priority only, never traveler-intent, exposure, history or truth credit. All downstream verification and publication gates remain mandatory.",
   };
 }
 
