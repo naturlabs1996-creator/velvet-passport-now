@@ -17,7 +17,7 @@ export type DeepEvidenceTrace = {
   matchedTerms: string[];
 };
 
-const USER_AGENT = "VelvetPassportDeepEvidence/1.4 (traced multi-window wikidata-linked source verification; cached requests)";
+const USER_AGENT = "VelvetPassportDeepEvidence/1.5 (entity-bound clause verification + traced multi-window source verification; cached requests)";
 const MAX_HTML_BYTES = 900_000;
 
 function normalize(value: string) {
@@ -37,6 +37,9 @@ function stripHtml(html: string) {
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
     .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+    .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+    .replace(/<header[\s\S]*?<\/header>/gi, " ")
+    .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/\s+/g, " ").trim();
@@ -81,6 +84,15 @@ function contextWindows(name: string, text: string, radius = 900, maxWindows = 5
     if (indices.length >= maxWindows) break;
   }
   return indices.slice(0, maxWindows).map((index) => text.slice(Math.max(0, index - radius), Math.min(text.length, index + radius)));
+}
+function clauseSegments(text: string) {
+  return text.split(/(?<=[.!?;:])\s+|\s+[–—]\s+/).map((part) => part.trim()).filter((part) => part.length >= 12 && part.length <= 700);
+}
+function entityBoundTerms(name: string, window: string, terms: string[]) {
+  const segments = clauseSegments(window);
+  const strongSegments = segments.filter((segment) => identityMatch(name, segment));
+  if (!strongSegments.length) return [];
+  return [...new Set(terms.filter((term) => strongSegments.some((segment) => normalize(segment).includes(normalize(term)))))];
 }
 
 async function wikidataLinkedUrls(wikidataId: string) {
@@ -173,14 +185,10 @@ export async function fetchDeepEvidenceWindows(name: string, urls: string[], ter
       continue;
     }
     const localWindows = contextWindows(name, page);
-    const allTerms = [...new Set(localWindows.flatMap((window) => {
-      const normalizedWindow = normalize(window);
-      return terms.filter((term) => normalizedWindow.includes(normalize(term)));
-    }))];
+    const allTerms = [...new Set(localWindows.flatMap((window) => entityBoundTerms(name, window, terms)))];
     trace.push({ url, host, sourceFamily, opened: true, matchedIdentity: true, windowsScanned: localWindows.length, matchedTerms: allTerms });
     for (const window of localWindows) {
-      const normalizedWindow = normalize(window);
-      const matchedTerms = [...new Set(terms.filter((term) => normalizedWindow.includes(normalize(term))))];
+      const matchedTerms = entityBoundTerms(name, window, terms);
       if (!matchedTerms.length) continue;
       windows.push({ url, host, sourceFamily, matchedIdentity: true, text: window, terms: matchedTerms });
     }
@@ -190,6 +198,6 @@ export async function fetchDeepEvidenceWindows(name: string, urls: string[], ter
     opened,
     windows,
     trace,
-    rule: "Deep evidence is accepted only from bounded public HTML pages where the candidate identity appears and evaluated terms occur inside one of several local context windows. Wikidata official website P856 is preferred alongside canonical sitelinks. Language editions of the same publisher share one source family and never count as independent corroboration.",
+    rule: "Deep Evidence V1.5 accepts a theme term only when the candidate identity and that term occur inside the same bounded sentence/clause, after stripping script/style/navigation/header/footer boilerplate. A theme word elsewhere in a page, menu or neighboring article cannot credit the candidate. Publisher-family independence rules remain unchanged.",
   };
 }
