@@ -39,7 +39,15 @@ export async function GET() {
     const gemPortfolio = buildGemPortfolio(opportunityGaps); const gemRank = new Map(gemPortfolio.map((item, index) => [item.theme, index]));
     const productionQueue = buildProductionQueue({ universe: parisUncoveredUniverse, gaps: opportunityGaps, decisions, maxReady: 20 }); const pageFactory = buildPageFactoryQueue(productionQueue);
     const researchQueue = buildResearchVerificationQueue(pageFactory).sort((a, b) => (gemRank.get(a.packet.theme) ?? 999) - (gemRank.get(b.packet.theme) ?? 999));
-    const researchCollector = await collectResearchQueue(researchQueue.map((item) => item.packet), {
+    const seenResearchThemes = new Set<string>();
+    const canonicalResearchPackets = researchQueue
+      .filter((item) => {
+        if (seenResearchThemes.has(item.packet.theme)) return false;
+        seenResearchThemes.add(item.packet.theme);
+        return true;
+      })
+      .map((item) => item.packet);
+    const researchCollector = await collectResearchQueue(canonicalResearchPackets, {
       maxPackets: 2, maxCollectorsPerPacket: 4, maxLeadsPerCollector: 8, maxScentQueries: 6, maxPlaceLookups: 24, maxIntentLookups: 16, maxSourcePages: 12, maxHistoryLookups: 10, concurrency: 2,
     });
 
