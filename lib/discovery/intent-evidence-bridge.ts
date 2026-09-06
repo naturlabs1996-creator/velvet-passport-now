@@ -23,14 +23,14 @@ export type IntentEvidenceResult = {
   hunterFamiliesAdded: string[];
 };
 
-const USER_AGENT = "VelvetPassportIntentBridge/3.0 (strong entity-bound intent phrases + official venue identity + independent corroboration)";
+const USER_AGENT = "VelvetPassportIntentBridge/3.1 (explicit unusualness + strong entity-bound intent phrases + independent corroboration)";
 const THEME_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "less known", "off the beaten", "hidden gem", "independent", "atypical", "insolite", "under-the-radar"],
   "quiet-paris": ["quiet", "calm", "peaceful", "tranquil", "away from crowds", "paisible", "uncrowded"],
   "secret-gardens": ["garden", "jardin", "courtyard", "cour", "green space"],
   "forgotten-passages": ["covered passage", "passage couvert", "galerie couverte", "covered arcade", "historic covered passage", "hidden passage", "secret passage", "forgotten passage", "passage méconnu"],
   "hidden-bookshops": ["bookshop", "bookstore", "librairie", "literary", "books", "independent bookstore"],
-  "unusual-museums": ["museum", "musée", "collection", "cabinet", "unusual", "insolite", "small museum", "house museum"],
+  "unusual-museums": ["unusual museum", "musée insolite", "insolite", "atypical museum", "musée atypique", "quirky museum", "weird museum", "offbeat museum", "cabinet of curiosities", "cabinet de curiosités", "small unusual museum"],
   "paris-after-dark": ["night", "evening", "late opening", "open late", "nocturne", "after dark", "soir", "soirée"],
   "rainy-day-paris": ["indoor", "covered", "inside", "museum", "gallery", "bookshop", "arcade"],
 };
@@ -212,6 +212,6 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     results,
     leads: results.map((item) => item.lead), confirmed: results.filter((item) => item.status === "CONFIRMED"), partial: results.filter((item) => item.status === "PARTIAL"), unconfirmed: results.filter((item) => item.status === "UNCONFIRMED"), lookups,
     deepPagesOpened: results.reduce((sum, item) => sum + item.deepPagesOpened, 0), directSourceUrls: results.reduce((sum, item) => sum + item.directSourceUrls, 0), carriedSourceUrls: results.reduce((sum, item) => sum + item.carriedSourceUrls, 0), hunterSearches: results.reduce((sum, item) => sum + item.hunterSearches, 0), hunterPagesOpened: results.reduce((sum, item) => sum + item.hunterPagesOpened, 0), hunterHits: results.reduce((sum, item) => sum + item.hunterHits, 0), hunterFamiliesAdded: [...new Set(results.flatMap((item) => item.hunterFamiliesAdded))],
-    rule: "Focused Intent Evidence V3.0 requires theme language to be bound to the venue identity in the same local sentence/clause for both search snippets and deep pages. Forgotten-passages accepts only strong phrases such as covered/hidden/secret/forgotten passages or covered galleries/arcades; bare passage, galerie or arcade are not evidence. CONFIRMED still requires score >=68 and at least two independent publisher families; no threshold is relaxed.",
+    rule: "Focused Intent Evidence V3.1 requires theme language to be bound to the venue identity in the same local sentence/clause. Unusual-museums requires explicit unusualness (for example unusual/insolite/atypical/offbeat/quirky or cabinet-of-curiosities framing); bare museum, musée, collection, cabinet or house-museum category membership is never unusualness evidence. Forgotten-passages likewise accepts only strong covered/hidden/secret/forgotten passage phrases. CONFIRMED still requires score >=68 and at least two independent publisher families; no threshold is relaxed.",
   };
 }
