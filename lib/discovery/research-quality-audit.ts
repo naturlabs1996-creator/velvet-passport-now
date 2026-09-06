@@ -49,6 +49,7 @@ export function runResearchQualityAudit(input: {
     { theme: "paris-after-dark", name: "Paris Hilton", claims: ["night Paris"], mustReject: true },
     { theme: "quiet-paris", name: "Eiffel Tower", claims: ["quiet Paris", "top 10 iconic world-famous"], mustReject: true },
     { theme: "unusual-museums", name: "Arc de Triomphe", claims: ["unusual museum Paris", "must-see iconic landmark"], mustReject: true },
+    { theme: "forgotten-passages", name: "Conciergerie", claims: ["historic monument in Paris", "galerie inside the monument"], mustReject: true },
   ].map((probe) => {
     const score = scoreResearchLeadRelevance(syntheticLead(probe.theme, probe.name, probe.claims));
     const passed = probe.mustReject ? score.decision === "REJECT" : score.decision === "ACCEPT";
@@ -64,6 +65,6 @@ export function runResearchQualityAudit(input: {
     issues: issues.slice(0, 30),
     adversarial,
     auditedThemes: [...new Set([...allLeads.map((lead) => lead.theme), ...adversarial.map((item) => item.theme)])],
-    rule: "Quality audit fails on false official labeling, duplicate publisher-family inflation, internal metadata leakage, untraced Safe Copy, high-risk single-source verification, publication below five, or adversarial tourist/noise false positives.",
+    rule: "Quality audit fails on false official labeling, duplicate publisher-family inflation, internal metadata leakage, untraced Safe Copy, high-risk single-source verification, publication below five, or adversarial tourist/noise/semantic false positives such as a generic gallery being mistaken for a hidden passage.",
   };
 }
