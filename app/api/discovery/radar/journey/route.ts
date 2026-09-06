@@ -48,7 +48,7 @@ export async function GET() {
       })
       .map((item) => item.packet);
     const researchCollector = await collectResearchQueue(canonicalResearchPackets, {
-      maxPackets: 2, maxCollectorsPerPacket: 4, maxLeadsPerCollector: 8, maxScentQueries: 6, maxPlaceLookups: 24, maxIntentLookups: 16, maxSourcePages: 12, maxHistoryLookups: 10, concurrency: 2,
+      maxPackets: 3, maxCollectorsPerPacket: 4, maxLeadsPerCollector: 8, maxScentQueries: 6, maxPlaceLookups: 24, maxIntentLookups: 16, maxSourcePages: 12, maxHistoryLookups: 10, concurrency: 2,
     });
 
     const candidatePortfolio = researchCollector.map((collection) => {
