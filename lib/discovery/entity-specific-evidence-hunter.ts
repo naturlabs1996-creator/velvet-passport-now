@@ -21,15 +21,15 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.2 (high-precision cold-start + independent corroboration + allowlisted equivalence)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/1.3 (explicit unusualness cold-start + independent corroboration + allowlisted equivalence)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar"],
   "quiet-paris": ["quiet", "peaceful", "calm", "tranquil", "away from crowds"],
   "secret-gardens": ["hidden garden", "secret garden", "jardin secret", "courtyard garden"],
-  "forgotten-passages": ["covered passage", "passage couvert", "historic passage", "hidden passage"],
+  "forgotten-passages": ["covered passage", "passage couvert", "historic covered passage", "hidden passage", "secret passage", "forgotten passage"],
   "hidden-bookshops": ["independent bookstore", "independent bookshop", "literary bookshop", "librairie indépendante"],
-  "unusual-museums": ["unusual", "insolite", "atypical", "house museum", "specialist museum", "quirky"],
+  "unusual-museums": ["unusual museum", "musée insolite", "insolite", "atypical museum", "musée atypique", "quirky museum", "offbeat museum", "cabinet of curiosities", "cabinet de curiosités"],
   "paris-after-dark": ["late opening", "open late", "nocturne", "evening opening", "night visit", "soirée"],
   "rainy-day-paris": ["indoor", "covered", "inside", "sheltered"],
 };
@@ -93,7 +93,7 @@ export async function huntIndependentEvidence(params: {
 }): Promise<IndependentEvidenceHunterResult> {
   const explicitTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 6);
   const coldStart = explicitTerms.length === 0 && Boolean(params.allowColdStart && params.theme);
-  const observedTerms = coldStart ? (COLD_START_TERMS[params.theme ?? ""] ?? []).slice(0, 6) : explicitTerms;
+  const observedTerms = coldStart ? (COLD_START_TERMS[params.theme ?? ""] ?? []).slice(0, 9) : explicitTerms;
   const equivalence = expandEquivalentClaimTerms(params.theme, observedTerms);
   const claimTerms = [...new Set([...observedTerms, ...equivalence.terms])].slice(0, 18);
   const existingFamilies = new Set(params.existingFamilies.map((family) => family.toLowerCase()));
@@ -145,6 +145,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V1.2 may cold-start only from a small theme-specific allowlist when a concrete resolved entity has no initial theme evidence. Cold-start terms are deliberately stronger than generic category words (for example, unusual/insolite rather than museum). It still requires identity-matched local context, excludes already-counted families/URLs, and never grants CONFIRMED status by itself. Corroboration mode continues to search only the observed claim or an allowlisted equivalent. Search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V1.3 may cold-start only from a small theme-specific allowlist when a concrete resolved entity has no initial theme evidence. For unusual-museums, generic category words such as museum, musée, collection, cabinet, house museum or specialist museum are prohibited as cold-start proof; explicit unusualness is required. It still requires identity-matched local context, excludes already-counted families/URLs, and never grants CONFIRMED status by itself. Corroboration mode continues to search only the observed claim or an allowlisted equivalent. Search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
