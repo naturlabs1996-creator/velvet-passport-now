@@ -176,6 +176,7 @@ export function buildAnswerPageSpec(brief: ProductionBrief): AnswerPageSpec {
     },
     qualityGates: [
       "Do not publish until all RESEARCH_REQUIRED sections are sourced and reviewed.",
+      "Research-test assets are training inputs only until Research Verification and Publication Canary independently pass.",
       "One canonical page per distinct search intent; merge near-duplicate keywords into supporting keywords.",
       "The first useful answer must appear before the first product CTA.",
       "No invented popularity, secrecy, local endorsement, opening hours, prices or access conditions.",
@@ -188,7 +189,7 @@ export function buildAnswerPageSpec(brief: ProductionBrief): AnswerPageSpec {
 
 export function buildPageFactoryQueue(briefs: ProductionBrief[]) {
   return briefs
-    .filter((brief) => brief.assetType === "ANSWER_PAGE" || brief.assetType === "NOW_LANDING")
+    .filter((brief) => brief.assetType === "ANSWER_PAGE" || brief.assetType === "NOW_LANDING" || brief.assetType === "RESEARCH_TEST")
     .map(buildAnswerPageSpec)
     .sort((a, b) => {
       const order: Record<PageFactoryStatus, number> = {
