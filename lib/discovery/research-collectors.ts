@@ -9,6 +9,7 @@ import { enrichHistoryEvidence } from "./history-evidence-layer";
 import { canonicalSourceFamily } from "./source-family";
 import { collectWikidataVenuePool } from "./wikidata-venue-pool";
 import { applyPhysicalEntityTypeGate } from "./physical-entity-type-gate";
+import { applyCandidateIntelligenceLayer } from "./candidate-intelligence-layer";
 
 export type ResearchLead = {
   id: string; pageId: string; theme: string; query: string; name: string; snippet?: string; url: string;
@@ -18,7 +19,7 @@ export type ResearchLead = {
 export type CollectorResult = { collector: "WIKIMEDIA" | "OPENSTREETMAP" | "OFFICIAL_SEARCH" | "EDITORIAL_SEARCH"; ok: boolean; query: string; leads: ResearchLead[]; error?: string; };
 export type ResearchCollectorBudget = { maxPackets?: number; maxCollectorsPerPacket?: number; maxLeadsPerCollector?: number; maxScentQueries?: number; maxPlaceLookups?: number; maxIntentLookups?: number; maxSourcePages?: number; maxHistoryLookups?: number; concurrency?: number; };
 
-const USER_AGENT = "VelvetPassportResearch/3.1 (official physical venue pool + P31 type gate + strict publisher provenance)";
+const USER_AGENT = "VelvetPassportResearch/3.2 (candidate intelligence allocation + official physical venue pool + strict provenance)";
 const DEFAULT_MAX_LEADS_PER_COLLECTOR = 8;
 const DEFAULT_SCENT_QUERIES = 6;
 const DEFAULT_PLACE_LOOKUPS = 20;
@@ -156,7 +157,8 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   const placeResolution = await resolveParisPlaces(physicalEntityGate.leads, maxPlaceLookups);
   const enrichedLeads = placeResolution.all.map(resolverEvidence);
   const entityLock = applyParisDestinationEntityLock(enrichedLeads);
-  const intentEvidence = await verifyIntentEvidence(entityLock.accepted, maxIntentLookups);
+  const candidateIntelligence = applyCandidateIntelligenceLayer(entityLock.accepted, maxIntentLookups);
+  const intentEvidence = await verifyIntentEvidence(candidateIntelligence.selected, maxIntentLookups);
   const historyEvidence = await enrichHistoryEvidence(intentEvidence.leads, maxHistoryLookups);
   const relevance = applyResearchRelevanceEngine(historyEvidence.leads);
   const leads = relevance.accepted;
@@ -170,12 +172,13 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
     physicalEntityGate: { input: combinedLeads.length, kept: physicalEntityGate.leads.length, rejected: physicalEntityGate.rejected.length, rejectedExamples: physicalEntityGate.rejected.slice(0, 10).map((item) => ({ name: item.lead.name, qid: item.qid, instanceOf: item.instanceOf, reasons: item.reasons })), rule: physicalEntityGate.rule },
     placeEntityExtraction: { sourcePagesAttempted: placeExtraction.sourcePagesAttempted, sourcePagesOpened: placeExtraction.sourcePagesOpened, extractedCount: placeExtraction.extractedCount, examples: placeExtraction.leads.slice(0, 12).map((lead) => ({ name: lead.name, sourceUrl: lead.url, publisher: lead.publisher })), rule: placeExtraction.rule },
     placeResolver: { lookups: placeResolution.lookups, resolved: placeResolution.resolved.length, partial: placeResolution.partial.length, unresolved: placeResolution.unresolved.length, examples: placeResolution.all.slice(0, 12).map((item) => ({ name: item.lead.name, status: item.status, confidence: item.confidence, method: item.method, address: item.lead.address, lat: item.lead.lat, lon: item.lead.lon, reasons: item.reasons })), rule: `${placeResolution.rule} Resolved coordinates are preserved as a separate MAP/WIKIDATA evidence trace; resolver provenance never masquerades as the original editorial publisher.` },
+    candidateIntelligence: { input: entityLock.accepted.length, selected: candidateIntelligence.selected.length, deepResearch: candidateIntelligence.deepResearch.length, test: candidateIntelligence.test.length, hold: candidateIntelligence.hold.length, rejected: candidateIntelligence.rejected.length, examples: candidateIntelligence.all.slice(0, 12).map((item) => ({ name: item.lead.name, score: item.score, decision: item.decision, depth: item.depth, confidence: item.confidence, dimensions: item.dimensions, positiveSignals: item.positiveSignals, negativeSignals: item.negativeSignals, unknowns: item.unknowns })), rule: candidateIntelligence.rule },
     intentEvidence: { lookups: intentEvidence.lookups, confirmed: intentEvidence.confirmed.length, partial: intentEvidence.partial.length, unconfirmed: intentEvidence.unconfirmed.length, examples: intentEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedTerms: item.matchedTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })), rule: intentEvidence.rule },
     historyEvidence: { lookups: historyEvidence.lookups, confirmed: historyEvidence.confirmed.length, partial: historyEvidence.partial.length, unconfirmed: historyEvidence.unconfirmed.length, examples: historyEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedHistoryTerms: item.matchedHistoryTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })), rule: historyEvidence.rule },
     leadCount: leads.length, independentSources: new Set(leads.map((lead) => canonicalSourceFamily(lead.independentKey))).size, leads, trailSignals: trailSignals.slice(0, 12),
     destinationEntityLock: { accepted: entityLock.accepted.length, rejected: entityLock.rejected.length, rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })), rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before focused intent research or candidate merging unless a Paris-France geographic anchor exists." },
     researchRelevance: { accepted: leads.length, rejected: relevance.rejected.length, rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, exposureLevel: score.exposureLevel, exposureScore: score.exposureScore, reasons: score.reasons })), rule: "A valid Paris entity must match the active traveler intent and remain useful to the Velvet layer. Exposure Intelligence is applied before acceptance. Historical depth can strengthen research value, but never substitutes for intent evidence or factual verification." },
-    note: "Deep Research Collector V3.1 seeds official City of Paris physical venues without requiring Wikidata, preserves true publisher provenance, and applies an explicit P31 physical-entity gate before resolver/intent budgets. Venue-pool membership grants discovery priority only, never traveler-intent, exposure, history or truth credit. All downstream verification and publication gates remain mandatory.",
+    note: "Deep Research Collector V3.2 adds Candidate Intelligence between destination lock and Intent Evidence. It allocates research depth without granting truth or intent credit, preserves uncertainty as TEST/HOLD, and prevents obvious low-value candidates from consuming deep-research budget. Official Paris venue discovery, independent intent evidence, exposure, history, factual verification and publication gates remain mandatory and fail-closed.",
   };
 }
 
