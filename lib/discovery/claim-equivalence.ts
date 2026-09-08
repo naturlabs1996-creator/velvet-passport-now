@@ -10,7 +10,8 @@ const FAMILIES: ClaimEquivalenceFamily[] = [
   { id: "QUIET_ATMOSPHERE", themes: ["quiet-paris"], terms: ["quiet", "calm", "peaceful", "tranquil", "paisible"] },
   { id: "LOW_CROWD_FRAMING", themes: ["quiet-paris", "beyond-the-classics"], terms: ["away from crowds", "uncrowded", "less crowded", "loin de la foule", "peu fréquenté"] },
   { id: "LESS_KNOWN", themes: ["beyond-the-classics", "unusual-museums"], terms: ["less known", "little known", "under-the-radar", "off the beaten", "méconnu", "peu connu"] },
-  { id: "UNUSUAL", themes: ["beyond-the-classics", "unusual-museums"], terms: ["unusual", "atypical", "insolite", "singulier"] },
+  { id: "UNUSUAL", themes: ["beyond-the-classics", "unusual-museums"], terms: ["unusual", "atypical", "insolite", "singulier", "hors du commun", "incongru", "incongrue", "quirky", "offbeat"] },
+  { id: "DISCREET_DISCOVERY", themes: ["beyond-the-classics", "unusual-museums"], terms: ["entrée discrète", "entree discrete", "dissimulé", "dissimulée", "dissimule", "dissimulee", "hidden from view", "tucked away"] },
 ];
 
 function normalize(value: string) {
@@ -47,4 +48,4 @@ export function equivalentClaimMatch(theme: string | undefined, observedTerms: s
   return { matched: exact.length > 0 || sharedFamilies.length > 0, exactTerms: exact, sharedFamilies };
 }
 
-export const CLAIM_EQUIVALENCE_RULE = "Claim equivalence is allowlist-only. A synonym can corroborate an observed claim only when both expressions belong to the same predefined claim family for the active theme. Free semantic similarity, embeddings and broad topical resemblance never count as corroboration.";
+export const CLAIM_EQUIVALENCE_RULE = "Claim equivalence is allowlist-only. A synonym can corroborate an observed claim only when both expressions belong to the same predefined claim family for the active theme. High-precision editorial framing such as hors du commun, incongru/incongrue or entrée discrète is accepted only when it appears in an identity-bound local context. Free semantic similarity, embeddings and broad topical resemblance never count as corroboration.";
