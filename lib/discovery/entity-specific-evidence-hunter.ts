@@ -22,7 +22,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/2.0 (trusted sitemap discovery + resilient search fallback + strict entity-bound proof)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/2.1 (trusted gzipped sitemap discovery + resilient search fallback + strict entity-bound proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -48,6 +48,7 @@ const TRUSTED_SITEMAP_ROOTS = [
   "https://www.visitparisregion.com/sitemap.xml",
   "https://parisjetaime.com/sitemap.xml",
   "https://www.sortiraparis.com/sitemap.xml",
+  "https://www.paris.fr/sitemap.xml.gz",
 ];
 
 function normalize(value: string) {
@@ -102,18 +103,33 @@ function buildQueries(name: string, claimTerms: string[], theme?: string) {
   ].filter(Boolean))];
 }
 
+async function decodeResponseText(response: Response, requestedUrl: string) {
+  const bytes = await response.arrayBuffer();
+  const finalUrl = response.url || requestedUrl;
+  const looksGzipped = /\.gz(?:$|[?#])/i.test(finalUrl) || /gzip/i.test(response.headers.get("content-type") ?? "");
+  if (looksGzipped && typeof DecompressionStream !== "undefined") {
+    try {
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+      return await new Response(stream).text();
+    } catch {
+      // fetch may already have transparently decompressed a .gz response.
+    }
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 async function fetchText(url: string, timeoutMs = 6500) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
-      headers: { "user-agent": USER_AGENT, accept: "application/xml,text/xml,text/plain,*/*" },
+      headers: { "user-agent": USER_AGENT, accept: "application/xml,text/xml,application/gzip,text/plain,*/*" },
       signal: controller.signal,
       redirect: "follow",
-      next: { revalidate: 21600 },
+      cache: "no-store",
     });
     if (!response.ok) return null;
-    return await response.text();
+    return await decodeResponseText(response, url);
   } catch { return null; }
   finally { clearTimeout(timer); }
 }
@@ -283,6 +299,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V2.0 searches trusted Paris publisher sitemaps before any generic search fallback. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V2.1 searches trusted Paris publisher sitemaps, including gzipped indexes, before any generic search fallback. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
