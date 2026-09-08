@@ -21,7 +21,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.6 (retrieval-stage diagnostics + alias-aware bilingual discovery)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/1.7 (URL-aware identity navigation + strict deep proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -150,7 +150,9 @@ export async function huntIndependentEvidence(params: {
       const xml = await response.text();
       for (const item of xmlItems(xml).slice(0, 10)) {
         diagnostics.rssItems += 1;
-        if (!identityMatchAny(aliases, `${item.title} ${item.description}`)) continue;
+        // Title/snippet are preferred, but URL tokens may establish page identity for navigation only.
+        // URL identity never counts as traveler-intent evidence; the opened page must still prove the angle.
+        if (!identityMatchAny(aliases, `${item.title} ${item.description} ${item.link}`)) continue;
         diagnostics.identityMatched += 1;
         if (existingUrls.has(item.link)) {
           diagnostics.duplicateOrCarried += 1;
@@ -211,6 +213,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V1.6 adds retrieval-stage diagnostics while preserving V1.5 evidence rules. Semantic probes remain navigation only and are never proof. A returned page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before it becomes a hit. Generic category membership, search recurrence, and free semantic similarity never count as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V1.7 may use title, snippet or URL path to establish that a search result points to the candidate entity. URL tokens are navigation identity only and never intent evidence. The opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Semantic probes remain navigation only and are never proof. Generic category membership, search recurrence, and free semantic similarity never count as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
