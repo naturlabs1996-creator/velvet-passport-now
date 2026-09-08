@@ -2,10 +2,10 @@ export type PublicSearchResult = {
   title: string;
   link: string;
   description: string;
-  provider: "DUCKDUCKGO_HTML" | "BING_RSS";
+  provider: "DUCKDUCKGO_HTML" | "DUCKDUCKGO_LITE" | "BING_RSS";
 };
 
-const USER_AGENT = "Mozilla/5.0 (compatible; VelvetPassportResearch/1.0; +https://velvetpassport.com)";
+const USER_AGENT = "Mozilla/5.0 (compatible; VelvetPassportResearch/1.1; +https://velvetpassport.com)";
 
 function stripHtml(value: string) {
   return value
@@ -26,7 +26,7 @@ function decodeDuckDuckGoLink(raw: string) {
   const decoded = raw.replace(/&amp;/g, "&");
   try {
     const absolute = decoded.startsWith("//") ? `https:${decoded}` : decoded;
-    const url = new URL(absolute, "https://html.duckduckgo.com");
+    const url = new URL(absolute, "https://duckduckgo.com");
     const target = url.searchParams.get("uddg");
     if (target && /^https?:\/\//i.test(target)) return target;
     if (/^https?:\/\//i.test(absolute) && !url.hostname.endsWith("duckduckgo.com")) return absolute;
@@ -34,7 +34,7 @@ function decodeDuckDuckGoLink(raw: string) {
   return decoded;
 }
 
-function parseDuckDuckGo(html: string): PublicSearchResult[] {
+function parseDuckDuckGoHtml(html: string): PublicSearchResult[] {
   const results: PublicSearchResult[] = [];
   const blocks = html.split(/class=["']result(?:\s|["'])/i).slice(1);
   for (const block of blocks.slice(0, 15)) {
@@ -46,6 +46,23 @@ function parseDuckDuckGo(html: string): PublicSearchResult[] {
     const title = stripHtml(anchor[2]);
     const snippet = block.match(/class=["'][^"']*result__snippet[^"']*["'][^>]*>([\s\S]*?)(?:<\/a>|<\/div>|<\/td>)/i)?.[1] ?? "";
     results.push({ title, link, description: stripHtml(snippet), provider: "DUCKDUCKGO_HTML" });
+  }
+  return results;
+}
+
+function parseDuckDuckGoLite(html: string): PublicSearchResult[] {
+  const results: PublicSearchResult[] = [];
+  const anchorPattern = /<a[^>]+(?:class=["'][^"']*(?:result-link|result__a)[^"']*["'][^>]+href=["']([^"']+)["']|href=["']([^"']+)["'][^>]+class=["'][^"']*(?:result-link|result__a)[^"']*["'])[^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = anchorPattern.exec(html)) && results.length < 15) {
+    const rawLink = match[1] ?? match[2] ?? "";
+    const link = decodeDuckDuckGoLink(rawLink);
+    if (!/^https?:\/\//i.test(link)) continue;
+    const title = stripHtml(match[3] ?? "");
+    if (!title) continue;
+    const tail = html.slice(match.index + match[0].length, match.index + match[0].length + 1800);
+    const snippet = tail.match(/(?:class=["'][^"']*(?:result-snippet|result__snippet)[^"']*["'][^>]*>|<td[^>]*>)([\s\S]*?)(?:<\/td>|<br\s*\/?>|<\/div>)/i)?.[1] ?? "";
+    results.push({ title, link, description: stripHtml(snippet), provider: "DUCKDUCKGO_LITE" });
   }
   return results;
 }
@@ -85,8 +102,16 @@ export async function searchPublicWeb(query: string, maxResults = 10): Promise<{
   try {
     const response = await fetchWithTimeout(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5");
     if (response.ok) {
-      const parsed = parseDuckDuckGo(await response.text()).slice(0, limit);
+      const parsed = parseDuckDuckGoHtml(await response.text()).slice(0, limit);
       if (parsed.length > 0) return { provider: "DUCKDUCKGO_HTML", results: parsed };
+    }
+  } catch { /* provider failure remains unknown */ }
+
+  try {
+    const response = await fetchWithTimeout(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5");
+    if (response.ok) {
+      const parsed = parseDuckDuckGoLite(await response.text()).slice(0, limit);
+      if (parsed.length > 0) return { provider: "DUCKDUCKGO_LITE", results: parsed };
     }
   } catch { /* provider failure remains unknown */ }
 
