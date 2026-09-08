@@ -21,7 +21,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.7 (URL-aware identity navigation + strict deep proof)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/1.8 (raw RSS diagnostics + URL-aware identity navigation + strict deep proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -48,6 +48,9 @@ function normalize(value: string) {
 }
 function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+function hostOf(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; }
 }
 function xmlItems(xml: string) {
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
@@ -139,7 +142,13 @@ export async function huntIndependentEvidence(params: {
   const queries = claimTerms.length ? buildQueries(params.name, claimTerms, params.theme).slice(0, maxSearches) : [];
   const aliases = entityAliases(params.name);
   const candidateUrls: string[] = [];
-  const diagnostics = { rssItems: 0, identityMatched: 0, duplicateOrCarried: 0, existingFamilyRejected: 0 };
+  const diagnostics = {
+    rssItems: 0,
+    identityMatched: 0,
+    duplicateOrCarried: 0,
+    existingFamilyRejected: 0,
+    rssSamples: [] as Array<{ query: string; title: string; link: string; host: string; description: string }>,
+  };
   let attemptedSearches = 0;
 
   for (const query of queries) {
@@ -148,8 +157,19 @@ export async function huntIndependentEvidence(params: {
       const response = await fetchWithTimeout(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(query)}`);
       if (!response.ok) continue;
       const xml = await response.text();
+      let sampledForQuery = 0;
       for (const item of xmlItems(xml).slice(0, 10)) {
         diagnostics.rssItems += 1;
+        if (sampledForQuery < 3) {
+          diagnostics.rssSamples.push({
+            query,
+            title: item.title.slice(0, 180),
+            link: item.link,
+            host: hostOf(item.link),
+            description: item.description.slice(0, 240),
+          });
+          sampledForQuery += 1;
+        }
         // Title/snippet are preferred, but URL tokens may establish page identity for navigation only.
         // URL identity never counts as traveler-intent evidence; the opened page must still prove the angle.
         if (!identityMatchAny(aliases, `${item.title} ${item.description} ${item.link}`)) continue;
@@ -193,11 +213,12 @@ export async function huntIndependentEvidence(params: {
     queries,
     attemptedSearches,
     rssItems: diagnostics.rssItems,
+    rssSamples: diagnostics.rssSamples,
     identityMatched: diagnostics.identityMatched,
     duplicateOrCarried: diagnostics.duplicateOrCarried,
     existingFamilyRejected: diagnostics.existingFamilyRejected,
     candidateUrlCount: uniqueUrls.length,
-    candidateHosts: uniqueUrls.map((url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }),
+    candidateHosts: uniqueUrls.map(hostOf),
     deepPagesOpened: deep.opened,
     deepWindows: deep.windows.length,
     hitCount: hits.length,
@@ -213,6 +234,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V1.7 may use title, snippet or URL path to establish that a search result points to the candidate entity. URL tokens are navigation identity only and never intent evidence. The opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Semantic probes remain navigation only and are never proof. Generic category membership, search recurrence, and free semantic similarity never count as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V1.8 exposes a bounded raw sample of public RSS search results for retrieval diagnostics while preserving V1.7 evidence rules. Title, snippet or URL path may establish navigation identity only. The opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Semantic probes remain navigation only and are never proof. Generic category membership, search recurrence, and free semantic similarity never count as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
