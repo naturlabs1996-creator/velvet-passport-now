@@ -21,7 +21,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.5 (alias-aware bilingual discovery + strict entity-bound proof)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/1.6 (retrieval-stage diagnostics + alias-aware bilingual discovery)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -139,6 +139,7 @@ export async function huntIndependentEvidence(params: {
   const queries = claimTerms.length ? buildQueries(params.name, claimTerms, params.theme).slice(0, maxSearches) : [];
   const aliases = entityAliases(params.name);
   const candidateUrls: string[] = [];
+  const diagnostics = { rssItems: 0, identityMatched: 0, duplicateOrCarried: 0, existingFamilyRejected: 0 };
   let attemptedSearches = 0;
 
   for (const query of queries) {
@@ -148,10 +149,18 @@ export async function huntIndependentEvidence(params: {
       if (!response.ok) continue;
       const xml = await response.text();
       for (const item of xmlItems(xml).slice(0, 10)) {
+        diagnostics.rssItems += 1;
         if (!identityMatchAny(aliases, `${item.title} ${item.description}`)) continue;
-        if (existingUrls.has(item.link)) continue;
+        diagnostics.identityMatched += 1;
+        if (existingUrls.has(item.link)) {
+          diagnostics.duplicateOrCarried += 1;
+          continue;
+        }
         const family = sourceFamilyOf(item.link).toLowerCase();
-        if (!family || existingFamilies.has(family)) continue;
+        if (!family || existingFamilies.has(family)) {
+          diagnostics.existingFamilyRejected += 1;
+          continue;
+        }
         candidateUrls.push(item.link);
       }
     } catch {
@@ -175,6 +184,24 @@ export async function huntIndependentEvidence(params: {
     }));
   const independentFamiliesAdded = [...new Set(hits.map((hit) => hit.sourceFamily))];
 
+  console.info("[IntentHunterDiagnostic]", JSON.stringify({
+    name: params.name,
+    theme: params.theme ?? null,
+    mode: coldStart ? "COLD_START" : "CORROBORATE",
+    queries,
+    attemptedSearches,
+    rssItems: diagnostics.rssItems,
+    identityMatched: diagnostics.identityMatched,
+    duplicateOrCarried: diagnostics.duplicateOrCarried,
+    existingFamilyRejected: diagnostics.existingFamilyRejected,
+    candidateUrlCount: uniqueUrls.length,
+    candidateHosts: uniqueUrls.map((url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } }),
+    deepPagesOpened: deep.opened,
+    deepWindows: deep.windows.length,
+    hitCount: hits.length,
+    hitFamilies: independentFamiliesAdded,
+  }));
+
   return {
     queries,
     attemptedSearches,
@@ -184,6 +211,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V1.5 is alias-aware and deliberately bilingual inside the first three searches: one strict primary-name search, one short-alias French intent search, then one semantic discovery probe. Semantic probes remain navigation only and are never proof. A returned page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before it becomes a hit. Generic category membership, search recurrence, and free semantic similarity never count as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V1.6 adds retrieval-stage diagnostics while preserving V1.5 evidence rules. Semantic probes remain navigation only and are never proof. A returned page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before it becomes a hit. Generic category membership, search recurrence, and free semantic similarity never count as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
