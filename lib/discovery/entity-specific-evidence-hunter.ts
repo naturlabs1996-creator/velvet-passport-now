@@ -21,17 +21,29 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.3 (explicit unusualness cold-start + independent corroboration + allowlisted equivalence)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/1.4 (semantic discovery probes + strict entity-bound proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
-  "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar"],
-  "quiet-paris": ["quiet", "peaceful", "calm", "tranquil", "away from crowds"],
+  "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu"],
+  "quiet-paris": ["quiet", "peaceful", "calm", "tranquil", "away from crowds", "paisible", "peu fréquenté"],
   "secret-gardens": ["hidden garden", "secret garden", "jardin secret", "courtyard garden"],
-  "forgotten-passages": ["covered passage", "passage couvert", "historic covered passage", "hidden passage", "secret passage", "forgotten passage"],
+  "forgotten-passages": ["covered passage", "passage couvert", "historic covered passage", "hidden passage", "secret passage", "forgotten passage", "passage méconnu"],
   "hidden-bookshops": ["independent bookstore", "independent bookshop", "literary bookshop", "librairie indépendante"],
-  "unusual-museums": ["unusual museum", "musée insolite", "insolite", "atypical museum", "musée atypique", "quirky museum", "offbeat museum", "cabinet of curiosities", "cabinet de curiosités"],
-  "paris-after-dark": ["late opening", "open late", "nocturne", "evening opening", "night visit", "soirée"],
+  "unusual-museums": ["unusual museum", "musée insolite", "insolite", "atypical museum", "musée atypique", "quirky museum", "offbeat museum", "cabinet of curiosities", "cabinet de curiosités", "méconnu", "singulier"],
+  "paris-after-dark": ["late opening", "open late", "nocturne", "evening opening", "night visit", "soirée", "ouvert le soir", "ouverture nocturne"],
   "rainy-day-paris": ["indoor", "covered", "inside", "sheltered"],
+};
+
+// Discovery probes are allowed to FIND pages, never to prove the active intent.
+// A page found through one of these probes must still contain an entity-bound
+// allowlisted claim term before it can become an IndependentEvidenceHit.
+const SEMANTIC_DISCOVERY_PROBES: Record<string, string[]> = {
+  "beyond-the-classics": ["underground", "beneath Paris", "artist house", "house museum", "archaeological remains", "hidden courtyard", "specialist collection"],
+  "unusual-museums": ["underground museum", "beneath Paris", "sewer museum", "archaeological crypt", "artist house museum", "specialist collection", "curiosity collection"],
+  "paris-after-dark": ["Friday night", "Thursday night", "evening hours", "last admission", "night tour", "after-hours"],
+  "quiet-paris": ["small museum", "garden studio", "residential museum", "courtyard", "intimate museum"],
+  "forgotten-passages": ["covered arcade", "historic arcade", "passageway", "gallery passage"],
+  "secret-gardens": ["courtyard", "inner garden", "private garden open to public"],
 };
 
 function normalize(value: string) {
@@ -72,13 +84,17 @@ function identityMatch(name: string, text: string) {
   if (!tokens.length) return false;
   return tokens.length === 1 ? normalized.includes(tokens[0]) : tokens.filter((token) => normalized.includes(token)).length >= Math.min(2, tokens.length);
 }
-function buildQueries(name: string, claimTerms: string[]) {
-  const terms = claimTerms.slice(0, 6);
-  const quotedTerms = terms.slice(0, 4).map((term) => `\"${term}\"`).join(" OR ");
-  const primary = `\"${name}\" Paris (${quotedTerms})`;
-  const corroborate = `\"${name}\" Paris ${terms.slice(0, 4).join(" ")} -site:wikipedia.org`;
-  const editorial = `\"${name}\" Paris review ${terms.slice(0, 4).join(" ")}`;
-  return [...new Set([primary, corroborate, editorial])].slice(0, 3);
+function quote(term: string) {
+  return `\"${term.replace(/\"/g, "")}\"`;
+}
+function buildQueries(name: string, claimTerms: string[], theme?: string) {
+  const strict = claimTerms.slice(0, 8);
+  const probes = (SEMANTIC_DISCOVERY_PROBES[theme ?? ""] ?? []).slice(0, 6);
+  const simpleStrict = strict.slice(0, 4).map((term) => `${quote(name)} Paris ${quote(term)}`);
+  const simpleProbe = probes.slice(0, 3).map((term) => `${quote(name)} Paris ${quote(term)}`);
+  const broadStrict = strict.length ? `${quote(name)} Paris ${strict.slice(0, 4).join(" ")} -site:wikipedia.org` : "";
+  const editorial = strict.length ? `${quote(name)} Paris review ${strict.slice(0, 3).join(" ")}` : "";
+  return [...new Set([...simpleStrict, ...simpleProbe, broadStrict, editorial].filter(Boolean))];
 }
 
 export async function huntIndependentEvidence(params: {
@@ -91,14 +107,15 @@ export async function huntIndependentEvidence(params: {
   maxPages?: number;
   allowColdStart?: boolean;
 }): Promise<IndependentEvidenceHunterResult> {
-  const explicitTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 6);
+  const explicitTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 8);
   const coldStart = explicitTerms.length === 0 && Boolean(params.allowColdStart && params.theme);
-  const observedTerms = coldStart ? (COLD_START_TERMS[params.theme ?? ""] ?? []).slice(0, 9) : explicitTerms;
+  const observedTerms = coldStart ? (COLD_START_TERMS[params.theme ?? ""] ?? []).slice(0, 12) : explicitTerms;
   const equivalence = expandEquivalentClaimTerms(params.theme, observedTerms);
-  const claimTerms = [...new Set([...observedTerms, ...equivalence.terms])].slice(0, 18);
+  const claimTerms = [...new Set([...observedTerms, ...equivalence.terms])].slice(0, 24);
   const existingFamilies = new Set(params.existingFamilies.map((family) => family.toLowerCase()));
   const existingUrls = new Set(params.existingUrls ?? []);
-  const queries = claimTerms.length ? buildQueries(params.name, claimTerms).slice(0, Math.max(1, Math.min(params.maxSearches ?? 3, 4))) : [];
+  const maxSearches = Math.max(1, Math.min(params.maxSearches ?? 4, 6));
+  const queries = claimTerms.length ? buildQueries(params.name, claimTerms, params.theme).slice(0, maxSearches) : [];
   const candidateUrls: string[] = [];
   let attemptedSearches = 0;
 
@@ -120,7 +137,9 @@ export async function huntIndependentEvidence(params: {
     }
   }
 
-  const uniqueUrls = [...new Set(candidateUrls)].slice(0, Math.max(1, Math.min(params.maxPages ?? 5, 6)));
+  const uniqueUrls = [...new Set(candidateUrls)].slice(0, Math.max(1, Math.min(params.maxPages ?? 6, 8)));
+  // Critical safeguard: semantic discovery probes are NOT passed as evidence terms.
+  // They can discover a page, but the page must contain an allowlisted claim/equivalent.
   const deep = await fetchDeepEvidenceWindows(params.name, uniqueUrls, claimTerms, uniqueUrls.length || 1);
   const hits = deep.windows
     .filter((window) => window.terms.length > 0)
@@ -145,6 +164,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V1.3 may cold-start only from a small theme-specific allowlist when a concrete resolved entity has no initial theme evidence. For unusual-museums, generic category words such as museum, musée, collection, cabinet, house museum or specialist museum are prohibited as cold-start proof; explicit unusualness is required. It still requires identity-matched local context, excludes already-counted families/URLs, and never grants CONFIRMED status by itself. Corroboration mode continues to search only the observed claim or an allowlisted equivalent. Search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V1.4 uses simple multilingual intent queries plus semantic discovery probes to locate harder-to-find editorial pages. Discovery probes never count as intent evidence: a returned page must still contain identity-matched, allowlisted claim language or an allowlisted equivalent before it becomes a hit. For unusual-museums, generic museum/category membership remains insufficient. Existing publisher families and URLs are excluded, and search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
