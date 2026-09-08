@@ -22,7 +22,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/2.1 (trusted gzipped sitemap discovery + resilient search fallback + strict entity-bound proof)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/2.2 (trusted sitemap family diversity + gzipped sitemap support + strict entity-bound proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -49,6 +49,7 @@ const TRUSTED_SITEMAP_ROOTS = [
   "https://parisjetaime.com/sitemap.xml",
   "https://www.sortiraparis.com/sitemap.xml",
   "https://www.paris.fr/sitemap.xml.gz",
+  "https://cdn.paris.fr/paris/sitemaps/parisfr/sitemap.xml.gz",
 ];
 
 function normalize(value: string) {
@@ -105,6 +106,9 @@ function buildQueries(name: string, claimTerms: string[], theme?: string) {
 
 async function decodeResponseText(response: Response, requestedUrl: string) {
   const bytes = await response.arrayBuffer();
+  const decoded = new TextDecoder().decode(bytes);
+  if (/^\s*<\?xml|<urlset|<sitemapindex/i.test(decoded)) return decoded;
+
   const finalUrl = response.url || requestedUrl;
   const looksGzipped = /\.gz(?:$|[?#])/i.test(finalUrl) || /gzip/i.test(response.headers.get("content-type") ?? "");
   if (looksGzipped && typeof DecompressionStream !== "undefined") {
@@ -112,13 +116,13 @@ async function decodeResponseText(response: Response, requestedUrl: string) {
       const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
       return await new Response(stream).text();
     } catch {
-      // fetch may already have transparently decompressed a .gz response.
+      return decoded;
     }
   }
-  return new TextDecoder().decode(bytes);
+  return decoded;
 }
 
-async function fetchText(url: string, timeoutMs = 6500) {
+async function fetchText(url: string, timeoutMs = 10000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -129,7 +133,8 @@ async function fetchText(url: string, timeoutMs = 6500) {
       cache: "no-store",
     });
     if (!response.ok) return null;
-    return await decodeResponseText(response, url);
+    const text = await decodeResponseText(response, url);
+    return text.includes("<loc>") ? text : null;
   } catch { return null; }
   finally { clearTimeout(timer); }
 }
@@ -152,22 +157,58 @@ function slugIdentityScore(aliases: string[], url: string) {
   return best;
 }
 
+function diversifyCandidateFamilies(candidates: Array<{ url: string; score: number }>, maxUrls: number) {
+  const deduped = [...new Map(candidates.sort((a, b) => b.score - a.score).map((item) => [item.url, item])).values()];
+  const groups = new Map<string, Array<{ url: string; score: number }>>();
+  for (const item of deduped) {
+    const family = sourceFamilyOf(item.url).toLowerCase() || hostOf(item.url);
+    const bucket = groups.get(family) ?? [];
+    bucket.push(item);
+    groups.set(family, bucket);
+  }
+
+  const selected: Array<{ url: string; score: number }> = [];
+  const families = [...groups.keys()];
+  let round = 0;
+  while (selected.length < maxUrls) {
+    let added = false;
+    for (const family of families) {
+      const item = groups.get(family)?.[round];
+      if (!item) continue;
+      selected.push(item);
+      added = true;
+      if (selected.length >= maxUrls) break;
+    }
+    if (!added) break;
+    round += 1;
+  }
+  return selected;
+}
+
 async function discoverTrustedSitemapUrls(aliases: string[], maxUrls = 8) {
   const candidates: Array<{ url: string; score: number }> = [];
   let rootsOpened = 0;
   let childSitemapsOpened = 0;
+  const rootDiagnostics: Array<{ root: string; opened: boolean; locs: number; matched: number }> = [];
 
   for (const root of TRUSTED_SITEMAP_ROOTS) {
     const rootXml = await fetchText(root);
-    if (!rootXml) continue;
+    if (!rootXml) {
+      rootDiagnostics.push({ root, opened: false, locs: 0, matched: 0 });
+      continue;
+    }
     rootsOpened += 1;
     const rootLocs = sitemapLocs(rootXml);
     const childSitemaps = rootLocs.filter((url) => /sitemap/i.test(url)).slice(0, 6);
     const pageLocs = rootLocs.filter((url) => !/sitemap/i.test(url));
+    let matched = 0;
 
     for (const url of pageLocs) {
       const score = slugIdentityScore(aliases, url);
-      if (score >= 0.5) candidates.push({ url, score });
+      if (score >= 0.5) {
+        candidates.push({ url, score });
+        matched += 1;
+      }
     }
 
     for (const child of childSitemaps) {
@@ -177,14 +218,18 @@ async function discoverTrustedSitemapUrls(aliases: string[], maxUrls = 8) {
       childSitemapsOpened += 1;
       for (const url of sitemapLocs(xml)) {
         const score = slugIdentityScore(aliases, url);
-        if (score >= 0.5) candidates.push({ url, score });
+        if (score >= 0.5) {
+          candidates.push({ url, score });
+          matched += 1;
+        }
       }
     }
+    rootDiagnostics.push({ root, opened: true, locs: rootLocs.length, matched });
   }
 
-  const unique = [...new Map(candidates.sort((a, b) => b.score - a.score).map((item) => [item.url, item])).values()]
-    .slice(0, Math.max(1, Math.min(maxUrls, 12)));
-  return { urls: unique.map((item) => item.url), rootsOpened, childSitemapsOpened };
+  const limit = Math.max(1, Math.min(maxUrls, 12));
+  const unique = diversifyCandidateFamilies(candidates, limit);
+  return { urls: unique.map((item) => item.url), rootsOpened, childSitemapsOpened, rootDiagnostics };
 }
 
 export async function huntIndependentEvidence(params: {
@@ -276,6 +321,7 @@ export async function huntIndependentEvidence(params: {
     sitemapRootsOpened: sitemapDiscovery.rootsOpened,
     sitemapChildrenOpened: sitemapDiscovery.childSitemapsOpened,
     sitemapCandidateUrls: sitemapDiscovery.urls.length,
+    sitemapRootDiagnostics: sitemapDiscovery.rootDiagnostics,
     providers: diagnostics.providers,
     searchItems: diagnostics.searchItems,
     samples: diagnostics.samples,
@@ -299,6 +345,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V2.1 searches trusted Paris publisher sitemaps, including gzipped indexes, before any generic search fallback. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V2.2 searches trusted Paris publisher sitemaps, including gzipped indexes and a direct CDN fallback, before any generic search fallback. Candidate navigation is diversified across independent source families before opening deep pages. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
