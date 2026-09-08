@@ -22,7 +22,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/1.9 (resilient public search + strict entity-bound proof)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/2.0 (trusted sitemap discovery + resilient search fallback + strict entity-bound proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -43,6 +43,12 @@ const SEMANTIC_DISCOVERY_PROBES: Record<string, string[]> = {
   "forgotten-passages": ["covered arcade", "historic arcade", "passageway", "gallery passage"],
   "secret-gardens": ["courtyard", "inner garden", "private garden open to public"],
 };
+
+const TRUSTED_SITEMAP_ROOTS = [
+  "https://www.visitparisregion.com/sitemap.xml",
+  "https://parisjetaime.com/sitemap.xml",
+  "https://www.sortiraparis.com/sitemap.xml",
+];
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -96,6 +102,75 @@ function buildQueries(name: string, claimTerms: string[], theme?: string) {
   ].filter(Boolean))];
 }
 
+async function fetchText(url: string, timeoutMs = 6500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      headers: { "user-agent": USER_AGENT, accept: "application/xml,text/xml,text/plain,*/*" },
+      signal: controller.signal,
+      redirect: "follow",
+      next: { revalidate: 21600 },
+    });
+    if (!response.ok) return null;
+    return await response.text();
+  } catch { return null; }
+  finally { clearTimeout(timer); }
+}
+
+function sitemapLocs(xml: string) {
+  return [...xml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)]
+    .map((match) => stripHtml(match[1].replace(/&amp;/g, "&")))
+    .filter((url) => /^https?:\/\//i.test(url));
+}
+
+function slugIdentityScore(aliases: string[], url: string) {
+  const normalizedUrl = normalize(decodeURIComponent(url)).replace(/[^a-z0-9]+/g, " ");
+  let best = 0;
+  for (const alias of aliases) {
+    const tokens = identityTokens(alias);
+    if (!tokens.length) continue;
+    const matched = tokens.filter((token) => normalizedUrl.includes(token)).length;
+    best = Math.max(best, matched / tokens.length);
+  }
+  return best;
+}
+
+async function discoverTrustedSitemapUrls(aliases: string[], maxUrls = 8) {
+  const candidates: Array<{ url: string; score: number }> = [];
+  let rootsOpened = 0;
+  let childSitemapsOpened = 0;
+
+  for (const root of TRUSTED_SITEMAP_ROOTS) {
+    const rootXml = await fetchText(root);
+    if (!rootXml) continue;
+    rootsOpened += 1;
+    const rootLocs = sitemapLocs(rootXml);
+    const childSitemaps = rootLocs.filter((url) => /sitemap/i.test(url)).slice(0, 6);
+    const pageLocs = rootLocs.filter((url) => !/sitemap/i.test(url));
+
+    for (const url of pageLocs) {
+      const score = slugIdentityScore(aliases, url);
+      if (score >= 0.5) candidates.push({ url, score });
+    }
+
+    for (const child of childSitemaps) {
+      if (childSitemapsOpened >= 10) break;
+      const xml = await fetchText(child);
+      if (!xml) continue;
+      childSitemapsOpened += 1;
+      for (const url of sitemapLocs(xml)) {
+        const score = slugIdentityScore(aliases, url);
+        if (score >= 0.5) candidates.push({ url, score });
+      }
+    }
+  }
+
+  const unique = [...new Map(candidates.sort((a, b) => b.score - a.score).map((item) => [item.url, item])).values()]
+    .slice(0, Math.max(1, Math.min(maxUrls, 12)));
+  return { urls: unique.map((item) => item.url), rootsOpened, childSitemapsOpened };
+}
+
 export async function huntIndependentEvidence(params: {
   name: string;
   theme?: string;
@@ -106,7 +181,6 @@ export async function huntIndependentEvidence(params: {
   maxPages?: number;
   allowColdStart?: boolean;
 }): Promise<IndependentEvidenceHunterResult> {
-  void USER_AGENT;
   const explicitTerms = [...new Set(params.claimTerms.map((term) => term.trim()).filter(Boolean))].slice(0, 8);
   const coldStart = explicitTerms.length === 0 && Boolean(params.allowColdStart && params.theme);
   const observedTerms = coldStart ? (COLD_START_TERMS[params.theme ?? ""] ?? []).slice(0, 14) : explicitTerms;
@@ -128,34 +202,43 @@ export async function huntIndependentEvidence(params: {
   };
   let attemptedSearches = 0;
 
-  for (const query of queries) {
-    attemptedSearches += 1;
-    try {
-      const search = await searchPublicWeb(query, 10);
-      diagnostics.providers.push(search.provider);
-      let sampledForQuery = 0;
-      for (const item of search.results) {
-        diagnostics.searchItems += 1;
-        if (sampledForQuery < 3) {
-          diagnostics.samples.push({ query, provider: item.provider, title: stripHtml(item.title).slice(0, 180), link: item.link, host: hostOf(item.link), description: stripHtml(item.description).slice(0, 240) });
-          sampledForQuery += 1;
+  const sitemapDiscovery = await discoverTrustedSitemapUrls(aliases, Math.max(4, params.maxPages ?? 6));
+  for (const url of sitemapDiscovery.urls) {
+    if (existingUrls.has(url)) continue;
+    const family = sourceFamilyOf(url).toLowerCase();
+    if (!family || existingFamilies.has(family)) continue;
+    candidateUrls.push(url);
+  }
+
+  const sitemapBudgetFilled = candidateUrls.length >= Math.max(2, Math.min(params.maxPages ?? 6, 4));
+  if (!sitemapBudgetFilled) {
+    for (const query of queries) {
+      attemptedSearches += 1;
+      try {
+        const search = await searchPublicWeb(query, 10);
+        diagnostics.providers.push(search.provider);
+        let sampledForQuery = 0;
+        for (const item of search.results) {
+          diagnostics.searchItems += 1;
+          if (sampledForQuery < 3) {
+            diagnostics.samples.push({ query, provider: item.provider, title: stripHtml(item.title).slice(0, 180), link: item.link, host: hostOf(item.link), description: stripHtml(item.description).slice(0, 240) });
+            sampledForQuery += 1;
+          }
+          if (!identityMatchAny(aliases, `${item.title} ${item.description} ${item.link}`)) continue;
+          diagnostics.identityMatched += 1;
+          if (existingUrls.has(item.link)) {
+            diagnostics.duplicateOrCarried += 1;
+            continue;
+          }
+          const family = sourceFamilyOf(item.link).toLowerCase();
+          if (!family || existingFamilies.has(family)) {
+            diagnostics.existingFamilyRejected += 1;
+            continue;
+          }
+          candidateUrls.push(item.link);
         }
-        // Search metadata and URL may establish navigation identity only.
-        // No search-result field grants traveler-intent proof.
-        if (!identityMatchAny(aliases, `${item.title} ${item.description} ${item.link}`)) continue;
-        diagnostics.identityMatched += 1;
-        if (existingUrls.has(item.link)) {
-          diagnostics.duplicateOrCarried += 1;
-          continue;
-        }
-        const family = sourceFamilyOf(item.link).toLowerCase();
-        if (!family || existingFamilies.has(family)) {
-          diagnostics.existingFamilyRejected += 1;
-          continue;
-        }
-        candidateUrls.push(item.link);
-      }
-    } catch { /* Search failure remains unknown and never becomes negative evidence. */ }
+      } catch { /* Search failure remains unknown and never becomes negative evidence. */ }
+    }
   }
 
   const uniqueUrls = [...new Set(candidateUrls)].slice(0, Math.max(1, Math.min(params.maxPages ?? 6, 8)));
@@ -174,6 +257,9 @@ export async function huntIndependentEvidence(params: {
     mode: coldStart ? "COLD_START" : "CORROBORATE",
     queries,
     attemptedSearches,
+    sitemapRootsOpened: sitemapDiscovery.rootsOpened,
+    sitemapChildrenOpened: sitemapDiscovery.childSitemapsOpened,
+    sitemapCandidateUrls: sitemapDiscovery.urls.length,
     providers: diagnostics.providers,
     searchItems: diagnostics.searchItems,
     samples: diagnostics.samples,
@@ -197,6 +283,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V1.9 uses a resilient zero-key public search provider for discovery. Search metadata and URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Semantic probes remain navigation only and are never proof. Generic category membership, search recurrence, and free semantic similarity never count as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V2.0 searches trusted Paris publisher sitemaps before any generic search fallback. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
