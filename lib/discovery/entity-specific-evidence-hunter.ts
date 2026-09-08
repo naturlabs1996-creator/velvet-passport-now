@@ -34,9 +34,6 @@ const COLD_START_TERMS: Record<string, string[]> = {
   "rainy-day-paris": ["indoor", "covered", "inside", "sheltered"],
 };
 
-// Discovery probes are allowed to FIND pages, never to prove the active intent.
-// A page found through one of these probes must still contain an entity-bound
-// allowlisted claim term before it can become an IndependentEvidenceHit.
 const SEMANTIC_DISCOVERY_PROBES: Record<string, string[]> = {
   "beyond-the-classics": ["underground", "beneath Paris", "artist house", "house museum", "archaeological remains", "hidden courtyard", "specialist collection"],
   "unusual-museums": ["underground museum", "beneath Paris", "sewer museum", "archaeological crypt", "artist house museum", "specialist collection", "curiosity collection"],
@@ -90,11 +87,17 @@ function quote(term: string) {
 function buildQueries(name: string, claimTerms: string[], theme?: string) {
   const strict = claimTerms.slice(0, 8);
   const probes = (SEMANTIC_DISCOVERY_PROBES[theme ?? ""] ?? []).slice(0, 6);
-  const simpleStrict = strict.slice(0, 4).map((term) => `${quote(name)} Paris ${quote(term)}`);
-  const simpleProbe = probes.slice(0, 3).map((term) => `${quote(name)} Paris ${quote(term)}`);
-  const broadStrict = strict.length ? `${quote(name)} Paris ${strict.slice(0, 4).join(" ")} -site:wikipedia.org` : "";
-  const editorial = strict.length ? `${quote(name)} Paris review ${strict.slice(0, 3).join(" ")}` : "";
-  return [...new Set([...simpleStrict, ...simpleProbe, broadStrict, editorial].filter(Boolean))];
+  const queries = [
+    strict[0] ? `${quote(name)} Paris ${quote(strict[0])}` : "",
+    strict[1] ? `${quote(name)} Paris ${quote(strict[1])}` : "",
+    probes[0] ? `${quote(name)} Paris ${quote(probes[0])}` : "",
+    strict[2] ? `${quote(name)} Paris ${quote(strict[2])}` : "",
+    probes[1] ? `${quote(name)} Paris ${quote(probes[1])}` : "",
+    strict.length ? `${quote(name)} Paris ${strict.slice(0, 4).join(" ")} -site:wikipedia.org` : "",
+    probes[2] ? `${quote(name)} Paris ${quote(probes[2])}` : "",
+    strict.length ? `${quote(name)} Paris review ${strict.slice(0, 3).join(" ")}` : "",
+  ];
+  return [...new Set(queries.filter(Boolean))];
 }
 
 export async function huntIndependentEvidence(params: {
@@ -138,8 +141,6 @@ export async function huntIndependentEvidence(params: {
   }
 
   const uniqueUrls = [...new Set(candidateUrls)].slice(0, Math.max(1, Math.min(params.maxPages ?? 6, 8)));
-  // Critical safeguard: semantic discovery probes are NOT passed as evidence terms.
-  // They can discover a page, but the page must contain an allowlisted claim/equivalent.
   const deep = await fetchDeepEvidenceWindows(params.name, uniqueUrls, claimTerms, uniqueUrls.length || 1);
   const hits = deep.windows
     .filter((window) => window.terms.length > 0)
@@ -164,6 +165,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V1.4 uses simple multilingual intent queries plus semantic discovery probes to locate harder-to-find editorial pages. Discovery probes never count as intent evidence: a returned page must still contain identity-matched, allowlisted claim language or an allowlisted equivalent before it becomes a hit. For unusual-museums, generic museum/category membership remains insufficient. Existing publisher families and URLs are excluded, and search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V1.4 interleaves strict multilingual intent searches with semantic discovery probes so a small search budget can still reach descriptive editorial pages. Semantic probes are navigation only: they are never passed as proof terms. A returned page must still contain identity-matched, allowlisted claim language or an allowlisted equivalent before it becomes a hit. Generic museum/category membership remains insufficient, existing publisher families and URLs are excluded, and search recurrence alone never counts as corroboration. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
