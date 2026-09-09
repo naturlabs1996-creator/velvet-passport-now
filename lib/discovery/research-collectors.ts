@@ -19,28 +19,20 @@ export type ResearchLead = {
 export type CollectorResult = { collector: "WIKIMEDIA" | "OPENSTREETMAP" | "OFFICIAL_SEARCH" | "EDITORIAL_SEARCH"; ok: boolean; query: string; leads: ResearchLead[]; error?: string; };
 export type ResearchCollectorBudget = { maxPackets?: number; maxCollectorsPerPacket?: number; maxLeadsPerCollector?: number; maxScentQueries?: number; maxPlaceLookups?: number; maxIntentLookups?: number; maxSourcePages?: number; maxHistoryLookups?: number; concurrency?: number; };
 
-const USER_AGENT = "VelvetPassportResearch/3.2 (candidate intelligence allocation + official physical venue pool + strict provenance)";
+const USER_AGENT = "VelvetPassportResearch/3.3 (canonical venue discovery + candidate intelligence + strict provenance; no legacy RSS search)";
 const DEFAULT_MAX_LEADS_PER_COLLECTOR = 8;
 const DEFAULT_SCENT_QUERIES = 6;
 const DEFAULT_PLACE_LOOKUPS = 20;
 const DEFAULT_INTENT_LOOKUPS = 12;
 const DEFAULT_SOURCE_PAGES = 8;
 const DEFAULT_HISTORY_LOOKUPS = 8;
-const OFFICIAL_HOSTS = ["paris.fr", "parisjetaime.com", "france.fr", "culture.gouv.fr", "musee-orsay.fr", "musee-orangerie.fr", "musee-rodin.fr"];
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 6500) {
   const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(url, { ...init, headers: { "user-agent": USER_AGENT, accept: "application/json,text/xml,text/html;q=0.8,*/*;q=0.5", ...(init.headers ?? {}) }, signal: controller.signal, next: { revalidate: 21600 } }); }
+  try { return await fetch(url, { ...init, headers: { "user-agent": USER_AGENT, accept: "application/json,text/html;q=0.8,*/*;q=0.5", ...(init.headers ?? {}) }, signal: controller.signal, next: { revalidate: 21600 } }); }
   finally { clearTimeout(timer); }
 }
 function stripHtml(value: string) { return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
-function xmlItems(xml: string) {
-  const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
-  const read = (block: string, tag: string) => { const match = block.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i")); return stripHtml((match?.[1] ?? "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'")); };
-  return blocks.map((block) => ({ title: read(block, "title"), link: read(block, "link"), description: read(block, "description"), pubDate: read(block, "pubDate") })).filter((item) => item.title && item.link);
-}
-function hostOf(url: string) { try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return "unknown"; } }
-function isAllowedOfficialHost(host: string) { return OFFICIAL_HOSTS.some((allowed) => host === allowed || host.endsWith(`.${allowed}`)); }
 function parisRelevant(text: string) { return /\bparis\b|montmartre|marais|opera|opéra|saint-germain|latin quarter|rive gauche|rive droite|arrondissement/i.test(text); }
 
 function focusedVenueQueries(theme: string) {
@@ -77,22 +69,6 @@ async function collectOpenStreetMap(packet: ResearchPacket, query: string, maxLe
   } catch (error) { return { collector, ok: false, query, leads: [], error: error instanceof Error ? error.message : "osm_failed" }; }
 }
 
-async function collectBingRss(packet: ResearchPacket, query: string, mode: "OFFICIAL_SEARCH" | "EDITORIAL_SEARCH", maxLeads: number): Promise<CollectorResult> {
-  const officialDomains = "(site:paris.fr OR site:parisjetaime.com OR site:france.fr OR site:culture.gouv.fr OR site:musee-orsay.fr OR site:musee-orangerie.fr OR site:musee-rodin.fr)";
-  const q = mode === "OFFICIAL_SEARCH" ? `${query} ${officialDomains}` : `\"${query}\" Paris France museum place`;
-  try {
-    const response = await fetchWithTimeout(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`); if (!response.ok) throw new Error(`http_${response.status}`);
-    const xml = await response.text(); const observedAt = new Date().toISOString();
-    const rows = xmlItems(xml).filter((item) => parisRelevant(`${item.title} ${item.description}`));
-    const eligible = mode === "OFFICIAL_SEARCH" ? rows.filter((item) => isAllowedOfficialHost(hostOf(item.link))) : rows;
-    const leads = eligible.slice(0, maxLeads).map((item, index) => {
-      const host = hostOf(item.link); const family = canonicalSourceFamily(host);
-      return { id: `${mode.toLowerCase()}:${host}:${index}:${Buffer.from(query).toString("base64url").slice(0, 8)}`, pageId: packet.pageId, theme: packet.theme, query, name: item.title, snippet: item.description, url: item.link, sourceType: mode === "OFFICIAL_SEARCH" ? "OFFICIAL" as const : "EDITORIAL" as const, publisher: host, independentKey: family, observedAt, rawClaims: [item.title, item.description].filter(Boolean) };
-    });
-    return { collector: mode, ok: true, query, leads };
-  } catch (error) { return { collector: mode, ok: false, query, leads: [], error: error instanceof Error ? error.message : `${mode.toLowerCase()}_failed` }; }
-}
-
 function canonicalEntityName(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\b(paris|france|official|visit|guide)\b/g, " ").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); }
 function dedupeLeads(leads: ResearchLead[]) {
   const seen = new Set<string>();
@@ -112,7 +88,10 @@ function resolverEvidence(item: PlaceResolution): ResearchLead {
 }
 
 async function runCollectorsForQuery(packet: ResearchPacket, query: string, maxLeads: number, maxCollectors: number) {
-  const tasks = [() => collectOpenStreetMap(packet, query, maxLeads), () => collectBingRss(packet, query, "OFFICIAL_SEARCH", maxLeads), () => collectBingRss(packet, query, "EDITORIAL_SEARCH", maxLeads), () => collectWikimedia(packet, query, maxLeads)].slice(0, maxCollectors);
+  // Legacy RSS web search deliberately removed. Initial discovery is now limited to
+  // geographic identity + structured Wikimedia signals; the official Paris venue pool,
+  // canonical-page extraction and Independent Evidence Hunter perform the deeper work.
+  const tasks = [() => collectOpenStreetMap(packet, query, maxLeads), () => collectWikimedia(packet, query, maxLeads)].slice(0, Math.min(maxCollectors, 2));
   return Promise.all(tasks.map((task) => task()));
 }
 
@@ -178,7 +157,7 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
     leadCount: leads.length, independentSources: new Set(leads.map((lead) => canonicalSourceFamily(lead.independentKey))).size, leads, trailSignals: trailSignals.slice(0, 12),
     destinationEntityLock: { accepted: entityLock.accepted.length, rejected: entityLock.rejected.length, rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })), rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before focused intent research or candidate merging unless a Paris-France geographic anchor exists." },
     researchRelevance: { accepted: leads.length, rejected: relevance.rejected.length, rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, exposureLevel: score.exposureLevel, exposureScore: score.exposureScore, reasons: score.reasons })), rule: "A valid Paris entity must match the active traveler intent and remain useful to the Velvet layer. Exposure Intelligence is applied before acceptance. Historical depth can strengthen research value, but never substitutes for intent evidence or factual verification." },
-    note: "Deep Research Collector V3.2 adds Candidate Intelligence between destination lock and Intent Evidence. It allocates research depth without granting truth or intent credit, preserves uncertainty as TEST/HOLD, and prevents obvious low-value candidates from consuming deep-research budget. Official Paris venue discovery, independent intent evidence, exposure, history, factual verification and publication gates remain mandatory and fail-closed.",
+    note: "Deep Research Collector V3.3 keeps Candidate Intelligence between destination lock and Intent Evidence while removing legacy RSS web-search collectors. Initial discovery uses geographic/structured identity plus the official Paris venue pool; deep canonical evidence and the Independent Evidence Hunter perform claim research. Verification, exposure, history, factual and publication gates remain mandatory and fail-closed.",
   };
 }
 
