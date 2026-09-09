@@ -3,6 +3,7 @@ import type { ResearchLead } from "./research-collectors";
 export type ExposureLevel = "LOW" | "MODERATE" | "HIGH" | "MASS_TOURISM" | "UNKNOWN";
 export type ExposureScope = "EXACT_ANGLE" | "ENTITY_ONLY" | "UNKNOWN";
 export type ExposureVerdict = "PASS" | "EXCEPTION_REVIEW" | "FAIL" | "HOLD_UNKNOWN";
+export type ExposureAuditStatus = "EXPOSED" | "CHECKED_NO_ANGLE" | "UNAVAILABLE";
 
 export type ExposureSignal = {
   family: string;
@@ -12,13 +13,20 @@ export type ExposureSignal = {
   note: string;
 };
 
+export type ExposureAuditCoverage = {
+  family: string;
+  status: ExposureAuditStatus;
+  opened: boolean;
+  matched: number;
+  inspectedIdentityPages: number;
+  officialTourism: boolean;
+};
+
 export type ExposureResult = {
   lead: ResearchLead;
   level: ExposureLevel;
-  // Compatibility: 0-100 actual exposure under the exact angle when measurable.
-  // Higher = worse / more exposed. Unknown is represented by level=UNKNOWN, never by a fake low score.
   score: number;
-  exposureDegree: number | null; // Velvet-facing 0-10 where higher = more discreet / better.
+  exposureDegree: number | null;
   entityExposureScore: number;
   exactAngleExposureScore: number | null;
   scope: ExposureScope;
@@ -26,6 +34,10 @@ export type ExposureResult = {
   signals: string[];
   trace: ExposureSignal[];
   sourceFamilies: string[];
+  auditCoverage: ExposureAuditCoverage[];
+  auditedFamilies: number;
+  officialTourismAudited: number;
+  auditCoveragePass: boolean;
 };
 
 const MASS_TERMS = ["eiffel tower", "louvre museum", "musée du louvre", "arc de triomphe", "champs-élysées", "disneyland paris"];
@@ -33,6 +45,8 @@ const OFFICIAL_TOURISM_HOSTS = ["parisjetaime.com", "visitparisregion.com", "fra
 const TRAVEL_EDITORIAL_HOSTS = ["sortiraparis.com", "parissecret.com", "timeout.com", "lonelyplanet.com", "cntraveler.com", "travelandleisure.com", "atlasobscura.com"];
 const MARKETPLACE_HOSTS = ["tripadvisor.com", "getyourguide.com", "viator.com"];
 const MASS_LANGUAGE = /top 10|top 15|must-see|must see|most visited|iconic|world-famous|world famous|incontournable|les plus visit[eé]s/i;
+const MIN_AUDITED_FAMILIES_FOR_PASS = 3;
+const MIN_OFFICIAL_TOURISM_FAMILIES_FOR_PASS = 1;
 
 const THEME_ANGLE_TERMS: Record<string, RegExp[]> = {
   "beyond-the-classics": [/insolite|unusual|atypique|offbeat|hors des sentiers battus|off the beaten|m[eé]connu|less[- ]known|hidden gem|discret|dissimul/i],
@@ -48,22 +62,21 @@ const THEME_ANGLE_TERMS: Record<string, RegExp[]> = {
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
-
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return "unknown"; }
 }
-
 function familyMatches(host: string, family: string) {
   return host === family || host.endsWith(`.${family}`);
 }
-
+function isOfficialTourismFamily(family: string) {
+  return OFFICIAL_TOURISM_HOSTS.some((official) => familyMatches(family, official));
+}
 function sourceKind(host: string): ExposureSignal["kind"] | null {
   if (OFFICIAL_TOURISM_HOSTS.some((family) => familyMatches(host, family))) return "OFFICIAL_TOURISM";
   if (TRAVEL_EDITORIAL_HOSTS.some((family) => familyMatches(host, family))) return "TRAVEL_EDITORIAL";
   if (MARKETPLACE_HOSTS.some((family) => familyMatches(host, family))) return "MARKETPLACE";
   return null;
 }
-
 function sourceWeight(kind: ExposureSignal["kind"]) {
   if (kind === "OFFICIAL_TOURISM") return 38;
   if (kind === "MARKETPLACE") return 30;
@@ -71,26 +84,43 @@ function sourceWeight(kind: ExposureSignal["kind"]) {
   if (kind === "MASS_LANGUAGE") return 18;
   return 0;
 }
-
 function exactAngleMatched(theme: string, text: string) {
   const patterns = THEME_ANGLE_TERMS[theme] ?? [];
   return patterns.some((pattern) => pattern.test(text));
 }
-
 function evidenceRows(lead: ResearchLead) {
   return (lead.evidenceTrace ?? []).map((entry) => ({
     host: hostOf(entry.url),
-    family: entry.independentKey || hostOf(entry.url),
+    family: (entry.independentKey || hostOf(entry.url)).toLowerCase(),
     text: normalize([entry.title, ...(entry.claims ?? [])].filter(Boolean).join(" ")),
   }));
+}
+function parseAuditCoverage(lead: ResearchLead) {
+  const rank: Record<ExposureAuditStatus, number> = { UNAVAILABLE: 0, CHECKED_NO_ANGLE: 1, EXPOSED: 2 };
+  const coverage = new Map<string, ExposureAuditCoverage>();
+  for (const claim of lead.rawClaims) {
+    const match = claim.match(/^EXPOSURE_AUDIT\s+family=([^\s]+)\s+status=(EXPOSED|CHECKED_NO_ANGLE|UNAVAILABLE)\s+opened=(0|1)\s+matched=(\d+)\s+inspected=(\d+)$/i);
+    if (!match) continue;
+    const family = match[1].toLowerCase();
+    const status = match[2].toUpperCase() as ExposureAuditStatus;
+    const row: ExposureAuditCoverage = {
+      family,
+      status,
+      opened: match[3] === "1",
+      matched: Number(match[4]),
+      inspectedIdentityPages: Number(match[5]),
+      officialTourism: isOfficialTourismFamily(family),
+    };
+    const existing = coverage.get(family);
+    if (!existing || rank[row.status] > rank[existing.status]) coverage.set(family, row);
+  }
+  return [...coverage.values()];
 }
 
 export function scoreExposure(lead: ResearchLead): ExposureResult {
   const entityText = normalize([lead.name, lead.snippet, lead.url, lead.publisher, ...lead.rawClaims].filter(Boolean).join(" "));
   const trace: ExposureSignal[] = [];
 
-  // Entity exposure is context only. It can warn us that the container is famous, but it may NEVER
-  // substitute for exposure of the exact Velvet layer. Louvre ≠ Louvre Arts Graphiques consultation room.
   let entityExposureScore = 0;
   if (MASS_TERMS.some((term) => entityText.includes(normalize(term)))) {
     entityExposureScore += 80;
@@ -111,21 +141,13 @@ export function scoreExposure(lead: ResearchLead): ExposureResult {
     const weight = sourceWeight(kind);
     angleFamilies.add(row.family);
     exactAngleExposureScore += weight;
-    trace.push({
-      family: row.family,
-      kind,
-      scope: "EXACT_ANGLE",
-      weight,
-      note: `${kind} source exposes the active Velvet angle, not merely the place identity.`,
-    });
+    trace.push({ family: row.family, kind, scope: "EXACT_ANGLE", weight, note: `${kind} source exposes the active Velvet angle, not merely the place identity.` });
     if (MASS_LANGUAGE.test(row.text)) {
       exactAngleExposureScore += 18;
       trace.push({ family: row.family, kind: "MASS_LANGUAGE", scope: "EXACT_ANGLE", weight: 18, note: "Mass/listicle language is attached to the exact angle." });
     }
   }
 
-  // Some focused evidence is encoded in raw claims after Intent Evidence / Hunter processing. Count it
-  // only when we can bind both a tourism-facing source family and the active angle; bare entity names do not count.
   const rawAngle = normalize(lead.rawClaims.filter((claim) => /INTENT_EVIDENCE|DEEP_EVIDENCE|HUNTER|SOURCE/i.test(claim)).join(" "));
   if (rawAngle && exactAngleMatched(lead.theme, rawAngle)) {
     const rawHosts = [...new Set((lead.evidenceTrace ?? []).map((entry) => hostOf(entry.url)).filter((host) => sourceKind(host)))];
@@ -140,16 +162,32 @@ export function scoreExposure(lead: ResearchLead): ExposureResult {
     }
   }
 
+  const auditCoverage = parseAuditCoverage(lead);
+  const audited = auditCoverage.filter((item) => item.status === "EXPOSED" || item.status === "CHECKED_NO_ANGLE");
+  const auditedFamilies = new Set(audited.map((item) => item.family)).size;
+  const officialTourismAudited = new Set(audited.filter((item) => item.officialTourism).map((item) => item.family)).size;
+  const auditCoveragePass = auditedFamilies >= MIN_AUDITED_FAMILIES_FOR_PASS && officialTourismAudited >= MIN_OFFICIAL_TOURISM_FAMILIES_FOR_PASS;
+
   const hasExactAngleEvidence = angleFamilies.size > 0;
   const boundedExact = Math.max(0, Math.min(100, exactAngleExposureScore));
   const exposureDegree = hasExactAngleEvidence ? Math.round((10 - boundedExact / 10) * 10) / 10 : null;
   const score = hasExactAngleEvidence ? boundedExact : 0;
   const level: ExposureLevel = !hasExactAngleEvidence ? "UNKNOWN" : score >= 80 ? "MASS_TOURISM" : score >= 55 ? "HIGH" : score >= 30 ? "MODERATE" : "LOW";
   const scope: ExposureScope = hasExactAngleEvidence ? "EXACT_ANGLE" : entityExposureScore > 0 ? "ENTITY_ONLY" : "UNKNOWN";
-  const verdict: ExposureVerdict = exposureDegree === null ? "HOLD_UNKNOWN" : exposureDegree >= 7 ? "PASS" : exposureDegree >= 6.5 ? "EXCEPTION_REVIEW" : "FAIL";
 
-  const signals = trace.map((item) => `${item.scope}:${item.kind}:${item.family} (${item.weight}) ${item.note}`);
-  const claim = `EXPOSURE_EVIDENCE scope=${scope} level=${level} exactScore=${hasExactAngleEvidence ? score : "UNKNOWN"} degree=${exposureDegree ?? "UNKNOWN"} entityScore=${entityExposureScore} verdict=${verdict} families=${angleFamilies.size}`;
+  let verdict: ExposureVerdict;
+  if (exposureDegree !== null && exposureDegree < 6.5) verdict = "FAIL";
+  else if (exposureDegree === null || !auditCoveragePass) verdict = "HOLD_UNKNOWN";
+  else if (exposureDegree >= 7) verdict = "PASS";
+  else verdict = "EXCEPTION_REVIEW";
+
+  const signals = [
+    ...trace.map((item) => `${item.scope}:${item.kind}:${item.family} (${item.weight}) ${item.note}`),
+    ...auditCoverage.map((item) => `AUDIT:${item.family}:${item.status} opened=${item.opened ? 1 : 0} matched=${item.matched} inspected=${item.inspectedIdentityPages}${item.officialTourism ? " official-tourism" : ""}`),
+  ];
+  if (!auditCoveragePass && verdict !== "FAIL") signals.push(`AUDIT_GATE:HOLD audited_families=${auditedFamilies}/${MIN_AUDITED_FAMILIES_FOR_PASS} official_tourism=${officialTourismAudited}/${MIN_OFFICIAL_TOURISM_FAMILIES_FOR_PASS}`);
+
+  const claim = `EXPOSURE_EVIDENCE scope=${scope} level=${level} exactScore=${hasExactAngleEvidence ? score : "UNKNOWN"} degree=${exposureDegree ?? "UNKNOWN"} entityScore=${entityExposureScore} verdict=${verdict} families=${angleFamilies.size} audited=${auditedFamilies} official_audited=${officialTourismAudited} coverage=${auditCoveragePass ? "PASS" : "HOLD"}`;
 
   return {
     lead: { ...lead, rawClaims: [...lead.rawClaims.filter((item) => !item.startsWith("EXPOSURE_EVIDENCE ")), claim] },
@@ -163,6 +201,10 @@ export function scoreExposure(lead: ResearchLead): ExposureResult {
     signals,
     trace,
     sourceFamilies: [...angleFamilies],
+    auditCoverage,
+    auditedFamilies,
+    officialTourismAudited,
+    auditCoveragePass,
   };
 }
 
@@ -175,11 +217,12 @@ export function applyExposureIntelligence(leads: ResearchLead[]) {
     exceptionReview: results.filter((item) => item.verdict === "EXCEPTION_REVIEW").length,
     fail: results.filter((item) => item.verdict === "FAIL").length,
     holdUnknown: results.filter((item) => item.verdict === "HOLD_UNKNOWN").length,
+    auditCoveragePass: results.filter((item) => item.auditCoveragePass).length,
     low: results.filter((item) => item.level === "LOW").length,
     moderate: results.filter((item) => item.level === "MODERATE").length,
     high: results.filter((item) => item.level === "HIGH").length,
     massTourism: results.filter((item) => item.level === "MASS_TOURISM").length,
     unknown: results.filter((item) => item.level === "UNKNOWN").length,
-    rule: "Velvet Exposure Degree is evaluated under the exact traveler angle. Entity fame is contextual only and cannot reject a precise underexposed layer by itself. Normal PASS requires Exposure Degree >=7/10 in Velvet's favor; 6.5-6.9 is EXCEPTION_REVIEW only; below 6.5 FAILS. Missing exact-angle tourism exposure evidence is HOLD_UNKNOWN, never silently treated as low exposure. Research may continue on HOLD_UNKNOWN, but no Velvet LOCK/publication conclusion may use it as a pass.",
+    rule: "Velvet Exposure Degree is evaluated under the exact traveler angle. Entity fame is contextual only. A positive exposure signal can FAIL a candidate immediately when degree <6.5. PASS or EXCEPTION_REVIEW additionally requires traceable audit coverage across at least three publisher families and at least one official-tourism family (Paris je t'aime, Visit Paris Region, or equivalent). EXPOSED and CHECKED_NO_ANGLE count as audited; UNAVAILABLE never counts as silence. Missing or insufficient audit coverage is HOLD_UNKNOWN, never silently treated as low exposure. Normal PASS requires Exposure Degree >=7/10; 6.5-6.9 is EXCEPTION_REVIEW only.",
   };
 }
