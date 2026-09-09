@@ -1,5 +1,5 @@
 import type { ResearchLead } from "./research-collectors";
-import type { CandidateDiscovery, ResearchEvidence } from "./research-verification";
+import type { CandidateDiscovery, ExposurePublishVerdict, ResearchEvidence } from "./research-verification";
 import { extractHumanFacingClaims } from "./human-facing-claim-extractor";
 import { canonicalSourceFamily } from "./source-family";
 
@@ -68,12 +68,20 @@ function mergeConfidence(leads: ResearchLead[]): { confidence: MergeConfidence; 
   if (sources.size >= 2 && (hasGeo || hasAddress) && nameAgreement >= 0.45) return { confidence: "HIGH", reasons };
   if (sources.size >= 2 || (hasGeo && hasAddress)) return { confidence: "MEDIUM", reasons }; return { confidence: "LOW", reasons };
 }
+function exposureState(leads: ResearchLead[]): { exposureDegree: number | null; exposureVerdict: ExposurePublishVerdict } {
+  const claims = leads.flatMap((lead) => lead.rawClaims).filter((claim) => claim.startsWith("EXPOSURE_EVIDENCE "));
+  const degrees = claims.map((claim) => claim.match(/\bdegree=([0-9]+(?:\.[0-9]+)?)/)?.[1]).filter((value): value is string => Boolean(value)).map(Number).filter(Number.isFinite);
+  if (!degrees.length) return { exposureDegree: null, exposureVerdict: "HOLD_UNKNOWN" };
+  const exposureDegree = Math.min(...degrees);
+  const exposureVerdict: ExposurePublishVerdict = exposureDegree >= 7 ? "PASS" : exposureDegree >= 6.5 ? "EXCEPTION_REVIEW" : "FAIL";
+  return { exposureDegree, exposureVerdict };
+}
 function mergeGroup(group: ResearchLead[]): MergedCandidate {
   const canonicalName = chooseCanonicalName(group);
   const evidence = [...group.map(leadEvidence), ...group.flatMap((lead) => (lead.evidenceTrace ?? []).map((item) => ({ ...item, independentKey: canonicalSourceFamily(item.independentKey) })))];
   const dedupedEvidence = [...new Map(evidence.map((item) => [`${canonicalSourceFamily(item.independentKey)}|${item.url}|${item.sourceId}`, item])).values()];
   const aliases = [...new Set(group.map((lead) => lead.name).filter((name) => name !== canonicalName))];
-  const address = group.find((lead) => lead.address)?.address; const merge = mergeConfidence(group);
+  const address = group.find((lead) => lead.address)?.address; const merge = mergeConfidence(group); const exposure = exposureState(group);
   const humanClaims = extractHumanFacingClaims({ name: canonicalName, theme: group[0].theme, city: "Paris", address, evidence: dedupedEvidence });
 
   return {
@@ -81,9 +89,10 @@ function mergeGroup(group: ResearchLead[]): MergedCandidate {
     name: canonicalName, aliases, city: "Paris", theme: group[0].theme, address,
     factualClaims: humanClaims,
     timeSensitiveClaims: humanClaims.filter((claim) => /late-opening|night-visit|open|opening|hours|price|ticket|reservation|closed|access/i.test(claim)),
-    evidence: dedupedEvidence, velvetFit: undefined, sourceLeadIds: group.map((lead) => lead.id), mergeConfidence: merge.confidence,
+    evidence: dedupedEvidence, velvetFit: undefined, exposureDegree: exposure.exposureDegree, exposureVerdict: exposure.exposureVerdict, sourceLeadIds: group.map((lead) => lead.id), mergeConfidence: merge.confidence,
     mergeReasons: [...merge.reasons,
       `Human-facing extractor produced ${humanClaims.length} conservative traveler-facing claim(s) from preserved evidence.`,
+      `Exact-angle Exposure carried forward as verdict=${exposure.exposureVerdict}, degree=${exposure.exposureDegree ?? "UNKNOWN"}.`,
       "Internal research metadata remains evidence provenance only and is never promoted into traveler-facing claims.",
       "Downstream intent/history/hunter evidence traces remain preserved for claim-level verification."],
   };
