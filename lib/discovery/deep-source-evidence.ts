@@ -17,7 +17,7 @@ export type DeepEvidenceTrace = {
   matchedTerms: string[];
 };
 
-const USER_AGENT = "VelvetPassportDeepEvidence/1.5 (entity-bound clause verification + traced multi-window source verification; cached requests)";
+const USER_AGENT = "VelvetPassportDeepEvidence/1.6 (entity-bound clause verification + canonical source discovery; no legacy RSS search)";
 const MAX_HTML_BYTES = 900_000;
 
 function normalize(value: string) {
@@ -135,24 +135,7 @@ export async function discoverDirectSourceUrls(name: string, maxUrls = 5, wikida
         }
       }
     } finally { clearTimeout(timer); }
-  } catch { /* Direct discovery failure stays unknown. */ }
-
-  try {
-    const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 5500);
-    try {
-      const response = await fetch(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(`\"${name}\" Paris`)}`, { headers: { "user-agent": USER_AGENT, accept: "application/rss+xml,text/xml,*/*" }, signal: controller.signal, next: { revalidate: 21600 } });
-      if (response.ok) {
-        const xml = await response.text();
-        const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
-        for (const block of blocks.slice(0, 8)) {
-          const title = stripHtml(block.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i)?.[1] ?? "");
-          const link = stripHtml(block.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i)?.[1] ?? "");
-          if (!title || !link || !identityMatch(name, title)) continue;
-          urls.push(link);
-        }
-      }
-    } finally { clearTimeout(timer); }
-  } catch { /* Direct discovery failure stays unknown. */ }
+  } catch { /* Canonical discovery failure stays unknown. */ }
 
   const unique = [...new Set(urls)].filter((url) => /^https?:\/\//i.test(url));
   unique.sort((a, b) => {
@@ -198,6 +181,6 @@ export async function fetchDeepEvidenceWindows(name: string, urls: string[], ter
     opened,
     windows,
     trace,
-    rule: "Deep Evidence V1.5 accepts a theme term only when the candidate identity and that term occur inside the same bounded sentence/clause, after stripping script/style/navigation/header/footer boilerplate. A theme word elsewhere in a page, menu or neighboring article cannot credit the candidate. Publisher-family independence rules remain unchanged.",
+    rule: "Deep Evidence V1.6 accepts a theme term only when the candidate identity and that term occur inside the same bounded sentence/clause. Direct discovery is limited to canonical/Wikidata-linked sources; legacy RSS web search is not used. Publisher-family independence rules remain unchanged.",
   };
 }
