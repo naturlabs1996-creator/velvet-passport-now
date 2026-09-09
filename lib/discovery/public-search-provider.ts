@@ -2,10 +2,10 @@ export type PublicSearchResult = {
   title: string;
   link: string;
   description: string;
-  provider: "DUCKDUCKGO_HTML" | "DUCKDUCKGO_LITE" | "BING_RSS";
+  provider: "DUCKDUCKGO_HTML" | "DUCKDUCKGO_LITE";
 };
 
-const USER_AGENT = "Mozilla/5.0 (compatible; VelvetPassportResearch/1.1; +https://velvetpassport.com)";
+const USER_AGENT = "Mozilla/5.0 (compatible; VelvetPassportResearch/1.2; +https://velvetpassport.com)";
 
 function stripHtml(value: string) {
   return value
@@ -67,20 +67,6 @@ function parseDuckDuckGoLite(html: string): PublicSearchResult[] {
   return results;
 }
 
-function parseBingRss(xml: string): PublicSearchResult[] {
-  const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
-  const read = (block: string, tag: string) => {
-    const match = block.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i"));
-    return stripHtml(match?.[1] ?? "");
-  };
-  return blocks.map((block) => ({
-    title: read(block, "title"),
-    link: read(block, "link"),
-    description: read(block, "description"),
-    provider: "BING_RSS" as const,
-  })).filter((item) => item.title && /^https?:\/\//i.test(item.link));
-}
-
 async function fetchWithTimeout(url: string, accept: string, timeoutMs = 6500) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -112,14 +98,6 @@ export async function searchPublicWeb(query: string, maxResults = 10): Promise<{
     if (response.ok) {
       const parsed = parseDuckDuckGoLite(await response.text()).slice(0, limit);
       if (parsed.length > 0) return { provider: "DUCKDUCKGO_LITE", results: parsed };
-    }
-  } catch { /* provider failure remains unknown */ }
-
-  try {
-    const response = await fetchWithTimeout(`https://www.bing.com/search?format=rss&setlang=fr-FR&cc=fr&q=${encodeURIComponent(query)}`, "application/rss+xml,text/xml,*/*");
-    if (response.ok) {
-      const parsed = parseBingRss(await response.text()).slice(0, limit);
-      return { provider: "BING_RSS", results: parsed };
     }
   } catch { /* provider failure remains unknown */ }
 
