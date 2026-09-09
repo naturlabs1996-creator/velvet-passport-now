@@ -22,7 +22,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/2.3 (fair trusted-publisher sitemap budgets + gzipped sitemap support + strict entity-bound proof)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/2.4 (overfetch before carried-url filtering + fair trusted-publisher sitemap budgets + strict entity-bound proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -287,11 +287,19 @@ export async function huntIndependentEvidence(params: {
   };
   let attemptedSearches = 0;
 
-  const sitemapDiscovery = await discoverTrustedSitemapUrls(aliases, Math.max(4, params.maxPages ?? 6));
+  const desiredPages = Math.max(1, Math.min(params.maxPages ?? 6, 8));
+  const sitemapCandidateBudget = Math.max(8, Math.min(12, desiredPages * 2));
+  const sitemapDiscovery = await discoverTrustedSitemapUrls(aliases, sitemapCandidateBudget);
   for (const url of sitemapDiscovery.urls) {
-    if (existingUrls.has(url)) continue;
+    if (existingUrls.has(url)) {
+      diagnostics.duplicateOrCarried += 1;
+      continue;
+    }
     const family = sourceFamilyOf(url).toLowerCase();
-    if (!family || existingFamilies.has(family)) continue;
+    if (!family || existingFamilies.has(family)) {
+      diagnostics.existingFamilyRejected += 1;
+      continue;
+    }
     candidateUrls.push(url);
   }
 
@@ -326,7 +334,7 @@ export async function huntIndependentEvidence(params: {
     }
   }
 
-  const uniqueUrls = [...new Set(candidateUrls)].slice(0, Math.max(1, Math.min(params.maxPages ?? 6, 8)));
+  const uniqueUrls = [...new Set(candidateUrls)].slice(0, desiredPages);
   const deep = await fetchDeepEvidenceWindows(aliases[1] ?? aliases[0] ?? params.name, uniqueUrls, claimTerms, uniqueUrls.length || 1);
   const hits = deep.windows
     .filter((window) => window.terms.length > 0)
@@ -369,6 +377,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V2.3 searches trusted Paris publisher sitemaps with a bounded per-publisher child budget, including gzipped indexes and a direct CDN fallback. Paris.fr page/article sitemap children are prioritized, and a successful publisher root suppresses duplicate fallback roots. Candidate navigation is diversified across independent source families before opening deep pages. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V2.4 overfetches a bounded diversified sitemap candidate set before carried URLs and already-known source families are removed, so a known venue page cannot crowd out a second editorial page from the same trusted publisher. Trusted Paris publisher sitemaps retain bounded per-publisher child budgets, gzipped index support and direct CDN fallback. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
