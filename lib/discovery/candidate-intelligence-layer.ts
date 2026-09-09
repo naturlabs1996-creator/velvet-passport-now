@@ -14,6 +14,8 @@ export type CandidateIntelligence = {
     themeFit: number;
     evidencePotential: number;
     provenance: number;
+    interestPotential: number;
+    exposureOpportunity: number;
     noveltyPotential: number;
     riskPenalty: number;
   };
@@ -51,8 +53,9 @@ const ICONIC_NAMES = [
   /catacombes de paris|paris catacombs/i,
 ];
 
-// These are not automatic rejects. They are exposure priors that force the candidate
-// to earn research budget through entity-specific discriminating signals.
+// Entity-level fame is only an exposure prior. Velvet doctrine evaluates exposure
+// under the exact traveler angle, so a famous institution can still contain a strong
+// underexposed layer (after-hours access, consultation procedure, private room, reserve, etc.).
 const MAINSTREAM_INSTITUTION_PRIORS = [
   /petit palais/i,
   /mus[eé]e carnavalet|carnavalet/i,
@@ -121,12 +124,28 @@ const THEME_HYPOTHESIS_TERMS: Record<string, RegExp[]> = {
 };
 
 const MICRO_EXPERIENCE_TERMS = [
-  /atelier d['’]artiste|artist.?s studio|atelier[- ]mus[eé]e/i,
+  /atelier d['’]artiste|artist.?s studio|atelier[- ]mus[eé]e|working atelier|working workshop/i,
   /appartement conserv[eé]|preserved apartment|maison[- ]mus[eé]e|house museum/i,
-  /courtyard|cour int[eé]rieure|jardin int[eé]rieur|hidden garden|jardin cach[eé]/i,
-  /crypte|souterrain|underground|[eé]gout|sewer/i,
-  /cabinet de curiosit[eé]s|cabinet of curiosities/i,
+  /courtyard|cour int[eé]rieure|seconde? cour|second courtyard|jardin int[eé]rieur|hidden garden|jardin cach[eé]/i,
+  /crypte|souterrain|underground|[eé]gout|sewer|infrastructure/i,
+  /cabinet de curiosit[eé]s|cabinet of curiosities|private collection/i,
   /passage couvert|covered passage|galerie couverte/i,
+  /archives?|reserve?s?|storage|conservation/i,
+];
+
+// Signals that the candidate may contain an exact-angle "Uncovered layer" rather than
+// merely being a less famous venue. These are research hypotheses, never proof of low exposure.
+const EXACT_ANGLE_LAYER_TERMS = [
+  /after closing|after[- ]hours|apr[eè]s la fermeture|hors horaires|nocturne/i,
+  /by appointment|sur rendez[- ]vous|appointment required|advance booking/i,
+  /consultation room|salle de consultation|request an original|demander.*original/i,
+  /small salon|petit salon|private room|salon priv[eé]|sur demande|on request/i,
+  /second courtyard|seconde? cour|deuxi[eè]me cour|behind the door|derri[eè]re.*porte/i,
+  /rare opening|ouverture exceptionnelle|exceptional opening/i,
+  /working atelier|working workshop|atelier.*travail|atelier en activit[eé]/i,
+  /reserve?s?|storage|archives?|documentation centre|centre de documentation/i,
+  /underground|souterrain|service street|galerie souterraine|infrastructure/i,
+  /specialist visit|visite sp[eé]cialiste|small group|petit groupe/i,
 ];
 
 function normalize(value: string) {
@@ -202,6 +221,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const themePatterns = THEME_HYPOTHESIS_TERMS[lead.theme] ?? [];
   const themeHypotheses = countMatchedPatterns(themePatterns, text);
   const microSignals = countMatchedPatterns(MICRO_EXPERIENCE_TERMS, text);
+  const exactAngleSignals = countMatchedPatterns(EXACT_ANGLE_LAYER_TERMS, text);
   const shellLike = SHELL_OR_NON_EXPERIENCE.some((pattern) => pattern.test(lead.name.trim()));
   const iconic = ICONIC_NAMES.some((pattern) => pattern.test(lead.name));
   const mainstreamPrior = MAINSTREAM_INSTITUTION_PRIORS.some((pattern) => pattern.test(lead.name));
@@ -214,6 +234,10 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   if (microSignals > 0) {
     discriminatingSignals += 1;
     positiveSignals.push("specific micro-experience/physical-feature hypothesis");
+  }
+  if (exactAngleSignals > 0) {
+    discriminatingSignals += Math.min(2, exactAngleSignals);
+    positiveSignals.push(`exact-angle Uncovered-layer hypothesis (${exactAngleSignals} signal(s))`);
   }
   if (peer.sourceFamilies >= 2 && peer.focusedAppearances >= 1) {
     discriminatingSignals += 1;
@@ -245,6 +269,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   if (peer.sourceFamilies >= 2) evidencePotential += 20;
   if (peer.queryVariants >= 2) evidencePotential += 14;
   if (themeHypotheses > 0) evidencePotential += 12;
+  if (exactAngleSignals > 0) evidencePotential += 10;
   evidencePotential = Math.min(100, evidencePotential);
 
   let provenance = 10;
@@ -255,28 +280,43 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   if (families.size >= 1) provenance += 10;
   provenance = Math.min(100, provenance);
 
-  // Start low: novelty must be earned. A valid official venue is not inherently Velvet.
-  let noveltyPotential = 12;
-  noveltyPotential += Math.min(42, themeHypotheses * 18);
-  noveltyPotential += Math.min(22, microSignals * 16);
-  if (peer.sourceFamilies >= 2 && peer.focusedAppearances > 0) noveltyPotential += 12;
-  if (peer.queryVariants >= 2 && peer.focusedAppearances >= 2) noveltyPotential += 10;
+  // Mother axis #1: intrinsic interest. Obscurity alone earns nothing.
+  let interestPotential = 10;
+  interestPotential += Math.min(34, themeHypotheses * 16);
+  interestPotential += Math.min(26, microSignals * 16);
+  interestPotential += Math.min(24, exactAngleSignals * 12);
+  if (peer.sourceFamilies >= 2 && peer.focusedAppearances > 0) interestPotential += 8;
+  if (peer.queryVariants >= 2 && peer.focusedAppearances >= 2) interestPotential += 6;
+  interestPotential = Math.max(0, Math.min(100, interestPotential));
+
+  // Mother axis #2: low-exposure opportunity under the exact angle.
+  // This is deliberately a PRIOR used to allocate research budget, not an Exposure Degree.
+  // The downstream Exposure engine must still verify the tourism ecosystem and fail closed.
+  let exposureOpportunity = 35;
+  exposureOpportunity += Math.min(36, exactAngleSignals * 18);
+  exposureOpportunity += Math.min(14, microSignals * 7);
+  if (themeHypotheses > 0) exposureOpportunity += Math.min(10, themeHypotheses * 5);
   if (iconic) {
-    noveltyPotential = Math.min(noveltyPotential, 5);
-    negativeSignals.push("iconic/high-exposure identity prior");
+    exposureOpportunity -= exactAngleSignals > 0 ? 18 : 38;
+    negativeSignals.push("iconic entity exposure prior; exact-angle exposure must be independently verified");
   } else if (mainstreamPrior) {
-    noveltyPotential = Math.max(0, noveltyPotential - 18);
-    negativeSignals.push("mainstream-institution exposure prior; must earn intent budget");
-  } else {
-    unknowns.push("exact-angle exposure");
+    exposureOpportunity -= exactAngleSignals > 0 ? 10 : 22;
+    negativeSignals.push("mainstream institution exposure prior; exact-angle exposure must be independently verified");
   }
-  noveltyPotential = Math.max(0, Math.min(100, noveltyPotential));
+  exposureOpportunity = Math.max(0, Math.min(100, exposureOpportunity));
+  unknowns.push("verified exact-angle Exposure Degree");
+
+  // Compatibility field retained for downstream diagnostics; now reflects the two Velvet mother axes
+  // rather than treating entity fame as a synonym for novelty.
+  const noveltyPotential = Math.max(0, Math.min(100, Math.round(
+    interestPotential * 0.46 + exposureOpportunity * 0.54,
+  )));
 
   let riskPenalty = 0;
   if (!hasResolvedIdentity(lead)) riskPenalty += 30;
   if (!themeCompatible(lead)) riskPenalty += 38;
-  if (iconic) riskPenalty += 52;
-  if (mainstreamPrior) riskPenalty += 18;
+  if (iconic) riskPenalty += exactAngleSignals > 0 ? 8 : 20;
+  if (mainstreamPrior) riskPenalty += exactAngleSignals > 0 ? 4 : 12;
   if (shellLike) {
     riskPenalty += 70;
     negativeSignals.push("navigation/event/shop shell rather than a stable traveler experience");
@@ -290,13 +330,16 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   }
   riskPenalty = Math.min(100, riskPenalty);
 
+  // Exposure opportunity is the largest positive weight. It cannot prove low exposure; it decides
+  // where to spend research budget. Verified Exposure Degree remains a downstream mandatory gate.
   const score = Math.max(0, Math.min(100, Math.round(
-    identity * 0.16 +
-    themeFit * 0.20 +
-    evidencePotential * 0.18 +
-    provenance * 0.10 +
-    noveltyPotential * 0.36 -
-    riskPenalty * 0.42,
+    identity * 0.10 +
+    themeFit * 0.12 +
+    evidencePotential * 0.13 +
+    provenance * 0.07 +
+    interestPotential * 0.23 +
+    exposureOpportunity * 0.35 -
+    riskPenalty * 0.38,
   )));
 
   let decision: CandidateDecision;
@@ -304,13 +347,13 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   if (shellLike || !hasResolvedIdentity(lead) || !themeCompatible(lead)) {
     decision = score < 28 || shellLike ? "REJECT" : "HOLD";
     depth = "0X";
-  } else if (discriminatingSignals >= 3 && score >= 74 && !iconic) {
+  } else if (discriminatingSignals >= 4 && interestPotential >= 58 && exposureOpportunity >= 48 && score >= 68) {
     decision = "DEEP_RESEARCH";
-    depth = discriminatingSignals >= 4 && score >= 84 ? "6X" : "2X";
-  } else if (discriminatingSignals >= 2 && score >= 60 && !iconic) {
+    depth = discriminatingSignals >= 5 && score >= 78 ? "6X" : "2X";
+  } else if (discriminatingSignals >= 2 && interestPotential >= 45 && exposureOpportunity >= 38 && score >= 52) {
     decision = "DEEP_RESEARCH";
     depth = "2X";
-  } else if (discriminatingSignals >= 1 && score >= 42 && !iconic) {
+  } else if (discriminatingSignals >= 1 && interestPotential >= 34 && exposureOpportunity >= 28 && score >= 38) {
     decision = "TEST";
     depth = "1X";
   } else if (score >= 24) {
@@ -329,7 +372,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
     decision,
     depth,
     confidence,
-    dimensions: { identity, themeFit, evidencePotential, provenance, noveltyPotential, riskPenalty },
+    dimensions: { identity, themeFit, evidencePotential, provenance, interestPotential, exposureOpportunity, noveltyPotential, riskPenalty },
     discriminatingSignals,
     positiveSignals,
     negativeSignals,
@@ -341,10 +384,11 @@ export function applyCandidateIntelligenceLayer(leads: ResearchLead[], maxDeepCa
   const peers = buildPeerContexts(leads);
   const all = leads
     .map((lead) => evaluateCandidate(lead, peers.get(canonicalEntity(lead.name) || normalize(lead.name)) ?? { appearances: 1, sourceFamilies: 1, queryVariants: 1, focusedAppearances: 0 }))
-    .sort((a, b) => b.score - a.score || b.discriminatingSignals - a.discriminatingSignals);
+    .sort((a, b) => b.score - a.score || b.dimensions.exposureOpportunity - a.dimensions.exposureOpportunity || b.discriminatingSignals - a.discriminatingSignals);
 
   // Deep budget is intentionally tighter than the downstream lookup ceiling. Valid identity alone
-  // cannot fill the research queue. The queue must be won through discriminating signals.
+  // cannot fill the research queue. The queue must be won through intrinsic interest plus a credible
+  // exact-angle low-exposure opportunity worth verifying.
   const deepCap = Math.max(2, Math.min(maxDeepCandidates, 8));
   const testCap = Math.max(2, Math.min(Math.ceil(maxDeepCandidates / 2), 6));
   const deepResearch = all.filter((item) => item.decision === "DEEP_RESEARCH").slice(0, deepCap);
@@ -363,6 +407,6 @@ export function applyCandidateIntelligenceLayer(leads: ResearchLead[], maxDeepCa
     hold,
     rejected,
     all,
-    rule: "Candidate Intelligence is a budget-allocation layer, never a truth gate. Identity/provenance establish that an entity is researchable but cannot by themselves earn deep research. A candidate must show discriminating theme/micro-experience or independent recurrence signals to receive 1X/2X/6X budget. Obvious navigation/event/shop shells are rejected early; mainstream/iconic identities are penalized; uncertain valid venues remain HOLD. Intent, exposure, access, factual verification and publication remain downstream fail-closed gates.",
+    rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Entity fame is only a prior: an iconic or mainstream place may still deserve research when a precise underexposed layer is hypothesized (after-hours access, consultation procedure, private room, reserve, second courtyard, working infrastructure, etc.). Obscure alone is never good. This layer never declares Exposure truth and never LOCKs a candidate: verified exact-angle Exposure Degree remains a mandatory downstream fail-closed gate, normally targeting >=7/10 in Velvet's favor, with ~6.5 reserved for exceptional experiences with strong access. Intent, Access, Trust, micro-localization, factual verification and publication remain downstream gates.",
   };
 }
