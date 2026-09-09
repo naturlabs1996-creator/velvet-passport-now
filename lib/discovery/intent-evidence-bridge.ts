@@ -1,7 +1,7 @@
 import type { ResearchLead } from "./research-collectors";
 import type { ResearchEvidence } from "./research-verification";
 import { discoverDirectSourceUrls, fetchDeepEvidenceWindows, sourceFamilyOf } from "./deep-source-evidence";
-import { huntIndependentEvidence } from "./entity-specific-evidence-hunter";
+import { huntIndependentEvidence, type ExposureAuditCoverage } from "./entity-specific-evidence-hunter";
 
 export type IntentEvidenceStatus = "CONFIRMED" | "PARTIAL" | "UNCONFIRMED";
 
@@ -21,6 +21,7 @@ export type IntentEvidenceResult = {
   hunterPagesOpened: number;
   hunterHits: number;
   hunterFamiliesAdded: string[];
+  exposureAudit: ExposureAuditCoverage[];
 };
 
 const THEME_TERMS: Record<string, string[]> = {
@@ -91,6 +92,21 @@ function traceEvidence(lead: ResearchLead, items: Array<{ url: string; sourceFam
     return [`${evidence.independentKey}|${evidence.url}`, evidence] as const;
   })).values()];
 }
+function mergeExposureAudit(current: ExposureAuditCoverage[], incoming: ExposureAuditCoverage[]) {
+  const rank = { UNAVAILABLE: 0, CHECKED_NO_ANGLE: 1, EXPOSED: 2 } as const;
+  const merged = new Map(current.map((item) => [item.family, item]));
+  for (const item of incoming) {
+    const existing = merged.get(item.family);
+    if (!existing || rank[item.status] > rank[existing.status]) merged.set(item.family, item);
+    else if (existing && item.status === existing.status) merged.set(item.family, {
+      ...existing,
+      opened: existing.opened || item.opened,
+      matched: Math.max(existing.matched, item.matched),
+      inspectedIdentityPages: Math.max(existing.inspectedIdentityPages, item.inspectedIdentityPages),
+    });
+  }
+  return [...merged.values()];
+}
 
 export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8) {
   const eligible = leads.filter(placeLike).slice(0, Math.max(1, Math.min(maxLookups, 16)));
@@ -115,6 +131,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
         hunterPagesOpened: 0,
         hunterHits: 0,
         hunterFamiliesAdded: [],
+        exposureAudit: [],
       });
       continue;
     }
@@ -143,6 +160,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     let hunterFamiliesAdded: string[] = [];
     let hunterEvidence: Array<{ text: string; url: string; host: string; sourceFamily: string; matchedTerms: string[] }> = [];
     let hunterMode: "CORROBORATE" | "COLD_START" | "NONE" = "NONE";
+    let exposureAudit: ExposureAuditCoverage[] = [];
 
     if (matchedTerms.length === 0 && terms.length > 0) {
       const hunter = await huntIndependentEvidence({
@@ -155,6 +173,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
         maxPages: 5,
         allowColdStart: true,
       });
+      exposureAudit = mergeExposureAudit(exposureAudit, hunter.exposureAudit);
       hunterMode = hunter.mode;
       hunterSearches += hunter.attemptedSearches;
       hunterPagesOpened += hunter.deepPagesOpened;
@@ -183,6 +202,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
         maxSearches: 3,
         maxPages: 5,
       });
+      exposureAudit = mergeExposureAudit(exposureAudit, hunter.exposureAudit);
       if (hunterMode === "NONE") hunterMode = hunter.mode;
       hunterSearches += hunter.attemptedSearches;
       hunterPagesOpened += hunter.deepPagesOpened;
@@ -232,11 +252,13 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     if (hunterSearches) reasons.push(`Entity-specific hunter ran ${hunterSearches} targeted search(es) for the same entity.`);
     if (hunterFamiliesAdded.length) reasons.push(`Independent evidence hunter added ${hunterFamiliesAdded.length} new publisher family/families: ${hunterFamiliesAdded.join(", ")}.`);
     else if (hunterSearches) reasons.push("Independent evidence hunter found no qualifying new publisher family inside an identity-matched context window.");
+    if (exposureAudit.length) reasons.push(`Exposure audit coverage: ${exposureAudit.map((item) => `${item.family}=${item.status}`).join(", ")}.`);
     if (highExposureOnly) reasons.push("Observed intent language appears only in generic high-exposure tourism framing, so confidence is reduced.");
 
     const bridgeClaim = matchedTerms.length
       ? `INTENT_EVIDENCE ${lead.theme}: ${matchedTerms.join(", ")} | independent_sources=${sourceFamilies.length} | deep_pages=${deepEvidence.length} | hunter_hits=${hunterHits} | hunter_mode=${hunterMode} | direct_sources=${directUrls.length} | carried_sources=${carriedUrls.length} | status=${status}`
       : `INTENT_EVIDENCE ${lead.theme}: direct_sources=${directUrls.length} | carried_sources=${carriedUrls.length} | hunter_hits=${hunterHits} | hunter_mode=${hunterMode} | status=${status}`;
+    const exposureAuditClaims = exposureAudit.map((item) => `EXPOSURE_AUDIT family=${item.family} status=${item.status} opened=${item.opened ? 1 : 0} matched=${item.matched} inspected=${item.inspectedIdentityPages}`);
 
     const evidenceTrace = traceEvidence(lead, [...deepEvidence, ...hunterEvidence].map((item) => ({
       url: item.url,
@@ -246,7 +268,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     })));
 
     results.push({
-      lead: { ...lead, rawClaims: [...lead.rawClaims, bridgeClaim], evidenceTrace: [...(lead.evidenceTrace ?? []), ...evidenceTrace] },
+      lead: { ...lead, rawClaims: [...lead.rawClaims.filter((claim) => !claim.startsWith("EXPOSURE_AUDIT ")), bridgeClaim, ...exposureAuditClaims], evidenceTrace: [...(lead.evidenceTrace ?? []), ...evidenceTrace] },
       status,
       score,
       matchedTerms,
@@ -261,6 +283,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
       hunterPagesOpened,
       hunterHits,
       hunterFamiliesAdded,
+      exposureAudit,
     });
   }
 
@@ -278,6 +301,7 @@ export async function verifyIntentEvidence(leads: ResearchLead[], maxLookups = 8
     hunterPagesOpened: results.reduce((sum, item) => sum + item.hunterPagesOpened, 0),
     hunterHits: results.reduce((sum, item) => sum + item.hunterHits, 0),
     hunterFamiliesAdded: [...new Set(results.flatMap((item) => item.hunterFamiliesAdded))],
-    rule: "Focused Intent Evidence V3.2 uses canonical/direct sources first and the trusted entity-specific Hunter for independent discovery. Legacy Bing RSS search is removed. Theme language must remain bound to the venue identity in the same local sentence/clause. CONFIRMED still requires score >=68 and at least two independent publisher families; no threshold is relaxed.",
+    exposureAuditFamilies: [...new Set(results.flatMap((item) => item.exposureAudit.map((audit) => audit.family)))],
+    rule: "Focused Intent Evidence V3.3 uses canonical/direct sources first and the trusted entity-specific Hunter for independent discovery. Hunter exposure-audit coverage is carried forward as machine-readable EXPOSURE_AUDIT claims. Legacy Bing RSS search remains removed. Theme language must remain bound to the venue identity in the same local sentence/clause. CONFIRMED still requires score >=68 and at least two independent publisher families; no threshold is relaxed.",
   };
 }
