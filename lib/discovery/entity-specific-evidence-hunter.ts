@@ -22,7 +22,7 @@ export type IndependentEvidenceHunterResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportEvidenceHunter/2.2 (trusted sitemap family diversity + gzipped sitemap support + strict entity-bound proof)";
+const USER_AGENT = "VelvetPassportEvidenceHunter/2.3 (fair trusted-publisher sitemap budgets + gzipped sitemap support + strict entity-bound proof)";
 
 const COLD_START_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["unusual", "off the beaten", "less known", "insolite", "atypical", "under the radar", "méconnu", "peu connu", "hors du commun", "entrée discrète"],
@@ -60,6 +60,11 @@ function stripHtml(value: string) {
 }
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; }
+}
+function sitemapPublisherFamily(url: string) {
+  const host = hostOf(url);
+  if (host === "paris.fr" || host.endsWith(".paris.fr")) return "paris.fr";
+  return sourceFamilyOf(url).toLowerCase() || host;
 }
 function entityAliases(name: string) {
   const clean = name.replace(/\s+/g, " ").trim();
@@ -157,6 +162,17 @@ function slugIdentityScore(aliases: string[], url: string) {
   return best;
 }
 
+function childSitemapPriority(url: string) {
+  const value = normalize(url);
+  let score = 0;
+  if (/pages?/.test(value)) score += 100;
+  if (/lieux?|places?/.test(value)) score += 90;
+  if (/actualit|article|news/.test(value)) score += 80;
+  if (/culture|patrimoine|museum|musee/.test(value)) score += 70;
+  if (/agenda|evenement|event/.test(value)) score += 40;
+  return score;
+}
+
 function diversifyCandidateFamilies(candidates: Array<{ url: string; score: number }>, maxUrls: number) {
   const deduped = [...new Map(candidates.sort((a, b) => b.score - a.score).map((item) => [item.url, item])).values()];
   const groups = new Map<string, Array<{ url: string; score: number }>>();
@@ -190,16 +206,25 @@ async function discoverTrustedSitemapUrls(aliases: string[], maxUrls = 8) {
   let rootsOpened = 0;
   let childSitemapsOpened = 0;
   const rootDiagnostics: Array<{ root: string; opened: boolean; locs: number; matched: number }> = [];
+  const openedPublishers = new Set<string>();
 
   for (const root of TRUSTED_SITEMAP_ROOTS) {
+    const publisher = sitemapPublisherFamily(root);
+    if (openedPublishers.has(publisher)) continue;
+
     const rootXml = await fetchText(root);
     if (!rootXml) {
       rootDiagnostics.push({ root, opened: false, locs: 0, matched: 0 });
       continue;
     }
+    openedPublishers.add(publisher);
     rootsOpened += 1;
     const rootLocs = sitemapLocs(rootXml);
-    const childSitemaps = rootLocs.filter((url) => /sitemap/i.test(url)).slice(0, 6);
+    const childBudget = publisher === "paris.fr" ? 10 : 6;
+    const childSitemaps = rootLocs
+      .filter((url) => /sitemap/i.test(url))
+      .sort((a, b) => childSitemapPriority(b) - childSitemapPriority(a))
+      .slice(0, childBudget);
     const pageLocs = rootLocs.filter((url) => !/sitemap/i.test(url));
     let matched = 0;
 
@@ -211,12 +236,11 @@ async function discoverTrustedSitemapUrls(aliases: string[], maxUrls = 8) {
       }
     }
 
-    for (const child of childSitemaps) {
-      if (childSitemapsOpened >= 10) break;
-      const xml = await fetchText(child);
-      if (!xml) continue;
+    const childResults = await Promise.all(childSitemaps.map(async (child) => ({ child, xml: await fetchText(child) })));
+    for (const childResult of childResults) {
+      if (!childResult.xml) continue;
       childSitemapsOpened += 1;
-      for (const url of sitemapLocs(xml)) {
+      for (const url of sitemapLocs(childResult.xml)) {
         const score = slugIdentityScore(aliases, url);
         if (score >= 0.5) {
           candidates.push({ url, score });
@@ -345,6 +369,6 @@ export async function huntIndependentEvidence(params: {
     independentFamiliesAdded,
     equivalenceFamiliesUsed: equivalence.families,
     mode: coldStart ? "COLD_START" : "CORROBORATE",
-    rule: `Hunter V2.2 searches trusted Paris publisher sitemaps, including gzipped indexes and a direct CDN fallback, before any generic search fallback. Candidate navigation is diversified across independent source families before opening deep pages. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
+    rule: `Hunter V2.3 searches trusted Paris publisher sitemaps with a bounded per-publisher child budget, including gzipped indexes and a direct CDN fallback. Paris.fr page/article sitemap children are prioritized, and a successful publisher root suppresses duplicate fallback roots. Candidate navigation is diversified across independent source families before opening deep pages. Sitemap URLs establish navigation identity only; the opened page must still contain identity-bound allowlisted claim language or an allowlisted equivalent before becoming a hit. Generic search remains a fallback only. Semantic probes, URL wording, recurrence and category membership never count as proof. ${CLAIM_EQUIVALENCE_RULE}`,
   };
 }
