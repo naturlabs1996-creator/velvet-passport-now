@@ -2,7 +2,7 @@ import type { ResearchLead } from "./research-collectors";
 import { scoreExposure } from "./exposure-intelligence";
 
 export type RelevanceDecision = "ACCEPT" | "REJECT";
-export type RelevanceScore = { leadId: string; decision: RelevanceDecision; total: number; geography: number; intent: number; velvetUtility: number; exposureLevel: string; exposureScore: number; reasons: string[]; };
+export type RelevanceScore = { leadId: string; decision: RelevanceDecision; total: number; geography: number; intent: number; velvetUtility: number; exposureLevel: string; exposureScore: number; exposureDegree: number | null; exposureVerdict: string; entityExposureScore: number; reasons: string[]; };
 
 const THEME_TERMS: Record<string, string[]> = {
   "beyond-the-classics": ["hidden", "unusual", "less known", "off the beaten", "courtyard", "passage", "garden", "small museum", "bookshop", "atelier", "covered passage", "discreet"],
@@ -36,17 +36,19 @@ function intentScore(lead: ResearchLead) {
   const matches = terms.filter((term) => text.includes(normalize(term))).length;
   return matches === 0 ? 0 : Math.min(100, 35 + matches * 20);
 }
-function velvetUtilityScore(lead: ResearchLead, text: string, exposureScore: number) { let score = 25; const matches = VELVET_TERMS.filter((term) => text.includes(normalize(term))).length; score += Math.min(60, matches * 12); if (hasAny(text, TOURIST_TRAP_TERMS)) score -= 45; score -= Math.round(exposureScore * 0.45); return Math.max(0, Math.min(100, score)); }
+function velvetUtilityScore(lead: ResearchLead, text: string, exactAngleExposureScore: number) { let score = 25; const matches = VELVET_TERMS.filter((term) => text.includes(normalize(term))).length; score += Math.min(60, matches * 12); if (hasAny(text, TOURIST_TRAP_TERMS)) score -= 10; score -= Math.round(exactAngleExposureScore * 0.55); return Math.max(0, Math.min(100, score)); }
 
 export function scoreResearchLeadRelevance(lead: ResearchLead): RelevanceScore {
   const exposure = scoreExposure(lead); const scoredLead = exposure.lead; const text = textOf(scoredLead); const geography = geographyScore(scoredLead, text); const intent = intentScore(scoredLead); const velvetUtility = velvetUtilityScore(scoredLead, text, exposure.score); const total = Math.round(geography * 0.35 + intent * 0.45 + velvetUtility * 0.2); const reasons: string[] = []; const evidenceState = intentEvidenceState(scoredLead);
-  if (geography < 45) reasons.push("Paris-France anchor is too weak for a research candidate."); if (intent < 35) reasons.push("Candidate does not match the active traveler intent strongly enough."); if (velvetUtility < 25) reasons.push("Candidate is too generic, too exposed or tourist-dominant for the Velvet discovery layer.");
-  if (exposure.level !== "UNKNOWN") reasons.push(`Exposure Intelligence: ${exposure.level} (${exposure.score}/100). ${exposure.signals.join(" ")}`);
+  if (geography < 45) reasons.push("Paris-France anchor is too weak for a research candidate."); if (intent < 35) reasons.push("Candidate does not match the active traveler intent strongly enough."); if (velvetUtility < 25) reasons.push("Candidate is too generic or the exact Velvet angle is too exposed for the discovery layer.");
+  if (exposure.entityExposureScore > 0) reasons.push(`Entity exposure context: ${exposure.entityExposureScore}/100. This is context only and cannot reject the exact angle by itself.`);
+  if (exposure.verdict === "HOLD_UNKNOWN") reasons.push("Exact-angle Exposure Degree is still unknown. Research may continue, but this is not an Exposure PASS and cannot support LOCK/publication.");
+  else reasons.push(`Exact-angle Exposure: ${exposure.level}, degree=${exposure.exposureDegree}/10, verdict=${exposure.verdict}, families=${exposure.sourceFamilies.join(", ") || "none"}.`);
   if (evidenceState === "CONFIRMED") reasons.push("Focused Intent Evidence explicitly confirms the theme-place relationship.");
   else if (evidenceState === "PARTIAL") reasons.push("Focused Intent Evidence is only partial, so it cannot satisfy the relevance acceptance threshold yet.");
   else if (evidenceState === "UNCONFIRMED") reasons.push("Focused Intent Evidence explicitly failed to confirm this theme-place relationship; lexical matches are ignored.");
   else if (FOCUSED_INTENT_REQUIRED.has(scoredLead.theme)) reasons.push("No Focused Intent Evidence verdict exists for this research theme, so lexical similarity alone cannot satisfy relevance.");
-  const decision: RelevanceDecision = geography >= 45 && intent >= 35 && velvetUtility >= 25 && total >= 50 ? "ACCEPT" : "REJECT"; if (decision === "ACCEPT") reasons.push("Candidate is geographically anchored, intent-relevant and useful enough for deeper verification.");
-  return { leadId: lead.id, decision, total, geography, intent, velvetUtility, exposureLevel: exposure.level, exposureScore: exposure.score, reasons };
+  const decision: RelevanceDecision = geography >= 45 && intent >= 35 && velvetUtility >= 25 && total >= 50 ? "ACCEPT" : "REJECT"; if (decision === "ACCEPT") reasons.push("Candidate is geographically anchored, intent-relevant and useful enough for deeper verification. Exposure PASS remains a separate downstream requirement for Velvet selection.");
+  return { leadId: lead.id, decision, total, geography, intent, velvetUtility, exposureLevel: exposure.level, exposureScore: exposure.score, exposureDegree: exposure.exposureDegree, exposureVerdict: exposure.verdict, entityExposureScore: exposure.entityExposureScore, reasons };
 }
 export function applyResearchRelevanceEngine(leads: ResearchLead[]) { const accepted: ResearchLead[] = []; const rejected: Array<{ lead: ResearchLead; score: RelevanceScore }> = []; for (const lead of leads) { const exposure = scoreExposure(lead); const score = scoreResearchLeadRelevance(exposure.lead); if (score.decision === "ACCEPT") accepted.push(exposure.lead); else rejected.push({ lead: exposure.lead, score }); } accepted.sort((a, b) => scoreResearchLeadRelevance(b).total - scoreResearchLeadRelevance(a).total); return { accepted, rejected }; }
