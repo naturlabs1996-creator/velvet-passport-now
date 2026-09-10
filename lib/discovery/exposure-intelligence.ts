@@ -7,7 +7,7 @@ export type ExposureAuditStatus = "EXPOSED" | "CHECKED_NO_ANGLE" | "UNAVAILABLE"
 
 export type ExposureSignal = {
   family: string;
-  kind: "OFFICIAL_TOURISM" | "TRAVEL_EDITORIAL" | "MARKETPLACE" | "MASS_LANGUAGE" | "ENTITY_FAME";
+  kind: "OFFICIAL_TOURISM" | "CIVIC_EDITORIAL" | "TRAVEL_EDITORIAL" | "MARKETPLACE" | "MASS_LANGUAGE" | "ENTITY_FAME";
   scope: "EXACT_ANGLE" | "ENTITY";
   weight: number;
   note: string;
@@ -42,6 +42,7 @@ export type ExposureResult = {
 
 const MASS_TERMS = ["eiffel tower", "louvre museum", "musée du louvre", "arc de triomphe", "champs-élysées", "disneyland paris"];
 const OFFICIAL_TOURISM_HOSTS = ["parisjetaime.com", "visitparisregion.com", "france.fr"];
+const CIVIC_EDITORIAL_HOSTS = ["paris.fr"];
 const TRAVEL_EDITORIAL_HOSTS = ["sortiraparis.com", "parissecret.com", "timeout.com", "lonelyplanet.com", "cntraveler.com", "travelandleisure.com", "atlasobscura.com"];
 const MARKETPLACE_HOSTS = ["tripadvisor.com", "getyourguide.com", "viator.com"];
 const MASS_LANGUAGE = /top 10|top 15|must-see|must see|most visited|iconic|world-famous|world famous|incontournable|les plus visit[eé]s/i;
@@ -73,6 +74,7 @@ function isOfficialTourismFamily(family: string) {
 }
 function sourceKind(host: string): ExposureSignal["kind"] | null {
   if (OFFICIAL_TOURISM_HOSTS.some((family) => familyMatches(host, family))) return "OFFICIAL_TOURISM";
+  if (CIVIC_EDITORIAL_HOSTS.some((family) => familyMatches(host, family))) return "CIVIC_EDITORIAL";
   if (TRAVEL_EDITORIAL_HOSTS.some((family) => familyMatches(host, family))) return "TRAVEL_EDITORIAL";
   if (MARKETPLACE_HOSTS.some((family) => familyMatches(host, family))) return "MARKETPLACE";
   return null;
@@ -81,6 +83,7 @@ function sourceWeight(kind: ExposureSignal["kind"]) {
   if (kind === "OFFICIAL_TOURISM") return 38;
   if (kind === "MARKETPLACE") return 30;
   if (kind === "TRAVEL_EDITORIAL") return 24;
+  if (kind === "CIVIC_EDITORIAL") return 20;
   if (kind === "MASS_LANGUAGE") return 18;
   return 0;
 }
@@ -158,7 +161,7 @@ export function scoreExposure(lead: ResearchLead): ExposureResult {
       const weight = Math.round(sourceWeight(kind) * 0.75);
       angleFamilies.add(host);
       exactAngleExposureScore += weight;
-      trace.push({ family: host, kind, scope: "EXACT_ANGLE", weight, note: "Focused intent/deep-evidence claim is bound to a tourism-facing source family." });
+      trace.push({ family: host, kind, scope: "EXACT_ANGLE", weight, note: "Focused intent/deep-evidence claim is bound to a tourism-facing or civic-editorial source family." });
     }
   }
 
@@ -223,6 +226,6 @@ export function applyExposureIntelligence(leads: ResearchLead[]) {
     high: results.filter((item) => item.level === "HIGH").length,
     massTourism: results.filter((item) => item.level === "MASS_TOURISM").length,
     unknown: results.filter((item) => item.level === "UNKNOWN").length,
-    rule: "Velvet Exposure Degree is evaluated under the exact traveler angle. Entity fame is contextual only. A positive exposure signal can FAIL a candidate immediately when degree <6.5. PASS or EXCEPTION_REVIEW additionally requires traceable audit coverage across at least three publisher families and at least one official-tourism family (Paris je t'aime, Visit Paris Region, or equivalent). EXPOSED and CHECKED_NO_ANGLE count as audited; UNAVAILABLE never counts as silence. Missing or insufficient audit coverage is HOLD_UNKNOWN, never silently treated as low exposure. Normal PASS requires Exposure Degree >=7/10; 6.5-6.9 is EXCEPTION_REVIEW only.",
+    rule: "Velvet Exposure Degree is evaluated under the exact traveler angle. Entity fame is contextual only. Exposure from official-tourism, civic-editorial, travel-editorial and marketplace families can contribute when the exact angle is explicitly present. A positive exposure signal can FAIL a candidate immediately when degree <6.5. PASS or EXCEPTION_REVIEW additionally requires traceable audit coverage across at least three publisher families and at least one official-tourism family (Paris je t'aime, Visit Paris Region, or equivalent). EXPOSED and CHECKED_NO_ANGLE count as audited; UNAVAILABLE never counts as silence. Missing or insufficient audit coverage is HOLD_UNKNOWN, never silently treated as low exposure. Normal PASS requires Exposure Degree >=7/10; 6.5-6.9 is EXCEPTION_REVIEW only.",
   };
 }
