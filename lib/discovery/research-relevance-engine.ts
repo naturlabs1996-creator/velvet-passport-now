@@ -55,13 +55,15 @@ export function scoreResearchLeadRelevance(lead: ResearchLead): RelevanceScore {
   if (velvetUtility < 25) reasons.push("Candidate is too generic or the exact Velvet angle is too exposed for the discovery layer.");
   if (iconicEntity && !exactAnglePresent) reasons.push("Iconic entity has no precise Uncovered layer. Generic fame plus a theme label is not enough for Velvet relevance.");
   if (exposure.entityExposureScore > 0) reasons.push(`Entity exposure context: ${exposure.entityExposureScore}/100. This is context only and cannot reject a verified exact angle by itself.`);
-  if (exposure.verdict === "HOLD_UNKNOWN") reasons.push("Exact-angle Exposure Degree is still unknown. Research may continue, but this is not an Exposure PASS and cannot support LOCK/publication.");
+  if (exposure.verdict === "FAIL") reasons.push("Exact-angle Exposure Degree failed the Velvet threshold. Candidate exits the relevance pipeline immediately; further factual verification cannot rescue excessive exposure.");
+  else if (exposure.verdict === "HOLD_UNKNOWN") reasons.push("Exact-angle Exposure Degree is still unknown. Research may continue, but this is not an Exposure PASS and cannot support LOCK/publication.");
   else reasons.push(`Exact-angle Exposure: ${exposure.level}, degree=${exposure.exposureDegree}/10, verdict=${exposure.verdict}, families=${exposure.sourceFamilies.join(", ") || "none"}.`);
   if (evidenceState === "CONFIRMED") reasons.push("Focused Intent Evidence explicitly confirms the theme-place relationship.");
   else if (evidenceState === "PARTIAL") reasons.push("Focused Intent Evidence is only partial, so it cannot satisfy the relevance acceptance threshold yet.");
   else if (evidenceState === "UNCONFIRMED") reasons.push("Focused Intent Evidence explicitly failed to confirm this theme-place relationship; lexical matches are ignored.");
   else if (FOCUSED_INTENT_REQUIRED.has(scoredLead.theme)) reasons.push("No Focused Intent Evidence verdict exists for this research theme, so lexical similarity alone cannot satisfy relevance.");
-  const decision: RelevanceDecision = geography >= 45 && intent >= 35 && velvetUtility >= 25 && total >= 50 && !(iconicEntity && !exactAnglePresent) ? "ACCEPT" : "REJECT";
+  const exposureFailed = exposure.verdict === "FAIL";
+  const decision: RelevanceDecision = geography >= 45 && intent >= 35 && velvetUtility >= 25 && total >= 50 && !(iconicEntity && !exactAnglePresent) && !exposureFailed ? "ACCEPT" : "REJECT";
   if (decision === "ACCEPT") reasons.push("Candidate is geographically anchored, intent-relevant and useful enough for deeper verification. Exposure PASS remains a separate downstream requirement for Velvet selection.");
   return { leadId: lead.id, decision, total, geography, intent, velvetUtility, exposureLevel: exposure.level, exposureScore: exposure.score, exposureDegree: exposure.exposureDegree, exposureVerdict: exposure.verdict, entityExposureScore: exposure.entityExposureScore, reasons };
 }
