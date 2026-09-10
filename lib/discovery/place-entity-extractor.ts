@@ -4,6 +4,7 @@ export type PlaceExtractionResult = {
   sourceLeadId: string;
   sourceUrl: string;
   extracted: ResearchLead[];
+  sourceHypotheses: string[];
   ok: boolean;
   error?: string;
 };
@@ -17,12 +18,30 @@ type SelectedEntity = {
   lon?: number;
 };
 
-const USER_AGENT = "VelvetPassportPlaceExtractor/1.3 (collector recovery + focused source ranking + precision place extraction; cached public pages)";
+const USER_AGENT = "VelvetPassportPlaceExtractor/1.4 (source-page hypothesis recovery + precision place extraction; cached public pages)";
 const GENERIC = /^(paris|france|home|menu|visit|guide|travel|read more|learn more|about|contact|official website|wikipedia|contents|history|origins|etymology|geography|climate|administration|actualités|rechercher)$/i;
 const EDITORIAL_NOISE = /\b(what to do|things to do|best |top |exhibitions?|events?|autumn|september|october|november|december|january|february|march|april|may|june|july|august|right now|discover the|heritage days|city pass|tourist office|official website|newsletter|privacy|cookie|facebook|instagram|youtube|tripadvisor|terms|login|sign in|subscribe|booking|all you must know|must-see|guide to|tips|news|agenda)\b/i;
 const PLACE_TYPE = /\b(mus[eé]e|museum|maison|h[oô]tel particulier|passage|galerie|jardin|garden|square|cour|courtyard|librairie|bookshop|bookstore|atelier|chapelle|church|église|cemetery|cimetière|catacomb|palais|pavillon|villa|théâtre|theatre|café|cafe|bibliothèque|library|fondation|foundation|rue|street|arcade|halle|market|marché|canal|parc|park|temple|synagogue|basilique|basilica|monument|tower|tour|crypt|crypte)\b/i;
 const STRUCTURED_PLACE_TYPES = new Set(["Place", "TouristAttraction", "Museum", "LocalBusiness", "LandmarksOrHistoricalBuildings", "Park", "Cemetery", "Library", "BookStore", "CafeOrCoffeeShop", "PerformingArtsTheater", "ArtGallery", "Church", "HinduTemple", "Synagogue"]);
 const GENERIC_CITY_OVERVIEW = /(?:wikipedia\.org\/wiki\/Paris(?:$|[?#])|wikipedia\.org\/?curid=22989|\/paris\/?(?:$|[?#]))/i;
+
+// Bounded tags only. They are candidate-research hypotheses extracted from an already-opened
+// source page. They are never claim evidence, never Exposure evidence and never a LOCK signal.
+const SOURCE_HYPOTHESIS_PATTERNS: Array<[string, RegExp]> = [
+  ["atelier", /\b(atelier|studio|workshop)\b/i],
+  ["working-workshop", /\b(atelier en activit[eé]|working workshop|working atelier|artisan workshop)\b/i],
+  ["garden", /\b(jardin|garden)\b/i],
+  ["courtyard", /\b(cour int[eé]rieure|courtyard|seconde? cour|second courtyard)\b/i],
+  ["apartment-house", /\b(appartement|apartment|maison d['’]|house museum|maison[- ]mus[eé]e)\b/i],
+  ["archives", /\b(archives?|documentation centre|centre de documentation)\b/i],
+  ["reserve", /\b(r[eé]serves?|storage|conservation store)\b/i],
+  ["consultation", /\b(salle de consultation|consultation room|consultation sur rendez[- ]vous|consult by appointment)\b/i],
+  ["appointment", /\b(sur rendez[- ]vous|by appointment|appointment required)\b/i],
+  ["private-room", /\b(petit salon|salon priv[eé]|private room|small salon)\b/i],
+  ["underground", /\b(souterrain|underground|crypte|crypt|[eé]gout|sewer|galerie souterraine)\b/i],
+  ["rare-opening", /\b(ouverture exceptionnelle|rare opening|exceptional opening)\b/i],
+  ["after-hours", /\b(apr[eè]s la fermeture|after[- ]hours|after closing|nocturne)\b/i],
+];
 
 function clean(value: string) {
   return value.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
@@ -30,6 +49,11 @@ function clean(value: string) {
 function decodeEntities(value: string) { return clean(value.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))); }
 function normalizeName(value: string) { return decodeEntities(value).replace(/^[\d.\-–—: ]+/, "").replace(/[|•].*$/, "").trim(); }
 function normalize(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); }
+
+function sourcePageHypotheses(html: string) {
+  const visible = clean(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " "));
+  return SOURCE_HYPOTHESIS_PATTERNS.filter(([, pattern]) => pattern.test(visible)).map(([tag]) => tag).slice(0, 8);
+}
 
 function plausiblePlaceName(value: string) {
   const text = normalizeName(value);
@@ -125,20 +149,22 @@ export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], max
     const recovery = recoveredLeads(lead, searchContextCandidates(lead));
     try {
       const response = await fetchWithTimeout(lead.url);
-      if (!response.ok || !(response.headers.get("content-type") ?? "").includes("text/html")) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: recovery, ok: false, error: `http_${response.status}` }); continue; }
+      if (!response.ok || !(response.headers.get("content-type") ?? "").includes("text/html")) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: recovery, sourceHypotheses: [], ok: false, error: `http_${response.status}` }); continue; }
       const html = (await response.text()).slice(0, 900_000);
+      const hypotheses = sourcePageHypotheses(html);
       const structured = structuredCandidates(html); const structuredNames = new Set(structured.map((item) => item.name.toLowerCase())); const visible = visibleCandidates(html).filter((name) => !structuredNames.has(name.toLowerCase()));
       const selected: SelectedEntity[] = [...structured.map((item): SelectedEntity => ({ ...item, method: "JSON_LD" })), ...visible.map((name): SelectedEntity => ({ name, confidence: "HIGH", method: "PLACE_TYPE_TEXT" }))]
         .filter((item) => item.name.toLowerCase() !== lead.name.toLowerCase()).slice(0, Math.max(1, Math.min(maxEntitiesPerPage, 8)));
       const observedAt = new Date().toISOString(); const host = hostOf(lead.url);
       const extracted = selected.map((item, index): ResearchLead => ({ id: `extracted:${Buffer.from(`${lead.id}:${item.name}`).toString("base64url").slice(0, 28)}:${index}`, pageId: lead.pageId, theme: lead.theme, query: lead.query, name: item.name, snippet: `High-confidence named place extracted from ${lead.name}`, url: lead.url, sourceType: lead.sourceType, publisher: lead.publisher, independentKey: host, observedAt, address: item.address, lat: item.lat, lon: item.lon, rawClaims: [`PLACE_ENTITY_EXTRACTED_FROM ${lead.url}`, `PLACE_ENTITY_CONFIDENCE HIGH`, `PLACE_ENTITY_METHOD ${item.method}`, `SOURCE_CONTEXT ${lead.name}`] }));
       const existingNames = new Set(extracted.map((item) => normalize(item.name)));
-      results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: [...extracted, ...recovery.filter((item) => !existingNames.has(normalize(item.name)))], ok: true });
-    } catch (error) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: recovery, ok: false, error: error instanceof Error ? error.message : "source_fetch_failed" }); }
+      results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: [...extracted, ...recovery.filter((item) => !existingNames.has(normalize(item.name)))], sourceHypotheses: hypotheses, ok: true });
+    } catch (error) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: recovery, sourceHypotheses: [], ok: false, error: error instanceof Error ? error.message : "source_fetch_failed" }); }
   }
 
   const extracted = results.flatMap((item) => item.extracted); const seen = new Set<string>();
   const deduped = extracted.filter((lead) => { const key = normalize(lead.name); if (!key || seen.has(key)) return false; seen.add(key); return true; });
   return { results, leads: deduped, sourcePagesAttempted: eligible.length, sourcePagesOpened: results.filter((item) => item.ok).length, extractedCount: deduped.length,
-    rule: "Collector Recovery V1.3: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. If a page cannot be opened, only explicit named physical-place patterns recovered from the search-result context may enter the candidate pool, and those recovery candidates receive no truth credit: they must still pass geo resolution, Paris lock, intent, exposure, relevance and independent claim verification. JSON-LD remains preferred when a page opens." };
+    hypothesisPages: results.filter((item) => item.sourceHypotheses.length > 0).length,
+    rule: "Collector Recovery V1.4: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. Opened source pages may emit only bounded SOURCE_PAGE_HYPOTHESIS tags for research allocation; these tags are zero-truth, zero-Exposure and zero-LOCK signals and must be independently verified downstream. If a page cannot be opened, only explicit named physical-place patterns recovered from search-result context may enter the candidate pool, also with no truth credit. JSON-LD remains preferred when a page opens." };
 }
