@@ -143,6 +143,19 @@ const EXACT_ANGLE_LAYER_TERMS = [
   /specialist visit|visite sp[eé]cialiste|small group|petit groupe/i,
 ];
 
+const STRONG_SINGLE_SOURCE_HYPOTHESES = new Set(["working-workshop", "consultation", "private-room", "rare-opening", "after-hours"]);
+const STRONG_SOURCE_HYPOTHESIS_PAIRS: Array<[string, string]> = [
+  ["atelier", "garden"],
+  ["atelier", "courtyard"],
+  ["atelier", "apartment-house"],
+  ["archives", "appointment"],
+  ["archives", "consultation"],
+  ["reserve", "appointment"],
+  ["reserve", "consultation"],
+  ["apartment-house", "garden"],
+  ["apartment-house", "courtyard"],
+];
+
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -152,6 +165,14 @@ function rawText(lead: ResearchLead) {
 }
 function sourceHypothesisTags(lead: ResearchLead) {
   return [...new Set(lead.rawClaims.map((claim) => claim.match(/^SOURCE_PAGE_HYPOTHESIS\s+(.+)$/i)?.[1]?.trim()).filter((tag): tag is string => Boolean(tag)))];
+}
+function strongSourceHypothesis(tags: string[]) {
+  const set = new Set(tags);
+  const single = tags.find((tag) => STRONG_SINGLE_SOURCE_HYPOTHESES.has(tag));
+  if (single) return { strong: true, reason: `strong singular source-page hypothesis: ${single}` };
+  const pair = STRONG_SOURCE_HYPOTHESIS_PAIRS.find(([a, b]) => set.has(a) && set.has(b));
+  if (pair) return { strong: true, reason: `strong composite source-page hypothesis: ${pair[0]} + ${pair[1]}` };
+  return { strong: false, reason: "" };
 }
 function hasResolvedIdentity(lead: ResearchLead) { return typeof lead.lat === "number" && typeof lead.lon === "number"; }
 function hasOfficialSeed(lead: ResearchLead) { return lead.sourceType === "OFFICIAL" || lead.rawClaims.some((claim) => /PARIS_DATA_OFFICIAL_VENUE|PARIS_DATA_SOURCE_URL/i.test(claim)); }
@@ -169,6 +190,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const unknowns: string[] = [];
   const text = rawText(lead);
   const sourceHypotheses = sourceHypothesisTags(lead);
+  const sourceHypothesis = strongSourceHypothesis(sourceHypotheses);
   const themePatterns = THEME_HYPOTHESIS_TERMS[lead.theme] ?? [];
   const themeHypotheses = countMatchedPatterns(themePatterns, text);
   const microSignals = countMatchedPatterns(MICRO_EXPERIENCE_TERMS, text);
@@ -178,11 +200,13 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const mainstreamPrior = MAINSTREAM_INSTITUTION_PRIORS.some((pattern) => pattern.test(lead.name));
 
   if (sourceHypotheses.length) positiveSignals.push(`source-page hypotheses (zero truth credit): ${sourceHypotheses.join(", ")}`);
+  if (sourceHypothesis.strong) positiveSignals.push(`${sourceHypothesis.reason}; buys research budget only, not truth credit`);
 
   let discriminatingSignals = 0;
   if (themeHypotheses > 0) { discriminatingSignals += Math.min(2, themeHypotheses); positiveSignals.push(`entity text carries ${themeHypotheses} theme-specific hypothesis signal(s)`); }
   if (microSignals > 0) { discriminatingSignals += 1; positiveSignals.push("specific micro-experience/physical-feature hypothesis"); }
   if (exactAngleSignals > 0) { discriminatingSignals += Math.min(2, exactAngleSignals); positiveSignals.push(`exact-angle Uncovered-layer hypothesis (${exactAngleSignals} signal(s))`); }
+  if (sourceHypothesis.strong && discriminatingSignals === 0) discriminatingSignals += 1;
   if (peer.sourceFamilies >= 2 && peer.focusedAppearances >= 1) { discriminatingSignals += 1; positiveSignals.push("entity recurs across independent source families"); }
   if (peer.queryVariants >= 2 && peer.focusedAppearances >= 2) { discriminatingSignals += 1; positiveSignals.push("entity recurs across focused query variants"); }
 
@@ -206,6 +230,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   if (peer.queryVariants >= 2) evidencePotential += 14;
   if (themeHypotheses > 0) evidencePotential += 12;
   if (exactAngleSignals > 0) evidencePotential += 10;
+  if (sourceHypothesis.strong) evidencePotential += 6;
   evidencePotential = Math.min(100, evidencePotential);
 
   let provenance = 10;
@@ -220,6 +245,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   interestPotential += Math.min(34, themeHypotheses * 16);
   interestPotential += Math.min(26, microSignals * 16);
   interestPotential += Math.min(24, exactAngleSignals * 12);
+  if (sourceHypothesis.strong) interestPotential += 24;
   if (peer.sourceFamilies >= 2 && peer.focusedAppearances > 0) interestPotential += 8;
   if (peer.queryVariants >= 2 && peer.focusedAppearances >= 2) interestPotential += 6;
   interestPotential = Math.max(0, Math.min(100, interestPotential));
@@ -228,6 +254,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   exposureOpportunity += Math.min(36, exactAngleSignals * 18);
   exposureOpportunity += Math.min(14, microSignals * 7);
   if (themeHypotheses > 0) exposureOpportunity += Math.min(10, themeHypotheses * 5);
+  if (sourceHypothesis.strong) exposureOpportunity += 8;
   if (iconic) { exposureOpportunity -= exactAngleSignals > 0 ? 18 : 38; negativeSignals.push("iconic entity exposure prior; exact-angle exposure must be independently verified"); }
   else if (mainstreamPrior) { exposureOpportunity -= exactAngleSignals > 0 ? 10 : 22; negativeSignals.push("mainstream institution exposure prior; exact-angle exposure must be independently verified"); }
   exposureOpportunity = Math.max(0, Math.min(100, exposureOpportunity));
@@ -272,5 +299,5 @@ export function applyCandidateIntelligenceLayer(leads: ResearchLead[], maxDeepCa
   const hold = all.filter((item) => item.decision === "HOLD" || ((item.decision === "TEST" || item.decision === "DEEP_RESEARCH") && !selectedIds.has(item.lead.id)));
   const rejected = all.filter((item) => item.decision === "REJECT");
   const selected = [...deepResearch, ...test].map((item) => item.lead);
-  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Entity fame is only a prior: an iconic or mainstream place may still deserve research when a precise underexposed layer is hypothesized (after-hours access, consultation procedure, private room, reserve, second courtyard, working infrastructure, etc.). SOURCE_PAGE_HYPOTHESIS tags are diagnostic research hints only and carry zero truth, Exposure or LOCK credit. Obscure alone is never good. This layer never declares Exposure truth and never LOCKs a candidate: verified exact-angle Exposure Degree remains a mandatory downstream fail-closed gate, normally targeting >=7/10 in Velvet's favor, with ~6.5 reserved for exceptional experiences with strong access. Intent, Access, Trust, micro-localization, factual verification and publication remain downstream gates." };
+  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Entity fame is only a prior. SOURCE_PAGE_HYPOTHESIS tags remain zero-truth, zero-Exposure and zero-LOCK hints. A weak tag such as garden never escalates a candidate by itself; only bounded strong singular hints or specific composite micro-layer combinations may buy a 1X research test. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
 }
