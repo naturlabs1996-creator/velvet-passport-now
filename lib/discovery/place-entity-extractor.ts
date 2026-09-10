@@ -18,7 +18,7 @@ type SelectedEntity = {
   lon?: number;
 };
 
-const USER_AGENT = "VelvetPassportPlaceExtractor/1.4 (source-page hypothesis recovery + precision place extraction; cached public pages)";
+const USER_AGENT = "VelvetPassportPlaceExtractor/1.5 (source-page hypothesis enrichment + precision place extraction; cached public pages)";
 const GENERIC = /^(paris|france|home|menu|visit|guide|travel|read more|learn more|about|contact|official website|wikipedia|contents|history|origins|etymology|geography|climate|administration|actualités|rechercher)$/i;
 const EDITORIAL_NOISE = /\b(what to do|things to do|best |top |exhibitions?|events?|autumn|september|october|november|december|january|february|march|april|may|june|july|august|right now|discover the|heritage days|city pass|tourist office|official website|newsletter|privacy|cookie|facebook|instagram|youtube|tripadvisor|terms|login|sign in|subscribe|booking|all you must know|must-see|guide to|tips|news|agenda)\b/i;
 const PLACE_TYPE = /\b(mus[eé]e|museum|maison|h[oô]tel particulier|passage|galerie|jardin|garden|square|cour|courtyard|librairie|bookshop|bookstore|atelier|chapelle|church|église|cemetery|cimetière|catacomb|palais|pavillon|villa|théâtre|theatre|café|cafe|bibliothèque|library|fondation|foundation|rue|street|arcade|halle|market|marché|canal|parc|park|temple|synagogue|basilique|basilica|monument|tower|tour|crypt|crypte)\b/i;
@@ -53,6 +53,15 @@ function normalize(value: string) { return value.toLowerCase().normalize("NFD").
 function sourcePageHypotheses(html: string) {
   const visible = clean(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " "));
   return SOURCE_HYPOTHESIS_PATTERNS.filter(([, pattern]) => pattern.test(visible)).map(([tag]) => tag).slice(0, 8);
+}
+
+function attachSourceHypotheses(lead: ResearchLead, hypotheses: string[]) {
+  if (!hypotheses.length) return;
+  const existing = new Set(lead.rawClaims);
+  for (const tag of hypotheses) {
+    const claim = `SOURCE_PAGE_HYPOTHESIS ${tag}`;
+    if (!existing.has(claim)) lead.rawClaims.push(claim);
+  }
 }
 
 function plausiblePlaceName(value: string) {
@@ -152,6 +161,7 @@ export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], max
       if (!response.ok || !(response.headers.get("content-type") ?? "").includes("text/html")) { results.push({ sourceLeadId: lead.id, sourceUrl: lead.url, extracted: recovery, sourceHypotheses: [], ok: false, error: `http_${response.status}` }); continue; }
       const html = (await response.text()).slice(0, 900_000);
       const hypotheses = sourcePageHypotheses(html);
+      attachSourceHypotheses(lead, hypotheses);
       const structured = structuredCandidates(html); const structuredNames = new Set(structured.map((item) => item.name.toLowerCase())); const visible = visibleCandidates(html).filter((name) => !structuredNames.has(name.toLowerCase()));
       const selected: SelectedEntity[] = [...structured.map((item): SelectedEntity => ({ ...item, method: "JSON_LD" })), ...visible.map((name): SelectedEntity => ({ name, confidence: "HIGH", method: "PLACE_TYPE_TEXT" }))]
         .filter((item) => item.name.toLowerCase() !== lead.name.toLowerCase()).slice(0, Math.max(1, Math.min(maxEntitiesPerPage, 8)));
@@ -166,5 +176,5 @@ export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], max
   const deduped = extracted.filter((lead) => { const key = normalize(lead.name); if (!key || seen.has(key)) return false; seen.add(key); return true; });
   return { results, leads: deduped, sourcePagesAttempted: eligible.length, sourcePagesOpened: results.filter((item) => item.ok).length, extractedCount: deduped.length,
     hypothesisPages: results.filter((item) => item.sourceHypotheses.length > 0).length,
-    rule: "Collector Recovery V1.4: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. Opened source pages may emit only bounded SOURCE_PAGE_HYPOTHESIS tags for research allocation; these tags are zero-truth, zero-Exposure and zero-LOCK signals and must be independently verified downstream. If a page cannot be opened, only explicit named physical-place patterns recovered from search-result context may enter the candidate pool, also with no truth credit. JSON-LD remains preferred when a page opens." };
+    rule: "Collector Recovery V1.5: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. Opened source pages may attach only bounded SOURCE_PAGE_HYPOTHESIS tags to their originating in-memory research lead for Candidate Intelligence allocation; these tags are zero-truth, zero-Exposure and zero-LOCK signals and must be independently verified downstream. If a page cannot be opened, only explicit named physical-place patterns recovered from search-result context may enter the candidate pool, also with no truth credit. JSON-LD remains preferred when a page opens." };
 }
