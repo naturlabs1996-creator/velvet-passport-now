@@ -72,7 +72,14 @@ const SHELL_OR_NON_EXPERIENCE = [
 
 const THEME_CATEGORY_RULES: Record<string, RegExp[]> = {
   "unusual-museums": [/museum|mus[eé]e|house museum|atelier[- ]mus[eé]e/i],
-  "beyond-the-classics": [/museum|mus[eé]e|house museum|passage|cultural venue|culturel|galerie/i],
+  "beyond-the-classics": [
+    /museum|mus[eé]e|house museum|maison[- ]mus[eé]e/i,
+    /artist.?s studio|atelier d['’]artiste|atelier[- ]mus[eé]e|working atelier|working workshop|atelier patrimonial/i,
+    /archive|archives|documentation centre|centre de documentation|specialist library|biblioth[eè]que sp[eé]cialis[eé]e|library\/archive/i,
+    /private collection|collection priv[eé]e|cabinet de curiosit[eé]s|reserve|r[eé]serves|conservation/i,
+    /heritage association|association patrimoniale|association culturelle|society|soci[eé]t[eé]/i,
+    /passage|covered passage|galerie couverte|cultural venue|culturel|galerie/i,
+  ],
   "quiet-paris": [/garden|jardin|park|parc|square|library|biblioth[eè]que|museum|mus[eé]e/i],
   "secret-gardens": [/garden|jardin|park|parc|square|courtyard|cour/i],
   "forgotten-passages": [/passage|galerie couverte|covered passage|arcade/i],
@@ -299,5 +306,5 @@ export function applyCandidateIntelligenceLayer(leads: ResearchLead[], maxDeepCa
   const hold = all.filter((item) => item.decision === "HOLD" || ((item.decision === "TEST" || item.decision === "DEEP_RESEARCH") && !selectedIds.has(item.lead.id)));
   const rejected = all.filter((item) => item.decision === "REJECT");
   const selected = [...deepResearch, ...test].map((item) => item.lead);
-  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Entity fame is only a prior. SOURCE_PAGE_HYPOTHESIS tags remain zero-truth, zero-Exposure and zero-LOCK hints. A weak tag such as garden never escalates a candidate by itself; only bounded strong singular hints or specific composite micro-layer combinations may buy a 1X research test. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
+  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Beyond-the-classics category compatibility includes bounded Velvet-relevant physical classes such as artist studios, working heritage workshops, archives, specialist libraries, private collections and heritage associations, but category compatibility grants no truth, Interest, Exposure or LOCK credit by itself. Entity fame is only a prior. SOURCE_PAGE_HYPOTHESIS tags remain zero-truth, zero-Exposure and zero-LOCK hints. A weak tag such as garden never escalates a candidate by itself; only bounded strong singular hints or specific composite micro-layer combinations may buy a 1X research test. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
 }
