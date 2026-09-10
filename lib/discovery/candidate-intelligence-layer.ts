@@ -150,6 +150,22 @@ const EXACT_ANGLE_LAYER_TERMS = [
   /specialist visit|visite sp[eé]cialiste|small group|petit groupe/i,
 ];
 
+const SOURCE_HYPOTHESIS_LOCAL_PATTERNS: Record<string, RegExp> = {
+  atelier: /\b(atelier|studio|workshop)\b/i,
+  "working-workshop": /\b(atelier en activit[eé]|working workshop|working atelier|artisan workshop)\b/i,
+  garden: /\b(jardin|garden)\b/i,
+  courtyard: /\b(cour int[eé]rieure|courtyard|seconde? cour|second courtyard)\b/i,
+  "apartment-house": /\b(appartement|apartment|maison d['’]|house museum|maison[- ]mus[eé]e)\b/i,
+  archives: /\b(archives?|documentation centre|centre de documentation)\b/i,
+  reserve: /\b(r[eé]serves?|storage|conservation store)\b/i,
+  consultation: /\b(salle de consultation|consultation room|consultation sur rendez[- ]vous|consult by appointment)\b/i,
+  appointment: /\b(sur rendez[- ]vous|by appointment|appointment required)\b/i,
+  "private-room": /\b(petit salon|salon priv[eé]|private room|small salon)\b/i,
+  underground: /\b(souterrain|underground|crypte|crypt|[eé]gout|sewer|galerie souterraine)\b/i,
+  "rare-opening": /\b(ouverture exceptionnelle|rare opening|exceptional opening)\b/i,
+  "after-hours": /\b(apr[eè]s la fermeture|after[- ]hours|after closing|nocturne)\b/i,
+};
+
 const STRONG_SINGLE_SOURCE_HYPOTHESES = new Set(["working-workshop", "consultation", "private-room", "rare-opening", "after-hours"]);
 const STRONG_SOURCE_HYPOTHESIS_PAIRS: Array<[string, string]> = [
   ["atelier", "garden"],
@@ -167,18 +183,26 @@ function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function nonMetadataClaims(lead: ResearchLead) {
+  return lead.rawClaims.filter((claim) => !/^(?:VENUE_POOL_CATEGORY|VENUE_POOL_DISCOVERY_ONLY|WIKIDATA_COORDINATES|WIKIDATA_ENTITY|WIKIDATA_SOURCE_URL|PARIS_DATA_|SOURCE_PAGE_HYPOTHESIS|PLACE_ENTITY_|SOURCE_CONTEXT)/i.test(claim));
+}
 function rawText(lead: ResearchLead) {
-  return [lead.name, lead.snippet ?? "", ...lead.rawClaims.filter((claim) => !/^(?:VENUE_POOL_CATEGORY|VENUE_POOL_DISCOVERY_ONLY|WIKIDATA_COORDINATES|WIKIDATA_ENTITY|PARIS_DATA_)/i.test(claim))].join(" | ");
+  const snippet = /physical venue pool/i.test(lead.query) ? "" : (lead.snippet ?? "");
+  return [lead.name, snippet, ...nonMetadataClaims(lead)].join(" | ");
 }
 function sourceHypothesisTags(lead: ResearchLead) {
   return [...new Set(lead.rawClaims.map((claim) => claim.match(/^SOURCE_PAGE_HYPOTHESIS\s+(.+)$/i)?.[1]?.trim()).filter((tag): tag is string => Boolean(tag)))];
 }
+function locallyBoundSourceHypothesisTags(lead: ResearchLead, tags: string[]) {
+  const localText = rawText(lead);
+  return tags.filter((tag) => SOURCE_HYPOTHESIS_LOCAL_PATTERNS[tag]?.test(localText));
+}
 function strongSourceHypothesis(tags: string[]) {
   const set = new Set(tags);
   const single = tags.find((tag) => STRONG_SINGLE_SOURCE_HYPOTHESES.has(tag));
-  if (single) return { strong: true, reason: `strong singular source-page hypothesis: ${single}` };
+  if (single) return { strong: true, reason: `strong locally-bound source-page hypothesis: ${single}` };
   const pair = STRONG_SOURCE_HYPOTHESIS_PAIRS.find(([a, b]) => set.has(a) && set.has(b));
-  if (pair) return { strong: true, reason: `strong composite source-page hypothesis: ${pair[0]} + ${pair[1]}` };
+  if (pair) return { strong: true, reason: `strong locally-bound composite source-page hypothesis: ${pair[0]} + ${pair[1]}` };
   return { strong: false, reason: "" };
 }
 function hasResolvedIdentity(lead: ResearchLead) { return typeof lead.lat === "number" && typeof lead.lon === "number"; }
@@ -197,7 +221,8 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const unknowns: string[] = [];
   const text = rawText(lead);
   const sourceHypotheses = sourceHypothesisTags(lead);
-  const sourceHypothesis = strongSourceHypothesis(sourceHypotheses);
+  const boundSourceHypotheses = locallyBoundSourceHypothesisTags(lead, sourceHypotheses);
+  const sourceHypothesis = strongSourceHypothesis(boundSourceHypotheses);
   const themePatterns = THEME_HYPOTHESIS_TERMS[lead.theme] ?? [];
   const themeHypotheses = countMatchedPatterns(themePatterns, text);
   const microSignals = countMatchedPatterns(MICRO_EXPERIENCE_TERMS, text);
@@ -206,7 +231,9 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const iconic = ICONIC_NAMES.some((pattern) => pattern.test(lead.name));
   const mainstreamPrior = MAINSTREAM_INSTITUTION_PRIORS.some((pattern) => pattern.test(lead.name));
 
-  if (sourceHypotheses.length) positiveSignals.push(`source-page hypotheses (zero truth credit): ${sourceHypotheses.join(", ")}`);
+  if (sourceHypotheses.length) positiveSignals.push(`source-page hypotheses observed (zero truth credit): ${sourceHypotheses.join(", ")}`);
+  const unboundSourceHypotheses = sourceHypotheses.filter((tag) => !boundSourceHypotheses.includes(tag));
+  if (unboundSourceHypotheses.length) negativeSignals.push(`ignored peripheral source-page hypotheses not bound to candidate-local context: ${unboundSourceHypotheses.join(", ")}`);
   if (sourceHypothesis.strong) positiveSignals.push(`${sourceHypothesis.reason}; buys research budget only, not truth credit`);
 
   let discriminatingSignals = 0;
@@ -306,5 +333,5 @@ export function applyCandidateIntelligenceLayer(leads: ResearchLead[], maxDeepCa
   const hold = all.filter((item) => item.decision === "HOLD" || ((item.decision === "TEST" || item.decision === "DEEP_RESEARCH") && !selectedIds.has(item.lead.id)));
   const rejected = all.filter((item) => item.decision === "REJECT");
   const selected = [...deepResearch, ...test].map((item) => item.lead);
-  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Beyond-the-classics category compatibility includes bounded Velvet-relevant physical classes such as artist studios, working heritage workshops, archives, specialist libraries, private collections and heritage associations, but category compatibility grants no truth, Interest, Exposure or LOCK credit by itself. Entity fame is only a prior. SOURCE_PAGE_HYPOTHESIS tags remain zero-truth, zero-Exposure and zero-LOCK hints. A weak tag such as garden never escalates a candidate by itself; only bounded strong singular hints or specific composite micro-layer combinations may buy a 1X research test. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
+  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Beyond-the-classics category compatibility includes bounded Velvet-relevant physical classes such as artist studios, working heritage workshops, archives, specialist libraries, private collections and heritage associations, but category compatibility grants no truth, Interest, Exposure or LOCK credit by itself. Entity fame is only a prior. SOURCE_PAGE_HYPOTHESIS tags remain zero-truth, zero-Exposure and zero-LOCK hints. They are excluded from semantic candidate text so a tag can never count itself as a micro-layer or exact-angle signal. A source-page hypothesis may buy research budget only when its concept is independently present in candidate-local context; peripheral page tags are ignored. Strong singular or composite hints remain bounded and still buy research budget only, never truth credit. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
 }
