@@ -184,7 +184,7 @@ function normalize(value: string) {
 }
 
 function nonMetadataClaims(lead: ResearchLead) {
-  return lead.rawClaims.filter((claim) => !/^(?:VENUE_POOL_CATEGORY|VENUE_POOL_DISCOVERY_ONLY|WIKIDATA_COORDINATES|WIKIDATA_ENTITY|WIKIDATA_SOURCE_URL|PARIS_DATA_|SOURCE_PAGE_HYPOTHESIS|PLACE_ENTITY_|SOURCE_CONTEXT)/i.test(claim));
+  return lead.rawClaims.filter((claim) => !/^(?:VENUE_POOL_CATEGORY|VENUE_POOL_DISCOVERY_ONLY|WIKIDATA_COORDINATES|WIKIDATA_ENTITY|WIKIDATA_SOURCE_URL|PARIS_DATA_|SOURCE_PAGE_HYPOTHESIS|SOURCE_PAGE_LOCAL_HYPOTHESIS|PLACE_ENTITY_|SOURCE_CONTEXT)/i.test(claim));
 }
 function rawText(lead: ResearchLead) {
   const snippet = /physical venue pool/i.test(lead.query) ? "" : (lead.snippet ?? "");
@@ -193,9 +193,8 @@ function rawText(lead: ResearchLead) {
 function sourceHypothesisTags(lead: ResearchLead) {
   return [...new Set(lead.rawClaims.map((claim) => claim.match(/^SOURCE_PAGE_HYPOTHESIS\s+(.+)$/i)?.[1]?.trim()).filter((tag): tag is string => Boolean(tag)))];
 }
-function locallyBoundSourceHypothesisTags(lead: ResearchLead, tags: string[]) {
-  const localText = rawText(lead);
-  return tags.filter((tag) => SOURCE_HYPOTHESIS_LOCAL_PATTERNS[tag]?.test(localText));
+function localSourceHypothesisTags(lead: ResearchLead) {
+  return [...new Set(lead.rawClaims.map((claim) => claim.match(/^SOURCE_PAGE_LOCAL_HYPOTHESIS\s+(.+)$/i)?.[1]?.trim()).filter((tag): tag is string => Boolean(tag)))];
 }
 function strongSourceHypothesis(tags: string[]) {
   const set = new Set(tags);
@@ -221,8 +220,8 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const unknowns: string[] = [];
   const text = rawText(lead);
   const sourceHypotheses = sourceHypothesisTags(lead);
-  const boundSourceHypotheses = locallyBoundSourceHypothesisTags(lead, sourceHypotheses);
-  const sourceHypothesis = strongSourceHypothesis(boundSourceHypotheses);
+  const localSourceHypotheses = localSourceHypothesisTags(lead);
+  const sourceHypothesis = strongSourceHypothesis(localSourceHypotheses);
   const themePatterns = THEME_HYPOTHESIS_TERMS[lead.theme] ?? [];
   const themeHypotheses = countMatchedPatterns(themePatterns, text);
   const microSignals = countMatchedPatterns(MICRO_EXPERIENCE_TERMS, text);
@@ -231,9 +230,10 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const iconic = ICONIC_NAMES.some((pattern) => pattern.test(lead.name));
   const mainstreamPrior = MAINSTREAM_INSTITUTION_PRIORS.some((pattern) => pattern.test(lead.name));
 
-  if (sourceHypotheses.length) positiveSignals.push(`source-page hypotheses observed (zero truth credit): ${sourceHypotheses.join(", ")}`);
-  const unboundSourceHypotheses = sourceHypotheses.filter((tag) => !boundSourceHypotheses.includes(tag));
-  if (unboundSourceHypotheses.length) negativeSignals.push(`ignored peripheral source-page hypotheses not bound to candidate-local context: ${unboundSourceHypotheses.join(", ")}`);
+  if (sourceHypotheses.length) positiveSignals.push(`whole-page source hypotheses observed for diagnostics only: ${sourceHypotheses.join(", ")}`);
+  if (localSourceHypotheses.length) positiveSignals.push(`candidate-local source hypotheses (zero truth credit): ${localSourceHypotheses.join(", ")}`);
+  const peripheralSourceHypotheses = sourceHypotheses.filter((tag) => !localSourceHypotheses.includes(tag));
+  if (peripheralSourceHypotheses.length) negativeSignals.push(`ignored peripheral source-page hypotheses outside identity-anchored local context: ${peripheralSourceHypotheses.join(", ")}`);
   if (sourceHypothesis.strong) positiveSignals.push(`${sourceHypothesis.reason}; buys research budget only, not truth credit`);
 
   let discriminatingSignals = 0;
@@ -333,5 +333,5 @@ export function applyCandidateIntelligenceLayer(leads: ResearchLead[], maxDeepCa
   const hold = all.filter((item) => item.decision === "HOLD" || ((item.decision === "TEST" || item.decision === "DEEP_RESEARCH") && !selectedIds.has(item.lead.id)));
   const rejected = all.filter((item) => item.decision === "REJECT");
   const selected = [...deepResearch, ...test].map((item) => item.lead);
-  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Beyond-the-classics category compatibility includes bounded Velvet-relevant physical classes such as artist studios, working heritage workshops, archives, specialist libraries, private collections and heritage associations, but category compatibility grants no truth, Interest, Exposure or LOCK credit by itself. Entity fame is only a prior. SOURCE_PAGE_HYPOTHESIS tags remain zero-truth, zero-Exposure and zero-LOCK hints. They are excluded from semantic candidate text so a tag can never count itself as a micro-layer or exact-angle signal. A source-page hypothesis may buy research budget only when its concept is independently present in candidate-local context; peripheral page tags are ignored. Strong singular or composite hints remain bounded and still buy research budget only, never truth credit. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
+  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Beyond-the-classics category compatibility includes bounded Velvet-relevant physical classes such as artist studios, working heritage workshops, archives, specialist libraries, private collections and heritage associations, but category compatibility grants no truth, Interest, Exposure or LOCK credit by itself. Entity fame is only a prior. Whole-page SOURCE_PAGE_HYPOTHESIS tags are diagnostics only and can never buy research budget. Only SOURCE_PAGE_LOCAL_HYPOTHESIS tags emitted from identity-anchored local source windows may buy research budget, and they remain zero-truth, zero-Exposure and zero-LOCK hints. All source hypothesis tags are excluded from semantic candidate text so a tag can never count itself as a micro-layer or exact-angle signal. Strong singular or composite hints remain bounded and still buy research budget only, never truth credit. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
 }
