@@ -18,7 +18,7 @@ type SelectedEntity = {
   lon?: number;
 };
 
-const USER_AGENT = "VelvetPassportPlaceExtractor/1.6 (locally-bound source-page hypotheses + precision place extraction; cached public pages)";
+const USER_AGENT = "VelvetPassportPlaceExtractor/1.7 (block-bound source-page hypotheses + precision place extraction; cached public pages)";
 const GENERIC = /^(paris|france|home|menu|visit|guide|travel|read more|learn more|about|contact|official website|wikipedia|contents|history|origins|etymology|geography|climate|administration|actualités|rechercher)$/i;
 const EDITORIAL_NOISE = /\b(what to do|things to do|best |top |exhibitions?|events?|autumn|september|october|november|december|january|february|march|april|may|june|july|august|right now|discover the|heritage days|city pass|tourist office|official website|newsletter|privacy|cookie|facebook|instagram|youtube|tripadvisor|terms|login|sign in|subscribe|booking|all you must know|must-see|guide to|tips|news|agenda)\b/i;
 const PLACE_TYPE = /\b(mus[eé]e|museum|maison|h[oô]tel particulier|passage|galerie|jardin|garden|square|cour|courtyard|librairie|bookshop|bookstore|atelier|chapelle|church|église|cemetery|cimetière|catacomb|palais|pavillon|villa|théâtre|theatre|café|cafe|bibliothèque|library|fondation|foundation|rue|street|arcade|halle|market|marché|canal|parc|park|temple|synagogue|basilique|basilica|monument|tower|tour|crypt|crypte)\b/i;
@@ -71,23 +71,30 @@ function sourcePageHypotheses(html: string) {
   return SOURCE_HYPOTHESIS_PATTERNS.filter(([, pattern]) => pattern.test(visible)).map(([tag]) => tag).slice(0, 8);
 }
 function localSourcePageHypotheses(html: string, lead: ResearchLead) {
-  const visible = visiblePageText(html);
-  const normalizedVisible = normalize(visible);
+  const stripped = html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, " ")
+    .replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, " ")
+    .replace(/<header\b[^>]*>[\s\S]*?<\/header>/gi, " ");
+  const blocks = [
+    ...(stripped.match(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/gi) ?? []),
+    ...(stripped.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) ?? []),
+    ...(stripped.match(/<li\b[^>]*>[\s\S]*?<\/li>/gi) ?? []),
+    ...(stripped.match(/<(?:dt|dd|figcaption)\b[^>]*>[\s\S]*?<\/(?:dt|dd|figcaption)>/gi) ?? []),
+  ].map((block) => clean(block)).filter((block) => block.length >= 12 && block.length <= 1400);
   const anchors = identityAnchors(lead.name);
-  const windows: string[] = [];
-  for (const anchor of anchors) {
-    let from = 0;
-    while (windows.length < 12) {
-      const index = normalizedVisible.indexOf(anchor, from);
-      if (index < 0) break;
-      const start = Math.max(0, index - 700);
-      const end = Math.min(normalizedVisible.length, index + anchor.length + 1100);
-      windows.push(normalizedVisible.slice(start, end));
-      from = index + anchor.length;
-    }
+  const selected = new Set<number>();
+  for (let i = 0; i < blocks.length; i++) {
+    const normalizedBlock = normalize(blocks[i]);
+    if (!anchors.some((anchor) => normalizedBlock.includes(anchor))) continue;
+    selected.add(i);
+    if (i > 0) selected.add(i - 1);
+    if (i + 1 < blocks.length) selected.add(i + 1);
+    if (selected.size >= 9) break;
   }
-  if (!windows.length) return [];
-  const local = windows.join(" | ");
+  if (!selected.size) return [];
+  const local = [...selected].sort((a, b) => a - b).map((index) => blocks[index]).join(" | ");
   return SOURCE_HYPOTHESIS_PATTERNS.filter(([, pattern]) => pattern.test(local)).map(([tag]) => tag).slice(0, 8);
 }
 
@@ -217,5 +224,5 @@ export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], max
   const deduped = extracted.filter((lead) => { const key = normalize(lead.name); if (!key || seen.has(key)) return false; seen.add(key); return true; });
   return { results, leads: deduped, sourcePagesAttempted: eligible.length, sourcePagesOpened: results.filter((item) => item.ok).length, extractedCount: deduped.length,
     hypothesisPages: results.filter((item) => item.sourceHypotheses.length > 0).length,
-    rule: "Collector Recovery V1.6: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. Whole-page SOURCE_PAGE_HYPOTHESIS tags remain diagnostics only. SOURCE_PAGE_LOCAL_HYPOTHESIS tags are emitted only when the same bounded concept appears inside an identity-anchored local text window for the originating candidate, after script/style/header/nav/footer removal. Both tag classes remain zero-truth, zero-Exposure and zero-LOCK signals and must be independently verified downstream. If a page cannot be opened, only explicit named physical-place patterns recovered from search-result context may enter the candidate pool, also with no truth credit. JSON-LD remains preferred when a page opens." };
+    rule: "Collector Recovery V1.6: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. Whole-page SOURCE_PAGE_HYPOTHESIS tags remain diagnostics only. SOURCE_PAGE_LOCAL_HYPOTHESIS tags are emitted only when the same bounded concept appears in the identity-bearing editorial block or its immediate neighboring blocks for the originating candidate, after script/style/header/nav/footer removal. Both tag classes remain zero-truth, zero-Exposure and zero-LOCK signals and must be independently verified downstream. If a page cannot be opened, only explicit named physical-place patterns recovered from search-result context may enter the candidate pool, also with no truth credit. JSON-LD remains preferred when a page opens." };
 }
