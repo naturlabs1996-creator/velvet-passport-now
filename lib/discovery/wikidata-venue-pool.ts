@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.0 (category-balanced discovery + direct Wikipedia venue search + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.1 (category-balanced discovery + direct Wikidata full-text entity search + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -162,6 +162,7 @@ function normalize(value: string) { return value.toLowerCase().normalize("NFD").
 function inParis(lat?: number, lon?: number) { return typeof lat === "number" && typeof lon === "number" && lat >= 48.80 && lat <= 48.91 && lon >= 2.22 && lon <= 2.47; }
 function chunks<T>(items: T[], size: number) { const out: T[][] = []; for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size)); return out; }
 function wdSearchUrl(query: string, limit = 8) { const params = new URLSearchParams({ action: "wbsearchentities", search: query, language: "fr", uselang: "fr", type: "item", limit: String(limit), format: "json", origin: "*" }); return `${WIKIDATA_API}?${params}`; }
+function wdTextSearchUrl(query: string, limit = 24) { const params = new URLSearchParams({ action: "query", list: "search", srsearch: query, srnamespace: "0", srlimit: String(limit), format: "json", origin: "*" }); return `${WIKIDATA_API}?${params}`; }
 function wdEntitiesUrl(ids: string[]) { const params = new URLSearchParams({ action: "wbgetentities", ids: ids.join("|"), props: "claims|labels", languages: "fr|en", format: "json", origin: "*" }); return `${WIKIDATA_API}?${params}`; }
 function categoryUrl(title: string) { const params = new URLSearchParams({ action: "query", list: "categorymembers", cmtitle: title, cmnamespace: "0", cmlimit: "100", cmtype: "page", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function wikiSearchUrl(query: string, limit = 12) { const params = new URLSearchParams({ action: "query", list: "search", srsearch: query, srnamespace: "0", srlimit: String(limit), format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
@@ -232,42 +233,46 @@ async function enrichOfficialSeeds(seeds: VenuePoolSeed[]) {
 async function directSeeds(spec: VenueSpec, cap: number) {
   const searches = await Promise.all(spec.direct.map(async (entry) => {
     try {
-      const json = await fetchJson<{ query?: { search?: WikiSearchRow[] } }>(wikiSearchUrl(entry.query, 16), 6000);
+      const json = await fetchJson<{ query?: { search?: WikiSearchRow[] } }>(wdTextSearchUrl(entry.query, 28), 6500);
       return { entry, rows: json.query?.search ?? [] };
     } catch {
       return { entry, rows: [] as WikiSearchRow[] };
     }
   }));
-  const meta = new Map<number, { category: string; title: string }>();
+  const meta = new Map<string, { category: string; fallback: string }>();
   for (const search of searches) {
     for (const row of search.rows) {
-      if (typeof row.pageid !== "number" || !row.title || meta.has(row.pageid)) continue;
-      meta.set(row.pageid, { category: search.entry.category, title: row.title });
+      const qid = row.title?.trim();
+      if (!qid || !/^Q\d+$/.test(qid) || meta.has(qid)) continue;
+      meta.set(qid, { category: search.entry.category, fallback: qid });
     }
   }
-  const pageIds = [...meta.keys()].slice(0, 180);
-  if (!pageIds.length) return [] as VenuePoolSeed[];
-  const pages: WikiPage[] = [];
-  for (const batch of chunks(pageIds, 50)) {
+  const ids = [...meta.keys()].slice(0, 220);
+  if (!ids.length) return [] as VenuePoolSeed[];
+  const entities: Record<string, Entity> = {};
+  for (const batch of chunks(ids, 40)) {
     try {
-      const json = await fetchJson<{ query?: { pages?: Record<string, WikiPage> } }>(pageDetailsUrl(batch), 6500);
-      pages.push(...Object.values(json.query?.pages ?? {}));
+      const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(batch), 7000);
+      Object.assign(entities, json.entities ?? {});
     } catch {}
   }
   const byCategory = new Map<string, VenuePoolSeed[]>();
-  for (const page of pages) {
-    const coord = page.coordinates?.[0];
-    const qid = page.pageprops?.wikibase_item;
-    const info = typeof page.pageid === "number" ? meta.get(page.pageid) : undefined;
-    if (!info || !page.title || !qid || !/^Q\d+$/.test(qid) || !inParis(coord?.lat, coord?.lon)) continue;
+  for (const qid of ids) {
+    const entity = entities[qid];
+    const coords = coordinateFromClaims(entity?.claims);
+    const info = meta.get(qid);
+    if (!info || !inParis(coords.lat, coords.lon)) continue;
+    const name = label(entity, info.fallback);
+    if (!name) continue;
     const seed: VenuePoolSeed = {
       id: `venue-direct:${qid}`,
-      name: page.title.trim(),
+      name,
       qid,
-      lat: coord?.lat,
-      lon: coord?.lon,
+      lat: coords.lat,
+      lon: coords.lon,
+      officialUrl: officialUrl(entity?.claims),
       category: info.category,
-      source: "WIKIPEDIA",
+      source: "WIKIDATA",
     };
     const list = byCategory.get(info.category) ?? [];
     list.push(seed);
@@ -308,7 +313,7 @@ function uniqueSeeds(groups: VenuePoolSeed[][], cap: number) {
 
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme]; const cap = Math.max(1, Math.min(maxSeeds, 24));
-  const rule = "Venue Pool V2.0 uses category-balanced bounded discovery budgets. City of Paris registry identity is round-robin balanced by category and capped near one-third of the pool. Direct French Wikipedia venue search receives the largest reserved capacity and is also category-balanced; category roots provide a third discovery family. Membership is discovery-only: it never proves traveler intent, rarity, low exposure, access, history or publication readiness.";
+  const rule = "Venue Pool V2.0 uses category-balanced bounded discovery budgets. City of Paris registry identity is round-robin balanced by category and capped near one-third of the pool. Direct Wikidata full-text entity search receives the largest reserved capacity, filters every candidate back to Paris coordinates, and is category-balanced; French Wikipedia category roots provide a third discovery family. Membership is discovery-only: it never proves traveler intent, rarity, low exposure, access, history or publication readiness.";
   if (!spec) return { theme, ok: true, queried: false, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], rule };
   try {
     // Reserve enough room for alternate discovery families before any one source can fill the pool.
