@@ -196,12 +196,17 @@ function sourceHypothesisTags(lead: ResearchLead) {
 function localSourceHypothesisTags(lead: ResearchLead) {
   return [...new Set(lead.rawClaims.map((claim) => claim.match(/^SOURCE_PAGE_LOCAL_HYPOTHESIS\s+(.+)$/i)?.[1]?.trim()).filter((tag): tag is string => Boolean(tag)))];
 }
-function strongSourceHypothesis(tags: string[]) {
-  const set = new Set(tags);
-  const single = tags.find((tag) => STRONG_SINGLE_SOURCE_HYPOTHESES.has(tag));
+function strongSourceHypothesis(localTags: string[], pageTags: string[]) {
+  const localSet = new Set(localTags);
+  const pageSet = new Set(pageTags);
+  const single = localTags.find((tag) => STRONG_SINGLE_SOURCE_HYPOTHESES.has(tag));
   if (single) return { strong: true, reason: `strong locally-bound source-page hypothesis: ${single}` };
-  const pair = STRONG_SOURCE_HYPOTHESIS_PAIRS.find(([a, b]) => set.has(a) && set.has(b));
-  if (pair) return { strong: true, reason: `strong locally-bound composite source-page hypothesis: ${pair[0]} + ${pair[1]}` };
+  const localPair = STRONG_SOURCE_HYPOTHESIS_PAIRS.find(([a, b]) => localSet.has(a) && localSet.has(b));
+  if (localPair) return { strong: true, reason: `strong locally-bound composite source-page hypothesis: ${localPair[0]} + ${localPair[1]}` };
+  const anchoredPair = STRONG_SOURCE_HYPOTHESIS_PAIRS.find(([a, b]) =>
+    (localSet.has(a) && pageSet.has(b)) || (localSet.has(b) && pageSet.has(a))
+  );
+  if (anchoredPair) return { strong: true, reason: `identity-anchored composite source-page hypothesis: local ${localSet.has(anchoredPair[0]) ? anchoredPair[0] : anchoredPair[1]} + page ${localSet.has(anchoredPair[0]) ? anchoredPair[1] : anchoredPair[0]}` };
   return { strong: false, reason: "" };
 }
 function hasResolvedIdentity(lead: ResearchLead) { return typeof lead.lat === "number" && typeof lead.lon === "number"; }
@@ -221,7 +226,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const text = rawText(lead);
   const sourceHypotheses = sourceHypothesisTags(lead);
   const localSourceHypotheses = localSourceHypothesisTags(lead);
-  const sourceHypothesis = strongSourceHypothesis(localSourceHypotheses);
+  const sourceHypothesis = strongSourceHypothesis(localSourceHypotheses, sourceHypotheses);
   const themePatterns = THEME_HYPOTHESIS_TERMS[lead.theme] ?? [];
   const themeHypotheses = countMatchedPatterns(themePatterns, text);
   const microSignals = countMatchedPatterns(MICRO_EXPERIENCE_TERMS, text);
@@ -333,5 +338,5 @@ export function applyCandidateIntelligenceLayer(leads: ResearchLead[], maxDeepCa
   const hold = all.filter((item) => item.decision === "HOLD" || ((item.decision === "TEST" || item.decision === "DEEP_RESEARCH") && !selectedIds.has(item.lead.id)));
   const rejected = all.filter((item) => item.decision === "REJECT");
   const selected = [...deepResearch, ...test].map((item) => item.lead);
-  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Beyond-the-classics category compatibility includes bounded Velvet-relevant physical classes such as artist studios, working heritage workshops, archives, specialist libraries, private collections and heritage associations, but category compatibility grants no truth, Interest, Exposure or LOCK credit by itself. Entity fame is only a prior. Whole-page SOURCE_PAGE_HYPOTHESIS tags are diagnostics only and can never buy research budget. Only SOURCE_PAGE_LOCAL_HYPOTHESIS tags emitted from identity-anchored local source windows may buy research budget, and they remain zero-truth, zero-Exposure and zero-LOCK hints. All source hypothesis tags are excluded from semantic candidate text so a tag can never count itself as a micro-layer or exact-angle signal. Strong singular or composite hints remain bounded and still buy research budget only, never truth credit. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
+  return { selected, deepResearch, test, hold, rejected, all, rule: "Velvet Candidate Intelligence allocates research budget around two mother axes: intrinsic Interest and exact-angle low-Exposure opportunity, with Exposure opportunity dominant. Beyond-the-classics category compatibility includes bounded Velvet-relevant physical classes such as artist studios, working heritage workshops, archives, specialist libraries, private collections and heritage associations, but category compatibility grants no truth, Interest, Exposure or LOCK credit by itself. Entity fame is only a prior. Whole-page SOURCE_PAGE_HYPOTHESIS tags are diagnostics only and can never buy research budget. Only SOURCE_PAGE_LOCAL_HYPOTHESIS tags emitted from identity-anchored local source windows may buy research budget, and they remain zero-truth, zero-Exposure and zero-LOCK hints. All source hypothesis tags are excluded from semantic candidate text so a tag can never count itself as a micro-layer or exact-angle signal. Strong singular or composite hints remain bounded and still buy research budget only, never truth credit. A composite may bridge one identity-local tag with one complementary whole-page tag from the same canonical source page, but only when the local tag anchors the candidate and the pair is on the explicit bounded pair allowlist. Every such test must still independently win Intent, exact-angle Exposure, Access, Trust, micro-localization and factual verification. Obscure alone is never good. Verified exact-angle Exposure Degree remains mandatory, normally >=7/10 in Velvet's favor, with 6.5-6.9 reserved for human exception review." };
 }
