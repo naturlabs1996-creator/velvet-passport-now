@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/1.9 (diversified discovery budgets + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.0 (category-balanced discovery + direct Wikipedia venue search + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -34,6 +34,7 @@ type VenueSpec = {
 };
 
 type SearchRow = { id?: string; label?: string };
+type WikiSearchRow = { pageid?: number; title?: string };
 type Claim = { mainsnak?: { datavalue?: { value?: unknown } } };
 type Entity = { labels?: Record<string, { value?: string }>; claims?: Record<string, Claim[]> };
 type CategoryMember = { pageid?: number; title?: string };
@@ -77,15 +78,16 @@ const THEME_SPECS: Record<string, VenueSpec> = {
   },
   "beyond-the-classics": {
     direct: [
-      { query: "atelier d'artiste Paris", category: "artist studio" },
-      { query: "atelier artisanal patrimoine Paris", category: "working workshop" },
-      { query: "centre d'archives Paris", category: "archive" },
-      { query: "bibliothèque spécialisée Paris", category: "specialist library" },
-      { query: "maison d'artiste Paris", category: "artist house" },
-      { query: "collection privée Paris", category: "private collection" },
-      { query: "association patrimoine Paris visite", category: "heritage association" },
+      { query: "\"atelier d'artiste\" Paris musée", category: "artist studio" },
+      { query: "atelier patrimoine artisanat Paris visite", category: "working workshop" },
+      { query: "archives spécialisées Paris consultation", category: "archive" },
+      { query: "bibliothèque patrimoniale spécialisée Paris", category: "specialist library" },
+      { query: "\"maison-atelier\" artiste Paris", category: "artist house" },
+      { query: "collection spécialisée Paris musée", category: "private collection" },
+      { query: "association patrimoine Paris visites", category: "heritage association" },
+      { query: "infrastructure souterraine Paris visite patrimoine", category: "heritage infrastructure" },
+      { query: "centre de documentation patrimoine Paris consultation", category: "documentation center" },
       { query: "passage couvert Paris", category: "passage" },
-      { query: "musée Paris", category: "museum" },
       { query: "fondation art Paris", category: "cultural venue" },
     ],
     categories: [
@@ -162,6 +164,7 @@ function chunks<T>(items: T[], size: number) { const out: T[][] = []; for (let i
 function wdSearchUrl(query: string, limit = 8) { const params = new URLSearchParams({ action: "wbsearchentities", search: query, language: "fr", uselang: "fr", type: "item", limit: String(limit), format: "json", origin: "*" }); return `${WIKIDATA_API}?${params}`; }
 function wdEntitiesUrl(ids: string[]) { const params = new URLSearchParams({ action: "wbgetentities", ids: ids.join("|"), props: "claims|labels", languages: "fr|en", format: "json", origin: "*" }); return `${WIKIDATA_API}?${params}`; }
 function categoryUrl(title: string) { const params = new URLSearchParams({ action: "query", list: "categorymembers", cmtitle: title, cmnamespace: "0", cmlimit: "100", cmtype: "page", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
+function wikiSearchUrl(query: string, limit = 12) { const params = new URLSearchParams({ action: "query", list: "search", srsearch: query, srnamespace: "0", srlimit: String(limit), format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function pageDetailsUrl(ids: number[]) { const params = new URLSearchParams({ action: "query", pageids: ids.join("|"), prop: "pageprops|coordinates", colimit: "1", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function parisDataUrl(offset: number) { const params = new URLSearchParams({ limit: "100", offset: String(offset) }); return `${PARIS_DATA}?${params}`; }
 
@@ -190,18 +193,19 @@ function nameOverlap(a: string, b: string) {
 }
 
 async function parisDataSeeds(spec: VenueSpec, cap: number) {
-  const seeds: VenuePoolSeed[] = []; const seen = new Set<string>(); const offsets = Array.from({ length: 37 }, (_, index) => index * 100);
+  const byCategory = new Map<string, VenuePoolSeed[]>(); const seen = new Set<string>(); const offsets = Array.from({ length: 37 }, (_, index) => index * 100);
   for (const batch of chunks(offsets, 5)) {
     const pages = await Promise.all(batch.map(async (offset) => { try { const json = await fetchJson<{ results?: RegistryRow[] }>(parisDataUrl(offset), 6500); return json.results ?? []; } catch { return [] as RegistryRow[]; } }));
     for (const row of pages.flat()) {
       const name = row.name?.trim(); const category = registryCategory(spec, row); const lat = Number(row.latitude); const lon = Number(row.longitude);
       if (!name || !category || !Number.isFinite(lat) || !Number.isFinite(lon) || !inParis(lat, lon) || !row.url?.startsWith("https://www.paris.fr/lieux/")) continue;
       const key = normalize(name); if (!key || seen.has(key)) continue; seen.add(key);
-      seeds.push({ id: `venue-paris-data:${row.id ?? key}`, name, lat, lon, officialUrl: row.url, category, source: "PARIS_DATA" });
-      if (seeds.length >= cap) return seeds;
+      const list = byCategory.get(category) ?? [];
+      list.push({ id: `venue-paris-data:${row.id ?? key}`, name, lat, lon, officialUrl: row.url, category, source: "PARIS_DATA" });
+      byCategory.set(category, list);
     }
   }
-  return seeds;
+  return uniqueSeeds([...byCategory.values()], cap);
 }
 
 async function enrichOfficialSeeds(seeds: VenuePoolSeed[]) {
@@ -226,20 +230,50 @@ async function enrichOfficialSeeds(seeds: VenuePoolSeed[]) {
 }
 
 async function directSeeds(spec: VenueSpec, cap: number) {
-  const searches = await Promise.all(spec.direct.map(async (entry) => { try { const json = await fetchJson<{ search?: SearchRow[] }>(wdSearchUrl(entry.query, 12)); return { entry, rows: json.search ?? [] }; } catch { return { entry, rows: [] as SearchRow[] }; } }));
-  const meta = new Map<string, { category: string; fallback: string }>();
-  for (const search of searches) for (const row of search.rows) if (row.id && /^Q\d+$/.test(row.id) && !meta.has(row.id)) meta.set(row.id, { category: search.entry.category, fallback: row.label ?? "" });
-  const ids = [...meta.keys()].slice(0, 80); if (!ids.length) return [] as VenuePoolSeed[];
-  try {
-    const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(ids), 6500); const seeds: VenuePoolSeed[] = [];
-    for (const qid of ids) {
-      const entity = json.entities?.[qid]; const coords = coordinateFromClaims(entity?.claims); if (!inParis(coords.lat, coords.lon)) continue;
-      const info = meta.get(qid); const name = label(entity, info?.fallback); if (!name) continue;
-      seeds.push({ id: `venue-direct:${qid}`, name, qid, lat: coords.lat, lon: coords.lon, officialUrl: officialUrl(entity?.claims), category: info?.category ?? "physical venue", source: "WIKIDATA" });
-      if (seeds.length >= cap) break;
+  const searches = await Promise.all(spec.direct.map(async (entry) => {
+    try {
+      const json = await fetchJson<{ query?: { search?: WikiSearchRow[] } }>(wikiSearchUrl(entry.query, 16), 6000);
+      return { entry, rows: json.query?.search ?? [] };
+    } catch {
+      return { entry, rows: [] as WikiSearchRow[] };
     }
-    return seeds;
-  } catch { return [] as VenuePoolSeed[]; }
+  }));
+  const meta = new Map<number, { category: string; title: string }>();
+  for (const search of searches) {
+    for (const row of search.rows) {
+      if (typeof row.pageid !== "number" || !row.title || meta.has(row.pageid)) continue;
+      meta.set(row.pageid, { category: search.entry.category, title: row.title });
+    }
+  }
+  const pageIds = [...meta.keys()].slice(0, 180);
+  if (!pageIds.length) return [] as VenuePoolSeed[];
+  const pages: WikiPage[] = [];
+  for (const batch of chunks(pageIds, 50)) {
+    try {
+      const json = await fetchJson<{ query?: { pages?: Record<string, WikiPage> } }>(pageDetailsUrl(batch), 6500);
+      pages.push(...Object.values(json.query?.pages ?? {}));
+    } catch {}
+  }
+  const byCategory = new Map<string, VenuePoolSeed[]>();
+  for (const page of pages) {
+    const coord = page.coordinates?.[0];
+    const qid = page.pageprops?.wikibase_item;
+    const info = typeof page.pageid === "number" ? meta.get(page.pageid) : undefined;
+    if (!info || !page.title || !qid || !/^Q\d+$/.test(qid) || !inParis(coord?.lat, coord?.lon)) continue;
+    const seed: VenuePoolSeed = {
+      id: `venue-direct:${qid}`,
+      name: page.title.trim(),
+      qid,
+      lat: coord?.lat,
+      lon: coord?.lon,
+      category: info.category,
+      source: "WIKIPEDIA",
+    };
+    const list = byCategory.get(info.category) ?? [];
+    list.push(seed);
+    byCategory.set(info.category, list);
+  }
+  return uniqueSeeds([...byCategory.values()], cap);
 }
 
 async function categorySeeds(spec: VenueSpec, cap: number) {
@@ -274,13 +308,13 @@ function uniqueSeeds(groups: VenuePoolSeed[][], cap: number) {
 
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme]; const cap = Math.max(1, Math.min(maxSeeds, 24));
-  const rule = "Venue Pool V1.9 uses bounded diversified discovery budgets. City of Paris registry identity remains high-trust but can no longer monopolize the entire candidate quota. Structured Wikidata direct searches and French Wikipedia physical-place categories receive reserved discovery capacity, then the three sources are round-robin merged. Direct/category membership is discovery-only: it never proves traveler intent, rarity, low exposure, access, history or publication readiness.";
+  const rule = "Venue Pool V2.0 uses category-balanced bounded discovery budgets. City of Paris registry identity is round-robin balanced by category and capped near one-third of the pool. Direct French Wikipedia venue search receives the largest reserved capacity and is also category-balanced; category roots provide a third discovery family. Membership is discovery-only: it never proves traveler intent, rarity, low exposure, access, history or publication readiness.";
   if (!spec) return { theme, ok: true, queried: false, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], rule };
   try {
     // Reserve enough room for alternate discovery families before any one source can fill the pool.
-    const officialCap = Math.max(4, Math.ceil(cap * 0.5));
-    const directCap = Math.max(3, Math.ceil(cap * 0.35));
-    const categoryCap = Math.max(2, cap - Math.min(cap, officialCap) - Math.min(cap, directCap));
+    const officialCap = Math.max(4, Math.ceil(cap * 0.35));
+    const directCap = Math.max(5, Math.ceil(cap * 0.45));
+    const categoryCap = Math.max(3, cap - Math.min(cap, officialCap) - Math.min(cap, directCap));
     const [strictOfficial, direct, categorized] = await Promise.all([
       parisDataSeeds(spec, officialCap),
       directSeeds(spec, directCap),
