@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.3 (name-aware registry diversification + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.4 (name-aware registry diversification + institutional false-positive exclusion + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -182,7 +182,15 @@ function coordinateFromClaims(claims: Record<string, Claim[]> | undefined) {
 }
 function officialUrl(claims: Record<string, Claim[]> | undefined) { const value = claims?.P856?.[0]?.mainsnak?.datavalue?.value; return typeof value === "string" && /^https?:\/\//i.test(value) ? value : undefined; }
 function label(entity: Entity | undefined, fallback = "") { return entity?.labels?.fr?.value?.trim() || entity?.labels?.en?.value?.trim() || fallback.trim(); }
-function registryCategory(spec: VenueSpec, row: RegistryRow) { const officialCategory = row.categorie?.trim() ?? ""; const combined = `${officialCategory} ${row.name ?? ""}`.trim(); if (!combined) return undefined; return spec.registryPatterns.find((item) => item.pattern.test(combined))?.category; }
+function registryCategory(spec: VenueSpec, row: RegistryRow) {
+  const officialCategory = row.categorie?.trim() ?? "";
+  const name = row.name?.trim() ?? "";
+  const exclusionText = `${officialCategory} ${name}`;
+  if (/école|ecole|crèche|creche|collège|college|lycée|lycee|maternelle|élémentaire|elementaire|centre de loisirs|halte-garderie/i.test(exclusionText)) return undefined;
+  const combined = `${officialCategory} ${name}`.trim();
+  if (!combined) return undefined;
+  return spec.registryPatterns.find((item) => item.pattern.test(combined))?.category;
+}
 
 function distanceKm(aLat: number, aLon: number, bLat: number, bLon: number) {
   const toRad = (value: number) => value * Math.PI / 180; const earth = 6371; const dLat = toRad(bLat - aLat); const dLon = toRad(bLon - aLon);
