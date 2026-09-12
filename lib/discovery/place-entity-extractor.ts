@@ -18,7 +18,7 @@ type SelectedEntity = {
   lon?: number;
 };
 
-const USER_AGENT = "VelvetPassportPlaceExtractor/1.8 (ordered block-bound source-page hypotheses + precision place extraction; cached public pages)";
+const USER_AGENT = "VelvetPassportPlaceExtractor/1.9 (identity-section source-page hypotheses + precision place extraction; cached public pages)";
 const GENERIC = /^(paris|france|home|menu|visit|guide|travel|read more|learn more|about|contact|official website|wikipedia|contents|history|origins|etymology|geography|climate|administration|actualités|rechercher)$/i;
 const EDITORIAL_NOISE = /\b(what to do|things to do|best |top |exhibitions?|events?|autumn|september|october|november|december|january|february|march|april|may|june|july|august|right now|discover the|heritage days|city pass|tourist office|official website|newsletter|privacy|cookie|facebook|instagram|youtube|tripadvisor|terms|login|sign in|subscribe|booking|all you must know|must-see|guide to|tips|news|agenda)\b/i;
 const PLACE_TYPE = /\b(mus[eé]e|museum|maison|h[oô]tel particulier|passage|galerie|jardin|garden|square|cour|courtyard|librairie|bookshop|bookstore|atelier|chapelle|church|église|cemetery|cimetière|catacomb|palais|pavillon|villa|théâtre|theatre|café|cafe|bibliothèque|library|fondation|foundation|rue|street|arcade|halle|market|marché|canal|parc|park|temple|synagogue|basilique|basilica|monument|tower|tour|crypt|crypte)\b/i;
@@ -77,21 +77,26 @@ function localSourcePageHypotheses(html: string, lead: ResearchLead) {
     .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, " ")
     .replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, " ")
     .replace(/<header\b[^>]*>[\s\S]*?<\/header>/gi, " ");
-  const blocks = (stripped.match(/<(?:h[1-6]|p|li|dt|dd|figcaption)\b[^>]*>[\s\S]*?<\/(?:h[1-6]|p|li|dt|dd|figcaption)>/gi) ?? [])
-    .map((block) => clean(block))
-    .filter((block) => block.length >= 12 && block.length <= 1400);
+  const matches = [...stripped.matchAll(/<(h[1-6]|p|li|dt|dd|figcaption)\b[^>]*>[\s\S]*?<\/\1>/gi)];
+  const blocks = matches
+    .map((match) => ({ type: (match[1] ?? "").toLowerCase(), text: clean(match[0] ?? "") }))
+    .filter((block) => block.text.length >= 12 && block.text.length <= 1400);
   const anchors = identityAnchors(lead.name);
   const selected = new Set<number>();
   for (let i = 0; i < blocks.length; i++) {
-    const normalizedBlock = normalize(blocks[i]);
+    const normalizedBlock = normalize(blocks[i].text);
     if (!anchors.some((anchor) => normalizedBlock.includes(anchor))) continue;
     selected.add(i);
-    if (i > 0) selected.add(i - 1);
-    if (i + 1 < blocks.length) selected.add(i + 1);
-    if (selected.size >= 9) break;
+    let addedFollowing = 0;
+    for (let j = i + 1; j < blocks.length && addedFollowing < 5; j++) {
+      if (/^h[1-6]$/.test(blocks[j].type)) break;
+      selected.add(j);
+      addedFollowing += 1;
+    }
+    if (selected.size >= 18) break;
   }
   if (!selected.size) return [];
-  const local = [...selected].sort((a, b) => a - b).map((index) => blocks[index]).join(" | ");
+  const local = [...selected].sort((a, b) => a - b).map((index) => blocks[index].text).join(" | ");
   return SOURCE_HYPOTHESIS_PATTERNS.filter(([, pattern]) => pattern.test(local)).map(([tag]) => tag).slice(0, 8);
 }
 
@@ -221,5 +226,5 @@ export async function extractPlaceEntitiesFromSources(leads: ResearchLead[], max
   const deduped = extracted.filter((lead) => { const key = normalize(lead.name); if (!key || seen.has(key)) return false; seen.add(key); return true; });
   return { results, leads: deduped, sourcePagesAttempted: eligible.length, sourcePagesOpened: results.filter((item) => item.ok).length, extractedCount: deduped.length,
     hypothesisPages: results.filter((item) => item.sourceHypotheses.length > 0).length,
-    rule: "Collector Recovery V1.6: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. Whole-page SOURCE_PAGE_HYPOTHESIS tags remain diagnostics only. SOURCE_PAGE_LOCAL_HYPOTHESIS tags are emitted only when the same bounded concept appears in the identity-bearing editorial block or its immediate neighboring blocks in original document order for the originating candidate, after script/style/header/nav/footer removal. Both tag classes remain zero-truth, zero-Exposure and zero-LOCK signals and must be independently verified downstream. If a page cannot be opened, only explicit named physical-place patterns recovered from search-result context may enter the candidate pool, also with no truth credit. JSON-LD remains preferred when a page opens." };
+    rule: "Collector Recovery V1.6: focused claim-relevant official/editorial pages are ranked ahead of generic overviews. Whole-page SOURCE_PAGE_HYPOTHESIS tags remain diagnostics only. SOURCE_PAGE_LOCAL_HYPOTHESIS tags are emitted only when the same bounded concept appears in a bounded identity-bearing editorial section: the identity block plus up to five following non-heading blocks, stopping at the next heading, after script/style/header/nav/footer removal. Both tag classes remain zero-truth, zero-Exposure and zero-LOCK signals and must be independently verified downstream. If a page cannot be opened, only explicit named physical-place patterns recovered from search-result context may enter the candidate pool, also with no truth credit. JSON-LD remains preferred when a page opens." };
 }
