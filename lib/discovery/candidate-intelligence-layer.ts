@@ -74,10 +74,10 @@ const THEME_CATEGORY_RULES: Record<string, RegExp[]> = {
   "unusual-museums": [/museum|mus[eé]e|house museum|atelier[- ]mus[eé]e/i],
   "beyond-the-classics": [
     /museum|mus[eé]e|house museum|maison[- ]mus[eé]e/i,
-    /artist.?s studio|atelier d['’]artiste|atelier[- ]mus[eé]e|working atelier|working workshop|atelier patrimonial/i,
-    /archive|archives|documentation centre|centre de documentation|specialist library|biblioth[eè]que sp[eé]cialis[eé]e|library\/archive/i,
+    /artist.?s studio|atelier d['’]artiste|atelier[- ]mus[eé]e|working atelier|working workshop|atelier patrimonial|\bworkshop\b/i,
+    /archive|archives|documentation centre|documentation center|centre de documentation|specialist library|biblioth[eè]que sp[eé]cialis[eé]e|library\/archive/i,
     /private collection|collection priv[eé]e|cabinet de curiosit[eé]s|reserve|r[eé]serves|conservation/i,
-    /heritage association|association patrimoniale|association culturelle|society|soci[eé]t[eé]/i,
+    /heritage association|association patrimoniale|association culturelle|society|soci[eé]t[eé]|heritage infrastructure|infrastructure patrimoniale/i,
     /passage|covered passage|galerie couverte|cultural venue|culturel|galerie/i,
   ],
   "quiet-paris": [/garden|jardin|park|parc|square|library|biblioth[eè]que|museum|mus[eé]e/i],
