@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.1 (category-balanced discovery + direct Wikidata full-text entity search + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.2 (short entity-query diversified discovery + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -78,16 +78,16 @@ const THEME_SPECS: Record<string, VenueSpec> = {
   },
   "beyond-the-classics": {
     direct: [
-      { query: "\"atelier d'artiste\" Paris musée", category: "artist studio" },
-      { query: "atelier patrimoine artisanat Paris visite", category: "working workshop" },
-      { query: "archives spécialisées Paris consultation", category: "archive" },
-      { query: "bibliothèque patrimoniale spécialisée Paris", category: "specialist library" },
-      { query: "\"maison-atelier\" artiste Paris", category: "artist house" },
-      { query: "collection spécialisée Paris musée", category: "private collection" },
-      { query: "association patrimoine Paris visites", category: "heritage association" },
-      { query: "infrastructure souterraine Paris visite patrimoine", category: "heritage infrastructure" },
-      { query: "centre de documentation patrimoine Paris consultation", category: "documentation center" },
-      { query: "passage couvert Paris", category: "passage" },
+      { query: "atelier artiste Paris", category: "artist studio" },
+      { query: "atelier artisan Paris", category: "working workshop" },
+      { query: "archives Paris", category: "archive" },
+      { query: "bibliothèque spécialisée Paris", category: "specialist library" },
+      { query: "maison artiste Paris", category: "artist house" },
+      { query: "collection Paris musée", category: "private collection" },
+      { query: "association patrimoine Paris", category: "heritage association" },
+      { query: "souterrain Paris", category: "heritage infrastructure" },
+      { query: "centre documentation Paris", category: "documentation center" },
+      { query: "passage Paris", category: "passage" },
       { query: "fondation art Paris", category: "cultural venue" },
     ],
     categories: [
