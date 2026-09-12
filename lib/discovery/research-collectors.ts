@@ -137,6 +137,21 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   const enrichedLeads = placeResolution.all.map(resolverEvidence);
   const entityLock = applyParisDestinationEntityLock(enrichedLeads);
   const candidateIntelligence = applyCandidateIntelligenceLayer(entityLock.accepted, maxIntentLookups);
+  const localSignalDiagnostics = candidateIntelligence.all
+    .map((item) => ({
+      name: item.lead.name,
+      tags: item.lead.rawClaims
+        .map((claim) => claim.match(/^SOURCE_PAGE_LOCAL_HYPOTHESIS\s+(.+)$/i)?.[1]?.trim())
+        .filter((tag): tag is string => Boolean(tag)),
+      decision: item.decision,
+      depth: item.depth,
+      score: item.score,
+      positiveSignals: item.positiveSignals,
+      negativeSignals: item.negativeSignals,
+    }))
+    .filter((item) => item.tags.length > 0)
+    .slice(0, 20);
+  if (localSignalDiagnostics.length) console.info("[CandidateLocalSignalDiagnostic]", JSON.stringify({ theme: packet.theme, candidates: localSignalDiagnostics }));
   const intentEvidence = await verifyIntentEvidence(candidateIntelligence.selected, maxIntentLookups);
   const historyEvidence = await enrichHistoryEvidence(intentEvidence.leads, maxHistoryLookups);
   const relevance = applyResearchRelevanceEngine(historyEvidence.leads);
