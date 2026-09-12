@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.6 (multi-center Wikipedia geosearch + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.7 (geosearch coordinate carry + Wikidata P625 category fallback + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -278,13 +278,15 @@ async function directSeeds(spec: VenueSpec, cap: number) {
     { lat: 48.8280, lon: 2.3180 },
     { lat: 48.8280, lon: 2.3950 },
   ];
-  const geoRows: Array<{ pageid?: number }> = [];
+  const geoRows: Array<{ pageid?: number; lat?: number; lon?: number }> = [];
   for (const center of centers) {
     try {
-      const json = await fetchJson<{ query?: { geosearch?: Array<{ pageid?: number }> } }>(geoSearchUrl(center.lat, center.lon, 5200, 100), 5500);
+      const json = await fetchJson<{ query?: { geosearch?: Array<{ pageid?: number; lat?: number; lon?: number }> } }>(geoSearchUrl(center.lat, center.lon, 5200, 100), 5500);
       geoRows.push(...(json.query?.geosearch ?? []));
     } catch {}
   }
+  const geoByPage = new Map<number, { lat?: number; lon?: number }>();
+  for (const row of geoRows) if (typeof row.pageid === "number" && !geoByPage.has(row.pageid)) geoByPage.set(row.pageid, { lat: row.lat, lon: row.lon });
   const ids = [...new Set(geoRows.map((row) => row.pageid).filter((id): id is number => typeof id === "number"))].slice(0, 420);
   if (!ids.length) return [] as VenuePoolSeed[];
   const pages: WikiPage[] = [];
@@ -297,30 +299,29 @@ async function directSeeds(spec: VenueSpec, cap: number) {
   const byCategory = new Map<string, VenuePoolSeed[]>();
   for (const page of pages) {
     const qid = page.pageprops?.wikibase_item;
-    const coord = page.coordinates?.[0];
+    const primary = page.coordinates?.[0];
+    const fallback = typeof page.pageid === "number" ? geoByPage.get(page.pageid) : undefined;
+    const lat = primary?.lat ?? fallback?.lat;
+    const lon = primary?.lon ?? fallback?.lon;
     const category = classifyWikiVenue(page);
-    if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !category || !inParis(coord?.lat, coord?.lon)) continue;
+    if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !category || !inParis(lat, lon)) continue;
     const list = byCategory.get(category) ?? [];
-    list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat: coord?.lat, lon: coord?.lon, category, source: "WIKIPEDIA" });
+    list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat, lon, category, source: "WIKIPEDIA" });
     byCategory.set(category, list);
   }
   return uniqueSeeds([...byCategory.values()], cap);
 }
 
 async function categorySeeds(spec: VenueSpec, cap: number) {
-  const rootResults = await Promise.all(spec.categories.map(async (entry) => {
+  const roots = await Promise.all(spec.categories.map(async (entry) => {
     try {
       const json = await fetchJson<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(entry.title, true), 5500);
       return { entry, rows: json.query?.categorymembers ?? [] };
-    } catch {
-      return { entry, rows: [] as CategoryMember[] };
-    }
+    } catch { return { entry, rows: [] as CategoryMember[] }; }
   }));
-
   const expanded: Array<{ category: string; rows: CategoryMember[] }> = [];
-  for (const result of rootResults) {
-    const pages = result.rows.filter((row) => row.ns === 0 || typeof row.pageid === "number" && row.ns !== 14);
-    expanded.push({ category: result.entry.category, rows: pages });
+  for (const result of roots) {
+    expanded.push({ category: result.entry.category, rows: result.rows.filter((row) => row.ns !== 14) });
     const subcats = result.rows.filter((row) => row.ns === 14 && row.title?.startsWith("Catégorie:")).slice(0, 8);
     for (const subcat of subcats) {
       try {
@@ -329,17 +330,12 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
       } catch {}
     }
   }
-
   const categoryByPage = new Map<number, string>();
   const ids: number[] = [];
-  for (const result of expanded) {
-    for (const row of result.rows) {
-      if (typeof row.pageid !== "number" || row.ns === 14) continue;
-      if (!categoryByPage.has(row.pageid)) categoryByPage.set(row.pageid, result.category);
-      ids.push(row.pageid);
-    }
+  for (const result of expanded) for (const row of result.rows) if (typeof row.pageid === "number" && row.ns !== 14) {
+    if (!categoryByPage.has(row.pageid)) categoryByPage.set(row.pageid, result.category);
+    ids.push(row.pageid);
   }
-
   const pages: WikiPage[] = [];
   for (const batch of chunks([...new Set(ids)].slice(0, 320), 40)) {
     try {
@@ -347,18 +343,28 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
       pages.push(...Object.values(json.query?.pages ?? {}));
     } catch {}
   }
-
+  const qids = [...new Set(pages.map((page) => page.pageprops?.wikibase_item).filter((qid): qid is string => Boolean(qid && /^Q\d+$/.test(qid))))];
+  const entities: Record<string, Entity> = {};
+  for (const batch of chunks(qids, 24)) {
+    try {
+      const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(batch), 6500);
+      Object.assign(entities, json.entities ?? {});
+    } catch {}
+  }
   const byCategory = new Map<string, VenuePoolSeed[]>();
   for (const page of pages) {
     const qid = page.pageprops?.wikibase_item;
-    const coord = page.coordinates?.[0];
-    const category = typeof page.pageid === "number" ? categoryByPage.get(page.pageid) : undefined;
-    if (!qid || !/^Q\d+$/.test(qid) || !category || !inParis(coord?.lat, coord?.lon) || !page.title) continue;
-    const list = byCategory.get(category) ?? [];
-    list.push({ id: `venue-category:${qid}`, name: page.title.trim(), qid, lat: coord?.lat, lon: coord?.lon, category, source: "WIKIPEDIA" });
-    byCategory.set(category, list);
+    const categoryName = typeof page.pageid === "number" ? categoryByPage.get(page.pageid) : undefined;
+    if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !categoryName) continue;
+    const primary = page.coordinates?.[0];
+    const wdCoord = coordinateFromClaims(entities[qid]?.claims);
+    const lat = primary?.lat ?? wdCoord.lat;
+    const lon = primary?.lon ?? wdCoord.lon;
+    if (!inParis(lat, lon)) continue;
+    const list = byCategory.get(categoryName) ?? [];
+    list.push({ id: "venue-category:" + qid, name: page.title.trim(), qid, lat, lon, category: categoryName, source: "WIKIPEDIA" });
+    byCategory.set(categoryName, list);
   }
-
   return uniqueSeeds([...byCategory.values()], cap);
 }
 
