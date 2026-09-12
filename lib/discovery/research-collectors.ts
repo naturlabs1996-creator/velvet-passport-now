@@ -131,6 +131,24 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
 
   const rawLeads = dedupeLeads([...venueLeads, ...results.flatMap((result) => result.leads)]);
   const placeExtraction = await extractPlaceEntitiesFromSources(rawLeads, maxSourcePages, 8);
+  if (packet.theme === "beyond-the-classics") {
+    const leadById = new Map(rawLeads.map((lead) => [lead.id, lead]));
+    console.info("[SourceHypothesisBindingDiagnostic]", JSON.stringify({
+      theme: packet.theme,
+      pages: placeExtraction.results.slice(0, 20).map((result) => {
+        const sourceLead = leadById.get(result.sourceLeadId);
+        return {
+          name: sourceLead?.name ?? result.sourceLeadId,
+          url: result.sourceUrl,
+          ok: result.ok,
+          globalTags: result.sourceHypotheses,
+          localTags: sourceLead?.rawClaims
+            .map((claim) => claim.match(/^SOURCE_PAGE_LOCAL_HYPOTHESIS\s+(.+)$/i)?.[1]?.trim())
+            .filter((tag): tag is string => Boolean(tag)) ?? [],
+        };
+      }),
+    }));
+  }
   const combinedLeads = dedupeLeads([...venueLeads, ...placeExtraction.leads, ...rawLeads]);
   const physicalEntityGate = await applyPhysicalEntityTypeGate(combinedLeads);
   const placeResolution = await resolveParisPlaces(physicalEntityGate.leads, maxPlaceLookups);
