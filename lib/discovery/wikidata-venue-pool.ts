@@ -297,18 +297,23 @@ async function directSeeds(spec: VenueSpec, cap: number) {
     } catch {}
   }
   const byCategory = new Map<string, VenuePoolSeed[]>();
+  let qidCount = 0; let classifiedCount = 0; let parisCount = 0;
   for (const page of pages) {
     const qid = page.pageprops?.wikibase_item;
+    if (qid && /^Q\d+$/.test(qid)) qidCount += 1;
     const primary = page.coordinates?.[0];
     const fallback = typeof page.pageid === "number" ? geoByPage.get(page.pageid) : undefined;
     const lat = primary?.lat ?? fallback?.lat;
     const lon = primary?.lon ?? fallback?.lon;
     const category = classifyWikiVenue(page);
+    if (category) classifiedCount += 1;
+    if (inParis(lat, lon)) parisCount += 1;
     if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !category || !inParis(lat, lon)) continue;
     const list = byCategory.get(category) ?? [];
     list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat, lon, category, source: "WIKIPEDIA" });
     byCategory.set(category, list);
   }
+  console.info("[WikiVenueDirectDiagnostic]", JSON.stringify({ geoRows: geoRows.length, ids: ids.length, pages: pages.length, qidCount, classifiedCount, parisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) }));
   return uniqueSeeds([...byCategory.values()], cap);
 }
 
@@ -352,19 +357,23 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
     } catch {}
   }
   const byCategory = new Map<string, VenuePoolSeed[]>();
+  let categoryQidCount = 0; let categoryParisCount = 0;
   for (const page of pages) {
     const qid = page.pageprops?.wikibase_item;
+    if (qid && /^Q\d+$/.test(qid)) categoryQidCount += 1;
     const categoryName = typeof page.pageid === "number" ? categoryByPage.get(page.pageid) : undefined;
     if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !categoryName) continue;
     const primary = page.coordinates?.[0];
     const wdCoord = coordinateFromClaims(entities[qid]?.claims);
     const lat = primary?.lat ?? wdCoord.lat;
     const lon = primary?.lon ?? wdCoord.lon;
+    if (inParis(lat, lon)) categoryParisCount += 1;
     if (!inParis(lat, lon)) continue;
     const list = byCategory.get(categoryName) ?? [];
     list.push({ id: "venue-category:" + qid, name: page.title.trim(), qid, lat, lon, category: categoryName, source: "WIKIPEDIA" });
     byCategory.set(categoryName, list);
   }
+  console.info("[WikiVenueCategoryDiagnostic]", JSON.stringify({ roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), expandedGroups: expanded.length, pageIds: ids.length, pages: pages.length, qids: qids.length, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) }));
   return uniqueSeeds([...byCategory.values()], cap);
 }
 
