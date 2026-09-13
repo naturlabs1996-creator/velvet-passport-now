@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.7 (geosearch coordinate carry + Wikidata P625 category fallback + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.8 (shared rate-aware wiki discovery + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -285,51 +285,66 @@ async function enrichOfficialSeeds(seeds: VenuePoolSeed[]) {
   });
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+let sharedParisGeoPagesPromise: Promise<WikiPage[]> | undefined;
+async function sharedParisGeoPages() {
+  if (sharedParisGeoPagesPromise) return sharedParisGeoPagesPromise;
+  sharedParisGeoPagesPromise = (async () => {
+    const centers = [
+      { lat: 48.8566, lon: 2.3522 },
+      { lat: 48.8867, lon: 2.3431 },
+      { lat: 48.8867, lon: 2.3900 },
+      { lat: 48.8280, lon: 2.3180 },
+      { lat: 48.8280, lon: 2.3950 },
+    ];
+    const geoRows: Array<{ pageid?: number; lat?: number; lon?: number }> = [];
+    for (const center of centers) {
+      try {
+        const json = await fetchJson<{ query?: { geosearch?: Array<{ pageid?: number; lat?: number; lon?: number }> } }>(geoSearchUrl(center.lat, center.lon, 5200, 80), 5500);
+        geoRows.push(...(json.query?.geosearch ?? []));
+      } catch {}
+      await sleep(90);
+    }
+    const geoByPage = new Map<number, { lat?: number; lon?: number }>();
+    for (const row of geoRows) if (typeof row.pageid === "number" && !geoByPage.has(row.pageid)) geoByPage.set(row.pageid, { lat: row.lat, lon: row.lon });
+    const ids = [...geoByPage.keys()].slice(0, 180);
+    const pages: WikiPage[] = [];
+    for (const batch of chunks(ids, 45)) {
+      try {
+        const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6500);
+        for (const page of Object.values(json.query?.pages ?? {})) {
+          if (typeof page.pageid === "number" && !page.coordinates?.length) {
+            const fallback = geoByPage.get(page.pageid);
+            if (fallback && typeof fallback.lat === "number" && typeof fallback.lon === "number") page.coordinates = [{ lat: fallback.lat, lon: fallback.lon }];
+          }
+          pages.push(page);
+        }
+      } catch {}
+      await sleep(160);
+    }
+    console.info("[WikiSharedGeoPoolDiagnostic]", JSON.stringify({ geoRows: geoRows.length, uniqueIds: geoByPage.size, detailedPages: pages.length }));
+    return pages;
+  })();
+  return sharedParisGeoPagesPromise;
+}
 async function directSeeds(spec: VenueSpec, cap: number) {
   void spec;
-  const centers = [
-    { lat: 48.8566, lon: 2.3522 },
-    { lat: 48.8867, lon: 2.3431 },
-    { lat: 48.8867, lon: 2.3900 },
-    { lat: 48.8280, lon: 2.3180 },
-    { lat: 48.8280, lon: 2.3950 },
-  ];
-  const geoRows: Array<{ pageid?: number; lat?: number; lon?: number }> = [];
-  for (const center of centers) {
-    try {
-      const json = await fetchJson<{ query?: { geosearch?: Array<{ pageid?: number; lat?: number; lon?: number }> } }>(geoSearchUrl(center.lat, center.lon, 5200, 100), 5500);
-      geoRows.push(...(json.query?.geosearch ?? []));
-    } catch {}
-  }
-  const geoByPage = new Map<number, { lat?: number; lon?: number }>();
-  for (const row of geoRows) if (typeof row.pageid === "number" && !geoByPage.has(row.pageid)) geoByPage.set(row.pageid, { lat: row.lat, lon: row.lon });
-  const ids = [...new Set(geoRows.map((row) => row.pageid).filter((id): id is number => typeof id === "number"))].slice(0, 420);
-  if (!ids.length) return [] as VenuePoolSeed[];
-  const pages: WikiPage[] = [];
-  for (const batch of chunks(ids, 32)) {
-    try {
-      const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6500);
-      pages.push(...Object.values(json.query?.pages ?? {}));
-    } catch {}
-  }
+  const pages = await sharedParisGeoPages();
   const byCategory = new Map<string, VenuePoolSeed[]>();
   let qidCount = 0; let classifiedCount = 0; let parisCount = 0;
   for (const page of pages) {
     const qid = page.pageprops?.wikibase_item;
     if (qid && /^Q\d+$/.test(qid)) qidCount += 1;
-    const primary = page.coordinates?.[0];
-    const fallback = typeof page.pageid === "number" ? geoByPage.get(page.pageid) : undefined;
-    const lat = primary?.lat ?? fallback?.lat;
-    const lon = primary?.lon ?? fallback?.lon;
+    const coord = page.coordinates?.[0];
     const category = classifyWikiVenue(page);
     if (category) classifiedCount += 1;
-    if (inParis(lat, lon)) parisCount += 1;
-    if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !category || !inParis(lat, lon)) continue;
+    if (inParis(coord?.lat, coord?.lon)) parisCount += 1;
+    if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !category || !inParis(coord?.lat, coord?.lon)) continue;
     const list = byCategory.get(category) ?? [];
-    list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat, lon, category, source: "WIKIPEDIA" });
+    list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat: coord?.lat, lon: coord?.lon, category, source: "WIKIPEDIA" });
     byCategory.set(category, list);
   }
-  console.info("[WikiVenueDirectDiagnostic]", JSON.stringify({ geoRows: geoRows.length, ids: ids.length, pages: pages.length, qidCount, classifiedCount, parisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) }));
+  console.info("[WikiVenueDirectDiagnostic]", JSON.stringify({ pages: pages.length, qidCount, classifiedCount, parisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) }));
   return uniqueSeeds([...byCategory.values()], cap);
 }
 
@@ -343,7 +358,7 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
   const expanded: Array<{ category: string; rows: CategoryMember[] }> = [];
   for (const result of roots) {
     expanded.push({ category: result.entry.category, rows: result.rows.filter((row) => row.ns !== 14) });
-    const subcats = result.rows.filter((row) => row.ns === 14 && row.title?.startsWith("Catégorie:")).slice(0, 8);
+    const subcats = result.rows.filter((row) => row.ns === 14 && row.title?.startsWith("Catégorie:")).slice(0, 4);
     for (const subcat of subcats) {
       try {
         const json = await fetchJson<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(subcat.title!, false), 5000);
@@ -358,11 +373,12 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
     ids.push(row.pageid);
   }
   const pages: WikiPage[] = [];
-  for (const batch of chunks([...new Set(ids)].slice(0, 320), 40)) {
+  for (const batch of chunks([...new Set(ids)].slice(0, 180), 45)) {
     try {
       const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6000);
       pages.push(...Object.values(json.query?.pages ?? {}));
     } catch {}
+    await sleep(160);
   }
   const qids = [...new Set(pages.map((page) => page.pageprops?.wikibase_item).filter((qid): qid is string => Boolean(qid && /^Q\d+$/.test(qid))))];
   const entities: Record<string, Entity> = {};
