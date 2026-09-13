@@ -167,6 +167,22 @@ async function fetchJson<T>(url: string, timeoutMs = 5500): Promise<T> {
   } finally { clearTimeout(timer); }
 }
 
+async function fetchJsonDiagnostic<T>(url: string, timeoutMs = 5500): Promise<T> {
+  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/json" }, signal: controller.signal, next: { revalidate: 21600 } });
+    const text = await response.text();
+    if (!response.ok) {
+      console.info("[WikiPageDetailsFetchError]", JSON.stringify({ status: response.status, statusText: response.statusText, url: url.slice(0, 280), body: text.slice(0, 500) }));
+      throw new Error(`http_${response.status}`);
+    }
+    const parsed = JSON.parse(text) as T;
+    const apiError = (parsed as unknown as { error?: unknown }).error;
+    if (apiError) console.info("[WikiPageDetailsApiError]", JSON.stringify({ url: url.slice(0, 280), error: apiError }));
+    return parsed;
+  } finally { clearTimeout(timer); }
+}
+
 function normalize(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); }
 function inParis(lat?: number, lon?: number) { return typeof lat === "number" && typeof lon === "number" && lat >= 48.80 && lat <= 48.91 && lon >= 2.22 && lon <= 2.47; }
 function chunks<T>(items: T[], size: number) { const out: T[][] = []; for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size)); return out; }
@@ -292,7 +308,7 @@ async function directSeeds(spec: VenueSpec, cap: number) {
   const pages: WikiPage[] = [];
   for (const batch of chunks(ids, 32)) {
     try {
-      const json = await fetchJson<{ query?: { pages?: Record<string, WikiPage> } }>(pageDetailsUrl(batch), 6500);
+      const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6500);
       pages.push(...Object.values(json.query?.pages ?? {}));
     } catch {}
   }
@@ -344,7 +360,7 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
   const pages: WikiPage[] = [];
   for (const batch of chunks([...new Set(ids)].slice(0, 320), 40)) {
     try {
-      const json = await fetchJson<{ query?: { pages?: Record<string, WikiPage> } }>(pageDetailsUrl(batch), 6000);
+      const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6000);
       pages.push(...Object.values(json.query?.pages ?? {}));
     } catch {}
   }
