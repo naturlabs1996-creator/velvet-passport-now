@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.8 (shared rate-aware wiki discovery + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.9 (generator geosearch + fallback categories + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -193,6 +193,7 @@ function categoryUrl(title: string, includeSubcats = false) { const params = new
 function wikiSearchUrl(query: string, limit = 12) { const params = new URLSearchParams({ action: "query", list: "search", srsearch: query, srnamespace: "0", srlimit: String(limit), format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function pageDetailsUrl(ids: number[]) { const params = new URLSearchParams({ action: "query", pageids: ids.join("|"), prop: "pageprops|coordinates|categories", colimit: "1", cllimit: "50", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function geoSearchUrl(lat: number, lon: number, radius = 5000, limit = 100) { const params = new URLSearchParams({ action: "query", list: "geosearch", gscoord: `${lat}|${lon}`, gsradius: String(radius), gslimit: String(limit), gsnamespace: "0", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
+function geoGeneratorUrl(lat: number, lon: number, radius = 5000, limit = 50) { const params = new URLSearchParams({ action: "query", generator: "geosearch", ggscoord: `${lat}|${lon}`, ggsradius: String(radius), ggslimit: String(limit), ggsnamespace: "0", prop: "pageprops|coordinates|categories", colimit: "1", cllimit: "30", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function parisDataUrl(offset: number) { const params = new URLSearchParams({ limit: "100", offset: String(offset) }); return `${PARIS_DATA}?${params}`; }
 
 function coordinateFromClaims(claims: Record<string, Claim[]> | undefined) {
@@ -297,32 +298,19 @@ async function sharedParisGeoPages() {
       { lat: 48.8280, lon: 2.3180 },
       { lat: 48.8280, lon: 2.3950 },
     ];
-    const geoRows: Array<{ pageid?: number; lat?: number; lon?: number }> = [];
+    const byPage = new Map<number, WikiPage>();
+    let openedCenters = 0;
     for (const center of centers) {
       try {
-        const json = await fetchJson<{ query?: { geosearch?: Array<{ pageid?: number; lat?: number; lon?: number }> } }>(geoSearchUrl(center.lat, center.lon, 5200, 80), 5500);
-        geoRows.push(...(json.query?.geosearch ?? []));
+        const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(geoGeneratorUrl(center.lat, center.lon, 5200, 50), 6500);
+        const pages = Object.values(json.query?.pages ?? {});
+        if (pages.length) openedCenters += 1;
+        for (const page of pages) if (typeof page.pageid === "number" && !byPage.has(page.pageid)) byPage.set(page.pageid, page);
       } catch {}
-      await sleep(90);
+      await sleep(220);
     }
-    const geoByPage = new Map<number, { lat?: number; lon?: number }>();
-    for (const row of geoRows) if (typeof row.pageid === "number" && !geoByPage.has(row.pageid)) geoByPage.set(row.pageid, { lat: row.lat, lon: row.lon });
-    const ids = [...geoByPage.keys()].slice(0, 180);
-    const pages: WikiPage[] = [];
-    for (const batch of chunks(ids, 45)) {
-      try {
-        const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6500);
-        for (const page of Object.values(json.query?.pages ?? {})) {
-          if (typeof page.pageid === "number" && !page.coordinates?.length) {
-            const fallback = geoByPage.get(page.pageid);
-            if (fallback && typeof fallback.lat === "number" && typeof fallback.lon === "number") page.coordinates = [{ lat: fallback.lat, lon: fallback.lon }];
-          }
-          pages.push(page);
-        }
-      } catch {}
-      await sleep(160);
-    }
-    console.info("[WikiSharedGeoPoolDiagnostic]", JSON.stringify({ geoRows: geoRows.length, uniqueIds: geoByPage.size, detailedPages: pages.length }));
+    const pages = [...byPage.values()].slice(0, 180);
+    console.info("[WikiSharedGeoPoolDiagnostic]", JSON.stringify({ openedCenters, uniquePages: byPage.size, retainedPages: pages.length }));
     return pages;
   })();
   return sharedParisGeoPagesPromise;
@@ -425,18 +413,20 @@ function uniqueSeeds(groups: VenuePoolSeed[][], cap: number) {
 
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme]; const cap = Math.max(1, Math.min(maxSeeds, 24));
-  const rule = "Venue Pool V2.5 uses category-balanced bounded discovery budgets. City of Paris registry remains name-aware and institutionally filtered. Direct Wikidata discovery uses wbsearchentities with short entity-oriented queries, then requires Paris coordinates before admission. French Wikipedia category discovery traverses bounded first-level subcategories and revalidates coordinates plus Wikidata identity. All wiki membership remains discovery-only and grants no Intent, Exposure, Access, Trust or LOCK credit.";
+  const rule = "Venue Pool V2.9 uses category-balanced bounded discovery budgets. City of Paris registry remains name-aware and institutionally filtered. Direct wiki discovery uses a shared rate-aware French Wikipedia generator=geosearch call returning coordinates, Wikidata QID and categories in one response, eliminating the former pageDetails cascade. Theme category traversal is a bounded fallback only when direct wiki discovery is sparse. All wiki membership remains discovery-only and grants no Intent, Exposure, Access, Trust or LOCK credit.";
   if (!spec) return { theme, ok: true, queried: false, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], rule };
   try {
     // Reserve enough room for alternate discovery families before any one source can fill the pool.
     const officialCap = Math.max(4, Math.ceil(cap * 0.35));
     const directCap = Math.max(5, Math.ceil(cap * 0.45));
     const categoryCap = Math.max(3, cap - Math.min(cap, officialCap) - Math.min(cap, directCap));
-    const [strictOfficial, direct, categorized] = await Promise.all([
+    const [strictOfficial, direct] = await Promise.all([
       parisDataSeeds(spec, officialCap),
       directSeeds(spec, directCap),
-      categorySeeds(spec, Math.max(3, categoryCap)),
     ]);
+    const categorized = direct.length >= Math.max(2, categoryCap)
+      ? []
+      : await categorySeeds(spec, Math.max(3, categoryCap));
     const official = await enrichOfficialSeeds(strictOfficial);
     const merged = uniqueSeeds([official, direct, categorized], cap);
     return { theme, ok: true, queried: true, returned: merged.length, officialReturned: official.length, directReturned: direct.length, categoryReturned: categorized.length, seeds: merged, rule };
