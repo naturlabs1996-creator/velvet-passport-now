@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.9 (generator geosearch + fallback categories + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.10 (primary-coordinate generator geosearch + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -193,7 +193,7 @@ function categoryUrl(title: string, includeSubcats = false) { const params = new
 function wikiSearchUrl(query: string, limit = 12) { const params = new URLSearchParams({ action: "query", list: "search", srsearch: query, srnamespace: "0", srlimit: String(limit), format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function pageDetailsUrl(ids: number[]) { const params = new URLSearchParams({ action: "query", pageids: ids.join("|"), prop: "pageprops|coordinates|categories", colimit: "1", cllimit: "50", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function geoSearchUrl(lat: number, lon: number, radius = 5000, limit = 100) { const params = new URLSearchParams({ action: "query", list: "geosearch", gscoord: `${lat}|${lon}`, gsradius: String(radius), gslimit: String(limit), gsnamespace: "0", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
-function geoGeneratorUrl(lat: number, lon: number, radius = 5000, limit = 50) { const params = new URLSearchParams({ action: "query", generator: "geosearch", ggscoord: `${lat}|${lon}`, ggsradius: String(radius), ggslimit: String(limit), ggsnamespace: "0", prop: "pageprops|coordinates|categories", colimit: "1", cllimit: "30", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
+function geoGeneratorUrl(lat: number, lon: number, radius = 5000, limit = 50) { const params = new URLSearchParams({ action: "query", generator: "geosearch", ggscoord: `${lat}|${lon}`, ggsradius: String(radius), ggslimit: String(limit), ggsnamespace: "0", prop: "pageprops|coordinates|categories", coprimary: "primary", colimit: "1", cllimit: "30", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function parisDataUrl(offset: number) { const params = new URLSearchParams({ limit: "100", offset: String(offset) }); return `${PARIS_DATA}?${params}`; }
 
 function coordinateFromClaims(claims: Record<string, Claim[]> | undefined) {
@@ -332,7 +332,8 @@ async function directSeeds(spec: VenueSpec, cap: number) {
     list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat: coord?.lat, lon: coord?.lon, category, source: "WIKIPEDIA" });
     byCategory.set(category, list);
   }
-  console.info("[WikiVenueDirectDiagnostic]", JSON.stringify({ pages: pages.length, qidCount, classifiedCount, parisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) }));
+  const coordinateSamples = pages.slice(0, 12).map((page) => ({ name: page.title, coord: page.coordinates?.[0], classified: classifyWikiVenue(page), inParis: inParis(page.coordinates?.[0]?.lat, page.coordinates?.[0]?.lon) }));
+  console.info("[WikiVenueDirectDiagnostic]", JSON.stringify({ pages: pages.length, qidCount, classifiedCount, parisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })), coordinateSamples }));
   return uniqueSeeds([...byCategory.values()], cap);
 }
 
