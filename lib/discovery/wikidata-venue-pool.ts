@@ -22,7 +22,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.10 (primary-coordinate generator geosearch + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.11 (selective geosearch enrichment + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -226,6 +226,12 @@ function classifyWikiVenue(page: WikiPage) {
 function institutionallyExcludedName(name: string) {
   return /école|ecole|crèche|creche|collège|college|lycée|lycee|maternelle|élémentaire|elementaire|centre de loisirs|halte-garderie/i.test(name);
 }
+function likelyPhysicalWikiTitle(name: string) {
+  if (institutionallyExcludedName(name)) return false;
+  if (/\b(métro|metro|station|ligne|guerre|bataille|massacre|conférence|conference|coup d['’]Ée]tat|révolte|revolte|élection|election|siège|siege)\b/i.test(name)) return false;
+  return /mus[eé]e|biblioth[eè]que|passage|galerie|atelier|maison|fondation|archives?|aqueduc|r[eé]servoir|regard|[eé]gout|souterrain|cabinet|collection|h[oô]tel|manufacture|atelier|centre de documentation|association|jardin|cour|chapelle|crypte/i.test(name);
+}
+
 function registryCategory(spec: VenueSpec, row: RegistryRow) {
   const officialCategory = row.categorie?.trim() ?? "";
   const name = row.name?.trim() ?? "";
@@ -298,19 +304,37 @@ async function sharedParisGeoPages() {
       { lat: 48.8280, lon: 2.3180 },
       { lat: 48.8280, lon: 2.3950 },
     ];
-    const byPage = new Map<number, WikiPage>();
+    const geoByPage = new Map<number, { title: string; lat: number; lon: number }>();
     let openedCenters = 0;
     for (const center of centers) {
       try {
-        const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(geoGeneratorUrl(center.lat, center.lon, 5200, 50), 6500);
-        const pages = Object.values(json.query?.pages ?? {});
-        if (pages.length) openedCenters += 1;
-        for (const page of pages) if (typeof page.pageid === "number" && !byPage.has(page.pageid)) byPage.set(page.pageid, page);
+        const json = await fetchJson<{ query?: { geosearch?: Array<{ pageid?: number; title?: string; lat?: number; lon?: number }> } }>(geoSearchUrl(center.lat, center.lon, 5200, 70), 5500);
+        const rows = json.query?.geosearch ?? [];
+        if (rows.length) openedCenters += 1;
+        for (const row of rows) {
+          if (typeof row.pageid !== "number" || !row.title || typeof row.lat !== "number" || typeof row.lon !== "number") continue;
+          if (!inParis(row.lat, row.lon) || !likelyPhysicalWikiTitle(row.title)) continue;
+          if (!geoByPage.has(row.pageid)) geoByPage.set(row.pageid, { title: row.title, lat: row.lat, lon: row.lon });
+        }
       } catch {}
-      await sleep(220);
+      await sleep(180);
     }
-    const pages = [...byPage.values()].slice(0, 180);
-    console.info("[WikiSharedGeoPoolDiagnostic]", JSON.stringify({ openedCenters, uniquePages: byPage.size, retainedPages: pages.length }));
+    const selected = [...geoByPage.entries()].slice(0, 48);
+    const pages: WikiPage[] = [];
+    for (const batch of chunks(selected.map(([pageid]) => pageid), 24)) {
+      try {
+        const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6500);
+        for (const page of Object.values(json.query?.pages ?? {})) {
+          if (typeof page.pageid === "number" && !page.coordinates?.length) {
+            const geo = geoByPage.get(page.pageid);
+            if (geo) page.coordinates = [{ lat: geo.lat, lon: geo.lon }];
+          }
+          pages.push(page);
+        }
+      } catch {}
+      await sleep(300);
+    }
+    console.info("[WikiSharedGeoPoolDiagnostic]", JSON.stringify({ openedCenters, geographicCandidates: geoByPage.size, selectedForEnrichment: selected.length, detailedPages: pages.length }));
     return pages;
   })();
   return sharedParisGeoPagesPromise;
@@ -414,7 +438,7 @@ function uniqueSeeds(groups: VenuePoolSeed[][], cap: number) {
 
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme]; const cap = Math.max(1, Math.min(maxSeeds, 24));
-  const rule = "Venue Pool V2.9 uses category-balanced bounded discovery budgets. City of Paris registry remains name-aware and institutionally filtered. Direct wiki discovery uses a shared rate-aware French Wikipedia generator=geosearch call returning coordinates, Wikidata QID and categories in one response, eliminating the former pageDetails cascade. Theme category traversal is a bounded fallback only when direct wiki discovery is sparse. All wiki membership remains discovery-only and grants no Intent, Exposure, Access, Trust or LOCK credit.";
+  const rule = "Venue Pool V2.11 uses category-balanced bounded discovery budgets. Direct wiki discovery uses French Wikipedia list=geosearch only for exact geometry, applies strict Paris bounds and a physical-place title prefilter before enrichment, then fetches page details for at most 48 candidates in two small batches. Theme category traversal is a tiny fallback only when direct wiki discovery returns fewer than two seeds. All wiki membership remains discovery-only and grants no Intent, Exposure, Access, Trust or LOCK credit.";
   if (!spec) return { theme, ok: true, queried: false, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], rule };
   try {
     // Reserve enough room for alternate discovery families before any one source can fill the pool.
@@ -425,9 +449,9 @@ export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Pr
       parisDataSeeds(spec, officialCap),
       directSeeds(spec, directCap),
     ]);
-    const categorized = direct.length >= Math.max(2, categoryCap)
+    const categorized = direct.length >= 2
       ? []
-      : await categorySeeds(spec, Math.max(3, categoryCap));
+      : await categorySeeds(spec, Math.max(2, Math.min(3, categoryCap)));
     const official = await enrichOfficialSeeds(strictOfficial);
     const merged = uniqueSeeds([official, direct, categorized], cap);
     return { theme, ok: true, queried: true, returned: merged.length, officialReturned: official.length, directReturned: direct.length, categoryReturned: categorized.length, seeds: merged, rule };
