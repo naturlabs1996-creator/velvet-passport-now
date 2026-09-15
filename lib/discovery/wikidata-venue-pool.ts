@@ -39,12 +39,36 @@ export type VenuePoolResult = {
   directReturned: number;
   categoryReturned: number;
   seeds: VenuePoolSeed[];
-  diagnostic?: VenuePoolDiagnostic;
+  diagnostic: VenuePoolDiagnostic;
   error?: string;
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.12 (response-embedded wiki diagnostics + selective geosearch enrichment + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.13 (guaranteed response-embedded wiki diagnostics + selective geosearch enrichment + strict Paris identity)";
+const EMPTY_DIRECT_DIAGNOSTIC: VenuePoolDiagnostic["direct"] = {
+  pages: 0,
+  qidCount: 0,
+  classifiedCount: 0,
+  parisCount: 0,
+  categories: [],
+  coordinateSamples: [],
+};
+const EMPTY_CATEGORY_DIAGNOSTIC: VenuePoolDiagnostic["category"] = {
+  roots: [],
+  expandedGroups: 0,
+  pageIds: 0,
+  pages: 0,
+  qids: 0,
+  categoryQidCount: 0,
+  categoryParisCount: 0,
+  categories: [],
+};
+function emptyVenuePoolDiagnostic(): VenuePoolDiagnostic {
+  return {
+    direct: { ...EMPTY_DIRECT_DIAGNOSTIC, categories: [], coordinateSamples: [] },
+    category: { ...EMPTY_CATEGORY_DIAGNOSTIC, roots: [], categories: [] },
+  };
+}
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -463,7 +487,7 @@ function uniqueSeeds(groups: VenuePoolSeed[][], cap: number) {
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme]; const cap = Math.max(1, Math.min(maxSeeds, 24));
   const rule = "Venue Pool V2.11 uses category-balanced bounded discovery budgets. Direct wiki discovery uses French Wikipedia list=geosearch only for exact geometry, applies strict Paris bounds and a physical-place title prefilter before enrichment, then fetches page details for at most 48 candidates in two small batches. Theme category traversal is a tiny fallback only when direct wiki discovery returns fewer than two seeds. All wiki membership remains discovery-only and grants no Intent, Exposure, Access, Trust or LOCK credit.";
-  if (!spec) return { theme, ok: true, queried: false, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], rule };
+  if (!spec) return { theme, ok: true, queried: false, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], diagnostic: emptyVenuePoolDiagnostic(), rule };
   try {
     // Reserve enough room for alternate discovery families before any one source can fill the pool.
     const officialCap = Math.max(4, Math.ceil(cap * 0.35));
@@ -473,7 +497,7 @@ export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Pr
       parisDataSeeds(spec, officialCap),
       directSeeds(spec, directCap),
     ]);
-    const emptyCategoryDiagnostic: VenuePoolDiagnostic["category"] = { roots: [], expandedGroups: 0, pageIds: 0, pages: 0, qids: 0, categoryQidCount: 0, categoryParisCount: 0, categories: [] };
+    const emptyCategoryDiagnostic: VenuePoolDiagnostic["category"] = { ...EMPTY_CATEGORY_DIAGNOSTIC, roots: [], categories: [] };
     const categoryResult = directResult.seeds.length >= 2
       ? { seeds: [] as VenuePoolSeed[], diagnostic: emptyCategoryDiagnostic }
       : await categorySeeds(spec, Math.max(2, Math.min(3, categoryCap)));
@@ -492,6 +516,6 @@ export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Pr
       rule
     };
   } catch (error) {
-    return { theme, ok: false, queried: true, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], error: error instanceof Error ? error.message : "venue_pool_failed", rule };
+    return { theme, ok: false, queried: true, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], diagnostic: emptyVenuePoolDiagnostic(), error: error instanceof Error ? error.message : "venue_pool_failed", rule };
   }
 }
