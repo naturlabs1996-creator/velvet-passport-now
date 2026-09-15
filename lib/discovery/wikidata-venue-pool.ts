@@ -439,6 +439,7 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
     ids.push(row.pageid);
   }
   const pages: WikiPage[] = [];
+  const pageDiagnostics: Array<{ batch: number; ok: boolean; pages: number; error?: string }> = [];
   for (const batch of chunks([...new Set(ids)].slice(0, 180), 45)) {
     try {
       const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6000);
@@ -480,7 +481,7 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
     list.push({ id: "venue-category:" + qid, name: page.title.trim(), qid, lat, lon, category: categoryName, source: "WIKIPEDIA" });
     byCategory.set(categoryName, list);
   }
-  const diagnostic = { roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), expandedGroups: expanded.length, pageIds: ids.length, pages: pages.length, qids: qids.length, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) };
+  const diagnostic = { roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), expandedGroups: expanded.length, pageIds: ids.length, pageDiagnostics, pages: pages.length, qids: qids.length, entityDiagnostics, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) };
   console.info("[WikiVenueCategoryDiagnostic]", JSON.stringify(diagnostic));
   return { seeds: uniqueSeeds([...byCategory.values()], cap), diagnostic };
 }
