@@ -409,11 +409,17 @@ async function directSeeds(spec: VenueSpec, cap: number) {
 }
 
 async function categorySeeds(spec: VenueSpec, cap: number) {
+  const rootDiagnostics: Array<{ title: string; ok: boolean; rows: number; error?: string }> = [];
   const roots = await Promise.all(spec.categories.map(async (entry) => {
     try {
       const json = await fetchJson<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(entry.title, true), 5500);
-      return { entry, rows: json.query?.categorymembers ?? [] };
-    } catch { return { entry, rows: [] as CategoryMember[] }; }
+      const rows = json.query?.categorymembers ?? [];
+      rootDiagnostics.push({ title: entry.title, ok: true, rows: rows.length });
+      return { entry, rows };
+    } catch (error) {
+      rootDiagnostics.push({ title: entry.title, ok: false, rows: 0, error: error instanceof Error ? error.message : String(error) });
+      return { entry, rows: [] as CategoryMember[] };
+    }
   }));
   const expanded: Array<{ category: string; rows: CategoryMember[] }> = [];
   for (const result of roots) {
@@ -436,17 +442,26 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
   for (const batch of chunks([...new Set(ids)].slice(0, 180), 45)) {
     try {
       const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6000);
-      pages.push(...Object.values(json.query?.pages ?? {}));
-    } catch {}
+      const batchPages = Object.values(json.query?.pages ?? {});
+      pages.push(...batchPages);
+      pageDiagnostics.push({ batch: batch.length, ok: true, pages: batchPages.length });
+    } catch (error) {
+      pageDiagnostics.push({ batch: batch.length, ok: false, pages: 0, error: error instanceof Error ? error.message : String(error) });
+    }
     await sleep(160);
   }
   const qids = [...new Set(pages.map((page) => page.pageprops?.wikibase_item).filter((qid): qid is string => Boolean(qid && /^Q\d+$/.test(qid))))];
   const entities: Record<string, Entity> = {};
+  const entityDiagnostics: Array<{ batch: number; ok: boolean; entities: number; error?: string }> = [];
   for (const batch of chunks(qids, 24)) {
     try {
       const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(batch), 6500);
-      Object.assign(entities, json.entities ?? {});
-    } catch {}
+      const rows = json.entities ?? {};
+      Object.assign(entities, rows);
+      entityDiagnostics.push({ batch: batch.length, ok: true, entities: Object.keys(rows).length });
+    } catch (error) {
+      entityDiagnostics.push({ batch: batch.length, ok: false, entities: 0, error: error instanceof Error ? error.message : String(error) });
+    }
   }
   const byCategory = new Map<string, VenuePoolSeed[]>();
   let categoryQidCount = 0; let categoryParisCount = 0;
