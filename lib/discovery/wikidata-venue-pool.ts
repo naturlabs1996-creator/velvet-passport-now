@@ -9,6 +9,27 @@ export type VenuePoolSeed = {
   source: "PARIS_DATA" | "WIKIDATA" | "WIKIPEDIA";
 };
 
+export type VenuePoolDiagnostic = {
+  direct: {
+    pages: number;
+    qidCount: number;
+    classifiedCount: number;
+    parisCount: number;
+    categories: Array<{ category: string; count: number }>;
+    coordinateSamples: Array<{ name?: string; coord?: { lat?: number; lon?: number }; classified?: string; inParis: boolean }>;
+  };
+  category: {
+    roots: Array<{ title: string; rows: number }>;
+    expandedGroups: number;
+    pageIds: number;
+    pages: number;
+    qids: number;
+    categoryQidCount: number;
+    categoryParisCount: number;
+    categories: Array<{ category: string; count: number }>;
+  };
+};
+
 export type VenuePoolResult = {
   theme: string;
   ok: boolean;
@@ -18,11 +39,12 @@ export type VenuePoolResult = {
   directReturned: number;
   categoryReturned: number;
   seeds: VenuePoolSeed[];
+  diagnostic?: VenuePoolDiagnostic;
   error?: string;
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.11 (selective geosearch enrichment + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.12 (response-embedded wiki diagnostics + selective geosearch enrichment + strict Paris identity)";
 const WIKIDATA_API = "https://www.wikidata.org/w/api.php";
 const WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php";
 const PARIS_DATA = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/lieux-municipaux/records";
@@ -357,8 +379,9 @@ async function directSeeds(spec: VenueSpec, cap: number) {
     byCategory.set(category, list);
   }
   const coordinateSamples = pages.slice(0, 12).map((page) => ({ name: page.title, coord: page.coordinates?.[0], classified: classifyWikiVenue(page), inParis: inParis(page.coordinates?.[0]?.lat, page.coordinates?.[0]?.lon) }));
-  console.info("[WikiVenueDirectDiagnostic]", JSON.stringify({ pages: pages.length, qidCount, classifiedCount, parisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })), coordinateSamples }));
-  return uniqueSeeds([...byCategory.values()], cap);
+  const diagnostic = { pages: pages.length, qidCount, classifiedCount, parisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })), coordinateSamples };
+  console.info("[WikiVenueDirectDiagnostic]", JSON.stringify(diagnostic));
+  return { seeds: uniqueSeeds([...byCategory.values()], cap), diagnostic };
 }
 
 async function categorySeeds(spec: VenueSpec, cap: number) {
@@ -418,8 +441,9 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
     list.push({ id: "venue-category:" + qid, name: page.title.trim(), qid, lat, lon, category: categoryName, source: "WIKIPEDIA" });
     byCategory.set(categoryName, list);
   }
-  console.info("[WikiVenueCategoryDiagnostic]", JSON.stringify({ roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), expandedGroups: expanded.length, pageIds: ids.length, pages: pages.length, qids: qids.length, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) }));
-  return uniqueSeeds([...byCategory.values()], cap);
+  const diagnostic = { roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), expandedGroups: expanded.length, pageIds: ids.length, pages: pages.length, qids: qids.length, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) };
+  console.info("[WikiVenueCategoryDiagnostic]", JSON.stringify(diagnostic));
+  return { seeds: uniqueSeeds([...byCategory.values()], cap), diagnostic };
 }
 
 function uniqueSeeds(groups: VenuePoolSeed[][], cap: number) {
@@ -445,16 +469,28 @@ export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Pr
     const officialCap = Math.max(4, Math.ceil(cap * 0.35));
     const directCap = Math.max(5, Math.ceil(cap * 0.45));
     const categoryCap = Math.max(3, cap - Math.min(cap, officialCap) - Math.min(cap, directCap));
-    const [strictOfficial, direct] = await Promise.all([
+    const [strictOfficial, directResult] = await Promise.all([
       parisDataSeeds(spec, officialCap),
       directSeeds(spec, directCap),
     ]);
-    const categorized = direct.length >= 2
-      ? []
+    const emptyCategoryDiagnostic: VenuePoolDiagnostic["category"] = { roots: [], expandedGroups: 0, pageIds: 0, pages: 0, qids: 0, categoryQidCount: 0, categoryParisCount: 0, categories: [] };
+    const categoryResult = directResult.seeds.length >= 2
+      ? { seeds: [] as VenuePoolSeed[], diagnostic: emptyCategoryDiagnostic }
       : await categorySeeds(spec, Math.max(2, Math.min(3, categoryCap)));
     const official = await enrichOfficialSeeds(strictOfficial);
-    const merged = uniqueSeeds([official, direct, categorized], cap);
-    return { theme, ok: true, queried: true, returned: merged.length, officialReturned: official.length, directReturned: direct.length, categoryReturned: categorized.length, seeds: merged, rule };
+    const merged = uniqueSeeds([official, directResult.seeds, categoryResult.seeds], cap);
+    return {
+      theme,
+      ok: true,
+      queried: true,
+      returned: merged.length,
+      officialReturned: official.length,
+      directReturned: directResult.seeds.length,
+      categoryReturned: categoryResult.seeds.length,
+      seeds: merged,
+      diagnostic: { direct: directResult.diagnostic, category: categoryResult.diagnostic },
+      rule
+    };
   } catch (error) {
     return { theme, ok: false, queried: true, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], error: error instanceof Error ? error.message : "venue_pool_failed", rule };
   }
