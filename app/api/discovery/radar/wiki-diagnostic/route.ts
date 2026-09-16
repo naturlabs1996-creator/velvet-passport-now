@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
     const startedAt = Date.now();
     const result = await collectWikiVenueDiagnostic(theme, maxSeeds);
     return NextResponse.json({
-      ok: result.ok,
       generatedAt: new Date().toISOString(),
       durationMs: Date.now() - startedAt,
       ...result,
