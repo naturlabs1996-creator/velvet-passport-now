@@ -500,6 +500,39 @@ function uniqueSeeds(groups: VenuePoolSeed[][], cap: number) {
   return merged;
 }
 
+export async function collectWikiVenueDiagnostic(theme = "beyond-the-classics", maxSeeds = 12) {
+  const spec = THEME_SPECS[theme];
+  const cap = Math.max(2, Math.min(maxSeeds, 16));
+  if (!spec) {
+    return {
+      theme,
+      ok: false,
+      error: "unknown_theme",
+      directReturned: 0,
+      categoryReturned: 0,
+      directSeeds: [] as VenuePoolSeed[],
+      categorySeeds: [] as VenuePoolSeed[],
+      diagnostic: emptyVenuePoolDiagnostic(),
+    };
+  }
+  const directCap = Math.max(4, Math.ceil(cap * 0.65));
+  const categoryCap = Math.max(3, cap - directCap);
+  const directResult = await directSeeds(spec, directCap);
+  const categoryResult = await categorySeeds(spec, categoryCap);
+  return {
+    theme,
+    ok: true,
+    directReturned: directResult.seeds.length,
+    categoryReturned: categoryResult.seeds.length,
+    directSeeds: directResult.seeds,
+    categorySeeds: categoryResult.seeds,
+    diagnostic: {
+      direct: directResult.diagnostic,
+      category: categoryResult.diagnostic,
+    },
+  };
+}
+
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme]; const cap = Math.max(1, Math.min(maxSeeds, 24));
   const rule = "Venue Pool V2.11 uses category-balanced bounded discovery budgets. Direct wiki discovery uses French Wikipedia list=geosearch only for exact geometry, applies strict Paris bounds and a physical-place title prefilter before enrichment, then fetches page details for at most 48 candidates in two small batches. Theme category traversal is a tiny fallback only when direct wiki discovery returns fewer than two seeds. All wiki membership remains discovery-only and grants no Intent, Exposure, Access, Trust or LOCK credit.";
