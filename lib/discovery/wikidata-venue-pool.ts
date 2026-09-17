@@ -44,7 +44,7 @@ export type VenuePoolResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportVenuePool/2.13 (guaranteed response-embedded wiki diagnostics + selective geosearch enrichment + strict Paris identity)";
+const USER_AGENT = "VelvetPassportVenuePool/2.14 (429-hardened category discovery + guaranteed response-embedded wiki diagnostics + strict Paris identity)";
 const EMPTY_DIRECT_DIAGNOSTIC: VenuePoolDiagnostic["direct"] = {
   pages: 0,
   qidCount: 0,
@@ -213,20 +213,39 @@ async function fetchJson<T>(url: string, timeoutMs = 5500): Promise<T> {
   } finally { clearTimeout(timer); }
 }
 
-async function fetchJsonDiagnostic<T>(url: string, timeoutMs = 5500): Promise<T> {
-  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/json" }, signal: controller.signal, next: { revalidate: 21600 } });
-    const text = await response.text();
-    if (!response.ok) {
-      console.info("[WikiPageDetailsFetchError]", JSON.stringify({ status: response.status, statusText: response.statusText, url: url.slice(0, 280), body: text.slice(0, 500) }));
-      throw new Error(`http_${response.status}`);
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchJsonDiagnostic<T>(url: string, timeoutMs = 5500, maxAttempts = 3): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { headers: { "user-agent": USER_AGENT, accept: "application/json" }, signal: controller.signal, cache: "no-store" });
+      const text = await response.text();
+      if (response.ok) {
+        const parsed = JSON.parse(text) as T;
+        const apiError = (parsed as unknown as { error?: unknown }).error;
+        if (apiError) console.info("[WikiPageDetailsApiError]", JSON.stringify({ url: url.slice(0, 280), error: apiError }));
+        return parsed;
+      }
+      const retryable = response.status === 429 || response.status === 503;
+      const retryAfterHeader = Number(response.headers.get("retry-after"));
+      const retryAfterMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0 ? retryAfterHeader * 1000 : 0;
+      const backoffMs = Math.max(retryAfterMs, 650 * (2 ** (attempt - 1)));
+      console.info("[WikiPageDetailsFetchError]", JSON.stringify({ status: response.status, statusText: response.statusText, attempt, retryable, backoffMs: retryable && attempt < maxAttempts ? backoffMs : 0, url: url.slice(0, 280), body: text.slice(0, 500) }));
+      lastError = new Error(`http_${response.status}`);
+      if (!retryable || attempt >= maxAttempts) throw lastError;
+      await sleep(backoffMs);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxAttempts || (error instanceof Error && /^http_(?!429|503)/.test(error.message))) throw error;
+      if (!(error instanceof Error && /^http_(429|503)$/.test(error.message))) await sleep(650 * (2 ** (attempt - 1)));
+    } finally {
+      clearTimeout(timer);
     }
-    const parsed = JSON.parse(text) as T;
-    const apiError = (parsed as unknown as { error?: unknown }).error;
-    if (apiError) console.info("[WikiPageDetailsApiError]", JSON.stringify({ url: url.slice(0, 280), error: apiError }));
-    return parsed;
-  } finally { clearTimeout(timer); }
+  }
+  throw lastError instanceof Error ? lastError : new Error("wiki_fetch_failed");
 }
 
 function normalize(value: string) { return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); }
@@ -338,7 +357,6 @@ async function enrichOfficialSeeds(seeds: VenuePoolSeed[]) {
   });
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 let sharedParisGeoPagesPromise: Promise<WikiPage[]> | undefined;
 async function sharedParisGeoPages() {
   if (sharedParisGeoPagesPromise) return sharedParisGeoPagesPromise;
@@ -410,26 +428,29 @@ async function directSeeds(spec: VenueSpec, cap: number) {
 
 async function categorySeeds(spec: VenueSpec, cap: number) {
   const rootDiagnostics: Array<{ title: string; ok: boolean; rows: number; error?: string }> = [];
-  const roots = await Promise.all(spec.categories.map(async (entry) => {
+  const roots: Array<{ entry: VenueSpec["categories"][number]; rows: CategoryMember[] }> = [];
+  for (const entry of spec.categories) {
     try {
-      const json = await fetchJson<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(entry.title, true), 5500);
+      const json = await fetchJsonDiagnostic<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(entry.title, true), 6000, 3);
       const rows = json.query?.categorymembers ?? [];
       rootDiagnostics.push({ title: entry.title, ok: true, rows: rows.length });
-      return { entry, rows };
+      roots.push({ entry, rows });
     } catch (error) {
       rootDiagnostics.push({ title: entry.title, ok: false, rows: 0, error: error instanceof Error ? error.message : String(error) });
-      return { entry, rows: [] as CategoryMember[] };
+      roots.push({ entry, rows: [] });
     }
-  }));
+    await sleep(300);
+  }
   const expanded: Array<{ category: string; rows: CategoryMember[] }> = [];
   for (const result of roots) {
     expanded.push({ category: result.entry.category, rows: result.rows.filter((row) => row.ns !== 14) });
     const subcats = result.rows.filter((row) => row.ns === 14 && row.title?.startsWith("Catégorie:")).slice(0, 4);
     for (const subcat of subcats) {
       try {
-        const json = await fetchJson<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(subcat.title!, false), 5000);
+        const json = await fetchJsonDiagnostic<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(subcat.title!, false), 6000, 3);
         expanded.push({ category: result.entry.category, rows: json.query?.categorymembers ?? [] });
       } catch {}
+      await sleep(300);
     }
   }
   const categoryByPage = new Map<number, string>();
@@ -440,16 +461,17 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
   }
   const pages: WikiPage[] = [];
   const pageDiagnostics: Array<{ batch: number; ok: boolean; pages: number; error?: string }> = [];
-  for (const batch of chunks([...new Set(ids)].slice(0, 180), 45)) {
+  await sleep(500);
+  for (const batch of chunks([...new Set(ids)].slice(0, 120), 20)) {
     try {
-      const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 6000);
+      const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 7000, 4);
       const batchPages = Object.values(json.query?.pages ?? {});
       pages.push(...batchPages);
       pageDiagnostics.push({ batch: batch.length, ok: true, pages: batchPages.length });
     } catch (error) {
       pageDiagnostics.push({ batch: batch.length, ok: false, pages: 0, error: error instanceof Error ? error.message : String(error) });
     }
-    await sleep(160);
+    await sleep(550);
   }
   const qids = [...new Set(pages.map((page) => page.pageprops?.wikibase_item).filter((qid): qid is string => Boolean(qid && /^Q\d+$/.test(qid))))];
   const entities: Record<string, Entity> = {};
@@ -463,6 +485,7 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
     } catch (error) {
       entityDiagnostics.push({ batch: batch.length, ok: false, entities: 0, error: error instanceof Error ? error.message : String(error) });
     }
+    await sleep(220);
   }
   const byCategory = new Map<string, VenuePoolSeed[]>();
   let categoryQidCount = 0; let categoryParisCount = 0;
@@ -481,7 +504,7 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
     list.push({ id: "venue-category:" + qid, name: page.title.trim(), qid, lat, lon, category: categoryName, source: "WIKIPEDIA" });
     byCategory.set(categoryName, list);
   }
-  const diagnostic = { roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), expandedGroups: expanded.length, pageIds: ids.length, pageDiagnostics, pages: pages.length, qids: qids.length, entityDiagnostics, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) };
+  const diagnostic = { roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), rootDiagnostics, expandedGroups: expanded.length, pageIds: ids.length, pageDiagnostics, pages: pages.length, qids: qids.length, entityDiagnostics, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) };
   console.info("[WikiVenueCategoryDiagnostic]", JSON.stringify(diagnostic));
   return { seeds: uniqueSeeds([...byCategory.values()], cap), diagnostic };
 }
@@ -535,10 +558,9 @@ export async function collectWikiVenueDiagnostic(theme = "beyond-the-classics", 
 
 export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Promise<VenuePoolResult> {
   const spec = THEME_SPECS[theme]; const cap = Math.max(1, Math.min(maxSeeds, 24));
-  const rule = "Venue Pool V2.11 uses category-balanced bounded discovery budgets. Direct wiki discovery uses French Wikipedia list=geosearch only for exact geometry, applies strict Paris bounds and a physical-place title prefilter before enrichment, then fetches page details for at most 48 candidates in two small batches. Theme category traversal is a tiny fallback only when direct wiki discovery returns fewer than two seeds. All wiki membership remains discovery-only and grants no Intent, Exposure, Access, Trust or LOCK credit.";
+  const rule = "Venue Pool V2.14 uses category-balanced bounded discovery budgets. Direct wiki discovery uses French Wikipedia list=geosearch only for exact geometry, applies strict Paris bounds and a physical-place title prefilter before enrichment. Category traversal is discovery-only, paced sequentially, uses bounded 20-page detail batches, and retries only transient 429/503 responses with bounded backoff. All wiki membership grants no Intent, Exposure, Access, Trust or LOCK credit.";
   if (!spec) return { theme, ok: true, queried: false, returned: 0, officialReturned: 0, directReturned: 0, categoryReturned: 0, seeds: [], diagnostic: emptyVenuePoolDiagnostic(), rule };
   try {
-    // Reserve enough room for alternate discovery families before any one source can fill the pool.
     const officialCap = Math.max(4, Math.ceil(cap * 0.35));
     const directCap = Math.max(5, Math.ceil(cap * 0.45));
     const categoryCap = Math.max(3, cap - Math.min(cap, officialCap) - Math.min(cap, directCap));
