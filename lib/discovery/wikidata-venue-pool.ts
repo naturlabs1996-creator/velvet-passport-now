@@ -255,6 +255,7 @@ function wdSearchUrl(query: string, limit = 8) { const params = new URLSearchPar
 function wdTextSearchUrl(query: string, limit = 24) { const params = new URLSearchParams({ action: "query", list: "search", srsearch: query, srnamespace: "0", srlimit: String(limit), format: "json", origin: "*" }); return `${WIKIDATA_API}?${params}`; }
 function wdEntitiesUrl(ids: string[]) { const params = new URLSearchParams({ action: "wbgetentities", ids: ids.join("|"), props: "claims|labels", languages: "fr|en", format: "json", origin: "*" }); return `${WIKIDATA_API}?${params}`; }
 function categoryUrl(title: string, includeSubcats = false) { const params = new URLSearchParams({ action: "query", list: "categorymembers", cmtitle: title, cmnamespace: includeSubcats ? "0|14" : "0", cmlimit: "100", cmtype: includeSubcats ? "page|subcat" : "page", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
+function categoryGeneratorUrl(title: string, limit = 40) { const params = new URLSearchParams({ action: "query", generator: "categorymembers", gcmtitle: title, gcmnamespace: "0", gcmlimit: String(limit), prop: "pageprops|coordinates|categories", coprimary: "primary", colimit: "1", cllimit: "30", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function wikiSearchUrl(query: string, limit = 12) { const params = new URLSearchParams({ action: "query", list: "search", srsearch: query, srnamespace: "0", srlimit: String(limit), format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function pageDetailsUrl(ids: number[]) { const params = new URLSearchParams({ action: "query", pageids: ids.join("|"), prop: "pageprops|coordinates|categories", colimit: "1", cllimit: "50", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
 function geoSearchUrl(lat: number, lon: number, radius = 5000, limit = 100) { const params = new URLSearchParams({ action: "query", list: "geosearch", gscoord: `${lat}|${lon}`, gsradius: String(radius), gslimit: String(limit), gsnamespace: "0", format: "json", origin: "*" }); return `${WIKIPEDIA_API}?${params}`; }
@@ -428,83 +429,62 @@ async function directSeeds(spec: VenueSpec, cap: number) {
 
 async function categorySeeds(spec: VenueSpec, cap: number) {
   const rootDiagnostics: Array<{ title: string; ok: boolean; rows: number; error?: string }> = [];
-  const roots: Array<{ entry: VenueSpec["categories"][number]; rows: CategoryMember[] }> = [];
+  const byCategory = new Map<string, VenuePoolSeed[]>();
+  let pagesSeen = 0;
+  let qidsSeen = 0;
+  let parisSeen = 0;
+
   for (const entry of spec.categories) {
     try {
-      const json = await fetchJsonDiagnostic<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(entry.title, true), 6000, 3);
-      const rows = json.query?.categorymembers ?? [];
-      rootDiagnostics.push({ title: entry.title, ok: true, rows: rows.length });
-      roots.push({ entry, rows });
+      const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(
+        categoryGeneratorUrl(entry.title, 40),
+        7000,
+        2
+      );
+      const pages = Object.values(json.query?.pages ?? {});
+      rootDiagnostics.push({ title: entry.title, ok: true, rows: pages.length });
+      pagesSeen += pages.length;
+
+      for (const page of pages) {
+        const qid = page.pageprops?.wikibase_item;
+        if (qid && /^Q\d+$/.test(qid)) qidsSeen += 1;
+        const coord = page.coordinates?.[0];
+        if (inParis(coord?.lat, coord?.lon)) parisSeen += 1;
+        if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !inParis(coord?.lat, coord?.lon)) continue;
+
+        const list = byCategory.get(entry.category) ?? [];
+        list.push({
+          id: "venue-category:" + qid,
+          name: page.title.trim(),
+          qid,
+          lat: coord?.lat,
+          lon: coord?.lon,
+          category: entry.category,
+          source: "WIKIPEDIA",
+        });
+        byCategory.set(entry.category, list);
+      }
     } catch (error) {
       rootDiagnostics.push({ title: entry.title, ok: false, rows: 0, error: error instanceof Error ? error.message : String(error) });
-      roots.push({ entry, rows: [] });
     }
-    await sleep(300);
+
+    if ([...byCategory.values()].reduce((sum, rows) => sum + rows.length, 0) >= cap) break;
+    await sleep(900);
   }
-  const expanded: Array<{ category: string; rows: CategoryMember[] }> = [];
-  for (const result of roots) {
-    expanded.push({ category: result.entry.category, rows: result.rows.filter((row) => row.ns !== 14) });
-    const subcats = result.rows.filter((row) => row.ns === 14 && row.title?.startsWith("Catégorie:")).slice(0, 4);
-    for (const subcat of subcats) {
-      try {
-        const json = await fetchJsonDiagnostic<{ query?: { categorymembers?: CategoryMember[] } }>(categoryUrl(subcat.title!, false), 6000, 3);
-        expanded.push({ category: result.entry.category, rows: json.query?.categorymembers ?? [] });
-      } catch {}
-      await sleep(300);
-    }
-  }
-  const categoryByPage = new Map<number, string>();
-  const ids: number[] = [];
-  for (const result of expanded) for (const row of result.rows) if (typeof row.pageid === "number" && row.ns !== 14) {
-    if (!categoryByPage.has(row.pageid)) categoryByPage.set(row.pageid, result.category);
-    ids.push(row.pageid);
-  }
-  const pages: WikiPage[] = [];
-  const pageDiagnostics: Array<{ batch: number; ok: boolean; pages: number; error?: string }> = [];
-  await sleep(500);
-  for (const batch of chunks([...new Set(ids)].slice(0, 120), 20)) {
-    try {
-      const json = await fetchJsonDiagnostic<{ query?: { pages?: Record<string, WikiPage> }; error?: unknown }>(pageDetailsUrl(batch), 7000, 4);
-      const batchPages = Object.values(json.query?.pages ?? {});
-      pages.push(...batchPages);
-      pageDiagnostics.push({ batch: batch.length, ok: true, pages: batchPages.length });
-    } catch (error) {
-      pageDiagnostics.push({ batch: batch.length, ok: false, pages: 0, error: error instanceof Error ? error.message : String(error) });
-    }
-    await sleep(550);
-  }
-  const qids = [...new Set(pages.map((page) => page.pageprops?.wikibase_item).filter((qid): qid is string => Boolean(qid && /^Q\d+$/.test(qid))))];
-  const entities: Record<string, Entity> = {};
-  const entityDiagnostics: Array<{ batch: number; ok: boolean; entities: number; error?: string }> = [];
-  for (const batch of chunks(qids, 24)) {
-    try {
-      const json = await fetchJson<{ entities?: Record<string, Entity> }>(wdEntitiesUrl(batch), 6500);
-      const rows = json.entities ?? {};
-      Object.assign(entities, rows);
-      entityDiagnostics.push({ batch: batch.length, ok: true, entities: Object.keys(rows).length });
-    } catch (error) {
-      entityDiagnostics.push({ batch: batch.length, ok: false, entities: 0, error: error instanceof Error ? error.message : String(error) });
-    }
-    await sleep(220);
-  }
-  const byCategory = new Map<string, VenuePoolSeed[]>();
-  let categoryQidCount = 0; let categoryParisCount = 0;
-  for (const page of pages) {
-    const qid = page.pageprops?.wikibase_item;
-    if (qid && /^Q\d+$/.test(qid)) categoryQidCount += 1;
-    const categoryName = typeof page.pageid === "number" ? categoryByPage.get(page.pageid) : undefined;
-    if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !categoryName) continue;
-    const primary = page.coordinates?.[0];
-    const wdCoord = coordinateFromClaims(entities[qid]?.claims);
-    const lat = primary?.lat ?? wdCoord.lat;
-    const lon = primary?.lon ?? wdCoord.lon;
-    if (inParis(lat, lon)) categoryParisCount += 1;
-    if (!inParis(lat, lon)) continue;
-    const list = byCategory.get(categoryName) ?? [];
-    list.push({ id: "venue-category:" + qid, name: page.title.trim(), qid, lat, lon, category: categoryName, source: "WIKIPEDIA" });
-    byCategory.set(categoryName, list);
-  }
-  const diagnostic = { roots: roots.map((root) => ({ title: root.entry.title, rows: root.rows.length })), rootDiagnostics, expandedGroups: expanded.length, pageIds: ids.length, pageDiagnostics, pages: pages.length, qids: qids.length, entityDiagnostics, categoryQidCount, categoryParisCount, categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })) };
+
+  const diagnostic = {
+    roots: rootDiagnostics.map((root) => ({ title: root.title, rows: root.rows })),
+    rootDiagnostics,
+    expandedGroups: 0,
+    pageIds: pagesSeen,
+    pageDiagnostics: [],
+    pages: pagesSeen,
+    qids: qidsSeen,
+    entityDiagnostics: [],
+    categoryQidCount: qidsSeen,
+    categoryParisCount: parisSeen,
+    categories: [...byCategory.entries()].map(([category, rows]) => ({ category, count: rows.length })),
+  };
   console.info("[WikiVenueCategoryDiagnostic]", JSON.stringify(diagnostic));
   return { seeds: uniqueSeeds([...byCategory.values()], cap), diagnostic };
 }
