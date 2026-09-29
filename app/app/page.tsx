@@ -930,7 +930,7 @@ export default function ParisNowApp() {
                 <p>{stop.detail}</p>
                 {(() => {
                   const stories = (stop.stories ?? (stop.story ? [stop.story] : []))
-                    .filter((story) => story.experienceBatch === "01-05" || story.experienceBatch === "06-10");
+                    .filter((story) => story.experienceStatus === "STRUCTURED_PREVIEW_READY");
                   if (!stories.length) return null;
                   return (
                     <details className={styles.storyDetails}>
