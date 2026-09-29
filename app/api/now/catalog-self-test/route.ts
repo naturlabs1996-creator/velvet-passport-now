@@ -62,6 +62,18 @@ export async function GET() {
   const batch610MultiStoryStops = batch610Stops.filter((stop) =>
     (stop.stories ?? []).filter((story) => story.experienceBatch === "06-10").length > 1
   );
+  const batch1115Stops = sourceStops.filter((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).some((story) => story.experienceBatch === "11-15")
+  );
+  const batch1115Stories = batch1115Stops.flatMap((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).filter((story) => story.experienceBatch === "11-15")
+  );
+  const batch1620Stops = sourceStops.filter((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).some((story) => story.experienceBatch === "16-20")
+  );
+  const batch1620Stories = batch1620Stops.flatMap((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).filter((story) => story.experienceBatch === "16-20")
+  );
 
   return Response.json({
     ok: catalog.source === "supabase-v5-test"
@@ -80,7 +92,11 @@ export async function GET() {
       && batch610UniqueStories.size === 23
       && batch610Excerpts.length === 23
       && batch610LookFor.length === 5
-      && batch610MultiStoryStops.length === 3,
+      && batch610MultiStoryStops.length === 3
+      && batch1115Stops.length === 20
+      && batch1115Stories.length === 20
+      && batch1620Stops.length === 20
+      && batch1620Stories.length === 20,
     source: catalog.source,
     routesTested: results.length,
     generatedPlans,
@@ -104,6 +120,14 @@ export async function GET() {
         excerpts: batch610Excerpts.length,
         lookFor: batch610LookFor.length,
         multiStoryStops: batch610MultiStoryStops.length,
+      },
+      batch1115: {
+        stops: batch1115Stops.length,
+        stories: batch1115Stories.length,
+      },
+      batch1620: {
+        stops: batch1620Stops.length,
+        stories: batch1620Stories.length,
       },
       sample: sourceStops.slice(0, 3).map((stop) => ({
         name: stop.name,
