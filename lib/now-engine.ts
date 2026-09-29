@@ -1,4 +1,4 @@
-import { getConfidentialRoutes, isUncoveredExclusive } from "./confidential-routes";
+import { getConfidentialRoutes, isUncoveredExclusive, type ConfidentialRoute } from "./confidential-routes";
 
 export type NowScenario = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "transport" | "guardian";
 
@@ -279,8 +279,8 @@ export function buildRoutePlan(scenario: NowScenario, ticketTime = "16:30"): Rou
   };
 }
 
-export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30", blockedStop?: string, availableMinutes = 90, weather?: string): RoutePlan | null {
-  const route = getConfidentialRoutes().find((item) => item.id === routeId);
+export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30", blockedStop?: string, availableMinutes = 90, weather?: string, routeOverride?: ConfidentialRoute): RoutePlan | null {
+  const route = routeOverride ?? getConfidentialRoutes().find((item) => item.id === routeId);
   if (!route) return null;
   const safeMinutes = Math.max(20, Math.min(240, availableMinutes));
   const maxStops = Math.max(2, Math.min(route.stops.length, Math.floor(safeMinutes / Math.max(8, Math.ceil(route.durationMinutes / route.stops.length)))));
@@ -315,14 +315,14 @@ export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30"
   };
 }
 
-export function buildIntegratedRoutePlan(routeId: string, scenario: NowScenario, ticketTime = "16:30", availableMinutes = 90, blockedStop?: string): RoutePlan | null {
+export function buildIntegratedRoutePlan(routeId: string, scenario: NowScenario, ticketTime = "16:30", availableMinutes = 90, blockedStop?: string, routeOverride?: ConfidentialRoute): RoutePlan | null {
   if (scenario === "guardian") return buildRoutePlan("guardian", ticketTime);
   if (scenario === "route" || scenario === "blocked" || scenario === "rain") {
     const effectiveBlockedStop = scenario === "blocked" ? blockedStop || "__next__" : blockedStop;
-    return buildConfidentialRoutePlan(routeId, ticketTime, effectiveBlockedStop, availableMinutes, scenario === "rain" ? "rain" : undefined);
+    return buildConfidentialRoutePlan(routeId, ticketTime, effectiveBlockedStop, availableMinutes, scenario === "rain" ? "rain" : undefined, routeOverride);
   }
 
-  const base = buildConfidentialRoutePlan(routeId, ticketTime, undefined, availableMinutes);
+  const base = buildConfidentialRoutePlan(routeId, ticketTime, undefined, availableMinutes, undefined, routeOverride);
   if (!base || base.stops.length < 2) return base;
   const need = definitions[scenario];
   const needStop = need.stops.find((stop) => stop.state === "current" || stop.state === "next") ?? need.stops[0];
