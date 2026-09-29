@@ -55,24 +55,27 @@ type GuardianAssessment = {
   disclaimer: string;
 };
 
+type StopStory = {
+  id: string;
+  title: string;
+  status: "LOCK" | "VELVET_DETAIL" | "TRANSITION" | "RESERVE";
+  proofLevel: "PROUVÉ" | "TRÈS_PROBABLE" | "RECONSTRUIT" | "HYPOTHÈSE" | null;
+  publicExcerpt?: string | null;
+  whyItMatters?: string | null;
+  canonicalLookFor?: string | null;
+  canonicalRole?: string | null;
+  experienceBatch?: string | null;
+  experienceStatus?: string | null;
+};
+
 type Stop = {
   time: string;
   duration: string;
   title: string;
   detail: string;
   state?: "current" | "next" | "done" | "warning" | "destination";
-  story?: {
-    id: string;
-    title: string;
-    status: "LOCK" | "VELVET_DETAIL" | "TRANSITION" | "RESERVE";
-    proofLevel: "PROUVÉ" | "TRÈS_PROBABLE" | "RECONSTRUIT" | "HYPOTHÈSE" | null;
-    publicExcerpt?: string | null;
-    whyItMatters?: string | null;
-    canonicalLookFor?: string | null;
-    canonicalRole?: string | null;
-    experienceBatch?: string | null;
-    experienceStatus?: string | null;
-  };
+  story?: StopStory;
+  stories?: StopStory[];
   coordinates?: { lat: number; lon: number } | null;
   coordinateStatus?: string | null;
 };
@@ -925,32 +928,40 @@ export default function ParisNowApp() {
               <div className={styles.stopText}>
                 <h3>{stop.title}</h3>
                 <p>{stop.detail}</p>
-                {stop.story?.experienceBatch === "01-05" && (
-                  <details className={styles.storyDetails}>
-                    <summary>Discover the story</summary>
-                    <div className={styles.storyBody}>
-                      {stop.story.canonicalRole && <span className={styles.storyRole}>{stop.story.canonicalRole}</span>}
-                      {stop.story.publicExcerpt && <p>{stop.story.publicExcerpt}</p>}
-                      {stop.story.whyItMatters && (
-                        <div className={styles.storyLayer}>
-                          <b>WHY IT MATTERS</b>
-                          <p>{stop.story.whyItMatters}</p>
+                {(() => {
+                  const stories = (stop.stories ?? (stop.story ? [stop.story] : []))
+                    .filter((story) => story.experienceBatch === "01-05" || story.experienceBatch === "06-10");
+                  if (!stories.length) return null;
+                  return (
+                    <details className={styles.storyDetails}>
+                      <summary>{stories.length > 1 ? "Discover the stories" : "Discover the story"}</summary>
+                      {stories.map((story) => (
+                        <div className={styles.storyBody} key={story.id}>
+                          {stories.length > 1 && <h4 className={styles.storyTitle}>{story.title}</h4>}
+                          {story.canonicalRole && <span className={styles.storyRole}>{story.canonicalRole}</span>}
+                          {story.publicExcerpt && <p>{story.publicExcerpt}</p>}
+                          {story.whyItMatters && (
+                            <div className={styles.storyLayer}>
+                              <b>WHY IT MATTERS</b>
+                              <p>{story.whyItMatters}</p>
+                            </div>
+                          )}
+                          {story.canonicalLookFor && (
+                            <div className={styles.storyLayer}>
+                              <b>LOOK FOR</b>
+                              <p>{story.canonicalLookFor}</p>
+                            </div>
+                          )}
+                          <div className={styles.storyMeta}>
+                            <span>{story.status === "LOCK" ? "CANONICAL STORY" : story.status.replace("_", " ")}</span>
+                            {story.proofLevel && <span>{story.proofLevel.replace("_", " ")}</span>}
+                            {stop.coordinateStatus === "REVIEW" && <span>HISTORICAL LOCATION · REVIEW</span>}
+                          </div>
                         </div>
-                      )}
-                      {stop.story.canonicalLookFor && (
-                        <div className={styles.storyLayer}>
-                          <b>LOOK FOR</b>
-                          <p>{stop.story.canonicalLookFor}</p>
-                        </div>
-                      )}
-                      <div className={styles.storyMeta}>
-                        <span>{stop.story.status === "LOCK" ? "CANONICAL STORY" : stop.story.status.replace("_", " ")}</span>
-                        {stop.story.proofLevel && <span>{stop.story.proofLevel.replace("_", " ")}</span>}
-                        {stop.coordinateStatus === "REVIEW" && <span>HISTORICAL LOCATION · REVIEW</span>}
-                      </div>
-                    </div>
-                  </details>
-                )}
+                      ))}
+                    </details>
+                  );
+                })()}
               </div>
             </article>
           ))}
