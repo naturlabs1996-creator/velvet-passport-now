@@ -16,6 +16,11 @@ export type ConfidentialRouteStory = {
   canonicalRole?: string | null;
   experienceBatch?: string | null;
   experienceStatus?: string | null;
+  editorialI18n?: {
+    fr?: { written?: string; audio?: string; lookFor?: string };
+    en?: { written?: string; audio?: string; lookFor?: string };
+  } | null;
+  editorialStatus?: string | null;
 };
 export type ConfidentialRouteStop = {
   name: string;

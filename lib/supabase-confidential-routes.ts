@@ -41,6 +41,11 @@ type StoryRow = {
   canonical_role: string | null;
   experience_batch: string | null;
   experience_status: string | null;
+  editorial_i18n: {
+    fr?: { written?: string; audio?: string; lookFor?: string };
+    en?: { written?: string; audio?: string; lookFor?: string };
+  } | null;
+  editorial_status: string | null;
 };
 
 type StoryLinkRow = {
@@ -104,6 +109,8 @@ function storyView(story: StoryRow) {
     canonicalRole: story.canonical_role,
     experienceBatch: story.experience_batch,
     experienceStatus: story.experience_status,
+    editorialI18n: story.editorial_i18n,
+    editorialStatus: story.editorial_status,
   };
 }
 
@@ -120,7 +127,7 @@ export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
       ),
       readView<StoryRow>(
         "vp_now_test_stories",
-        "story_id,route_id,title,status,proof_level,event_micro_location,presentation_anchor,look_for,hidden_detail,ambience,narrative_sounds,canonical_narrative_md,canonical_public_excerpt,canonical_why_it_matters,canonical_look_for,canonical_role,experience_batch,experience_status",
+        "story_id,route_id,title,status,proof_level,event_micro_location,presentation_anchor,look_for,hidden_detail,ambience,narrative_sounds,canonical_narrative_md,canonical_public_excerpt,canonical_why_it_matters,canonical_look_for,canonical_role,experience_batch,experience_status,editorial_i18n,editorial_status",
       ),
       readView<StoryLinkRow>(
         "vp_now_test_story_stop_zones",
