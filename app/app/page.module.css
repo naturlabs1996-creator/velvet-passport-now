@@ -163,3 +163,20 @@
 .transportResults .transportOptionPreferred{border-color:#c4a45d;background:#fcf8ed}.transportResults .transportOptionApplied{border-color:#54806a;background:#f3f8f4}
 .transportDisclaimer{display:block;margin-top:13px;color:#777166;font-size:10px;line-height:1.5}
 @media(max-width:520px){.transportPanel{margin-left:12px;margin-right:12px;padding:21px 15px}.transportHeading h2{font-size:28px}.transportModes button{font-size:11px}.transportResults>button>span>small{font-size:9px}}
+
+
+/* Canonical story layer — batch #1–5 */
+.storyDetails{margin-top:12px;border-top:1px solid #e7dfd0;padding-top:10px}
+.storyDetails summary{cursor:pointer;list-style:none;color:#9a7a31;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.storyDetails summary::-webkit-details-marker{display:none}
+.storyDetails summary:after{content:"+";float:right;color:#9a7a31;font-size:15px;font-weight:400}
+.storyDetails[open] summary:after{content:"−"}
+.storyBody{margin-top:12px;padding:13px 14px;background:#faf7ef;border-left:2px solid #c5a45b}
+.storyBody>p{margin:0;color:#4f4940;font-size:13px;line-height:1.62}
+.storyRole{display:block;margin-bottom:9px;color:#857657;font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+.storyLayer{margin-top:13px;padding-top:11px;border-top:1px solid #e6dece}
+.storyLayer b{display:block;margin-bottom:5px;color:#8e7130;font-size:8px;letter-spacing:.15em}
+.storyLayer p{margin:0;color:#554f45;font-size:12px;line-height:1.55}
+.storyMeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
+.storyMeta span{padding:5px 7px;background:#f0eadc;color:#71644a;font-size:8px;letter-spacing:.08em}
+@media(max-width:520px){.storyBody{padding:12px}.storyBody>p{font-size:12px}.storyLayer p{font-size:11px}}
