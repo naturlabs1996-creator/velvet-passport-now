@@ -1,4 +1,4 @@
-import { getSupabaseRouteCatalog } from "../../../../../lib/supabase-confidential-routes";
+import { getSupabaseRouteCatalog } from "../../../../lib/supabase-confidential-routes";
 
 export const runtime = "nodejs";
 
