@@ -1,4 +1,26 @@
-export type ConfidentialRouteStop = { name: string; access: "opening-hours" | "public-street"; alternative: string };
+export type ConfidentialRouteStory = {
+  id: string;
+  title: string;
+  status: "LOCK" | "VELVET_DETAIL" | "TRANSITION" | "RESERVE";
+  proofLevel: "PROUVÉ" | "TRÈS_PROBABLE" | "RECONSTRUIT" | "HYPOTHÈSE" | null;
+  narrativeMd: string;
+  eventMicroLocation: string | null;
+  presentationAnchor: string | null;
+  lookFor: string | null;
+  hiddenDetail: string | null;
+  ambience: string | null;
+  narrativeSounds: string[];
+};
+export type ConfidentialRouteStop = {
+  name: string;
+  access: "opening-hours" | "public-street";
+  alternative: string;
+  storyExcerpt?: string;
+  story?: ConfidentialRouteStory;
+  latitude?: number | null;
+  longitude?: number | null;
+  coordinateStatus?: string | null;
+};
 export type ConfidentialRoute = { id: string; zone: string; title: string; durationMinutes: number; stops: ConfidentialRouteStop[]; blockedStreetAlternative: string; ticketProtection: boolean; uncoveredAddressesIncluded: boolean };
 export const UNCOVERED_EXCLUSIVE_ADDRESSES: string[] = [
   "Hôtel Particulier Montmartre",

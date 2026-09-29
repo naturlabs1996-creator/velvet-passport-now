@@ -16,8 +16,30 @@ type StopRow = {
   route_id: string;
   sequence: number;
   label: string;
+  latitude: number | null;
+  longitude: number | null;
   access: string;
   coordinate_status: string | null;
+};
+
+type StoryRow = {
+  story_id: string;
+  route_id: string;
+  title: string;
+  status: "LOCK" | "VELVET_DETAIL" | "TRANSITION" | "RESERVE";
+  proof_level: "PROUVÉ" | "TRÈS_PROBABLE" | "RECONSTRUIT" | "HYPOTHÈSE" | null;
+  event_micro_location: string | null;
+  presentation_anchor: string | null;
+  look_for: string | null;
+  hidden_detail: string | null;
+  ambience: string | null;
+  narrative_sounds: string[] | null;
+  canonical_narrative_md: string;
+};
+
+type StoryLinkRow = {
+  story_id: string;
+  stop_zone_id: string;
 };
 
 export type SupabaseRouteCatalog = {
@@ -47,21 +69,39 @@ function toAccess(value: string): "opening-hours" | "public-street" {
     : "public-street";
 }
 
+function narrativeExcerpt(markdown: string) {
+  const lines = markdown
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#") && line !== "---")
+    .map((line) => line.replace(/^[-*]\s+/, "").replace(/\*\*/g, ""));
+  const text = lines.join(" ");
+  return text.length <= 300 ? text : text.slice(0, 297).trimEnd() + "…";
+}
+
 export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
   try {
-    const [routeRows, stopRows] = await Promise.all([
+    const [routeRows, stopRows, storyRows, storyLinks] = await Promise.all([
       readView<RouteRow>(
         "vp_now_test_routes",
         "route_id,route_number,public_title,duration_min,zone",
       ),
       readView<StopRow>(
         "vp_now_test_stop_zones",
-        "stop_zone_id,route_id,sequence,label,access,coordinate_status",
+        "stop_zone_id,route_id,sequence,label,latitude,longitude,access,coordinate_status",
+      ),
+      readView<StoryRow>(
+        "vp_now_test_stories",
+        "story_id,route_id,title,status,proof_level,event_micro_location,presentation_anchor,look_for,hidden_detail,ambience,narrative_sounds,canonical_narrative_md",
+      ),
+      readView<StoryLinkRow>(
+        "vp_now_test_story_stop_zones",
+        "story_id,stop_zone_id",
       ),
     ]);
 
-    if (routeRows.length !== 30 || stopRows.length !== 119) {
-      throw new Error(`Unexpected V5 counts: routes=${routeRows.length}, stops=${stopRows.length}`);
+    if (routeRows.length !== 30 || stopRows.length !== 119 || storyRows.length !== 121 || storyLinks.length !== 122) {
+      throw new Error(`Unexpected V5 counts: routes=${routeRows.length}, stops=${stopRows.length}, stories=${storyRows.length}, links=${storyLinks.length}`);
     }
 
     const stopsByRoute = new Map<string, StopRow[]>();
@@ -69,6 +109,14 @@ export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
       const list = stopsByRoute.get(stop.route_id) ?? [];
       list.push(stop);
       stopsByRoute.set(stop.route_id, list);
+    }
+
+    const storyById = new Map(storyRows.map((story) => [story.story_id, story]));
+    const storyIdsByStop = new Map<string, string[]>();
+    for (const link of storyLinks) {
+      const list = storyIdsByStop.get(link.stop_zone_id) ?? [];
+      list.push(link.story_id);
+      storyIdsByStop.set(link.stop_zone_id, list);
     }
 
     const routes = [...routeRows]
@@ -79,11 +127,32 @@ export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
         const rows = (stopsByRoute.get(row.route_id) ?? []).sort((a, b) => a.sequence - b.sequence);
         if (!rows.length) throw new Error(`No stop zones for ${row.route_id}`);
 
-        const stops = rows.map((stop, index) => ({
-          name: stop.label,
-          access: toAccess(stop.access),
-          alternative: rows[index + 1]?.label ?? rows[index - 1]?.label ?? stop.label,
-        }));
+        const stops = rows.map((stop, index) => {
+          const storyId = storyIdsByStop.get(stop.stop_zone_id)?.[0];
+          const story = storyId ? storyById.get(storyId) : undefined;
+          return {
+            name: stop.label,
+            access: toAccess(stop.access),
+            alternative: rows[index + 1]?.label ?? rows[index - 1]?.label ?? stop.label,
+            storyExcerpt: story?.canonical_narrative_md ? narrativeExcerpt(story.canonical_narrative_md) : undefined,
+            story: story ? {
+              id: story.story_id,
+              title: story.title,
+              status: story.status,
+              proofLevel: story.proof_level,
+              narrativeMd: story.canonical_narrative_md,
+              eventMicroLocation: story.event_micro_location,
+              presentationAnchor: story.presentation_anchor,
+              lookFor: story.look_for,
+              hiddenDetail: story.hidden_detail,
+              ambience: story.ambience,
+              narrativeSounds: story.narrative_sounds ?? [],
+            } : undefined,
+            latitude: stop.latitude,
+            longitude: stop.longitude,
+            coordinateStatus: stop.coordinate_status,
+          };
+        });
 
         return {
           id: fallback.id,
