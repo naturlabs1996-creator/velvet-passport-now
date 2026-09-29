@@ -73,12 +73,12 @@ export async function GET() {
       && reviewStops.length === 15
       && storylessStops.length === 0
       && batch15Stops.length === 18
-      && batch15Excerpts.length === 17
+      && batch15Excerpts.length === 18
       && batch15LookFor.length === 3
       && batch610Stops.length === 21
       && batch610StoryAppearances.length === 24
       && batch610UniqueStories.size === 23
-      && batch610Excerpts.length === 19
+      && batch610Excerpts.length === 23
       && batch610LookFor.length === 5
       && batch610MultiStoryStops.length === 3,
     source: catalog.source,
