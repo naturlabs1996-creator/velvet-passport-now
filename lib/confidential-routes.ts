@@ -10,6 +10,12 @@ export type ConfidentialRouteStory = {
   hiddenDetail: string | null;
   ambience: string | null;
   narrativeSounds: string[];
+  publicExcerpt?: string | null;
+  whyItMatters?: string | null;
+  canonicalLookFor?: string | null;
+  canonicalRole?: string | null;
+  experienceBatch?: string | null;
+  experienceStatus?: string | null;
 };
 export type ConfidentialRouteStop = {
   name: string;

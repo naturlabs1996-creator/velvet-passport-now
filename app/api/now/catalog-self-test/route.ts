@@ -47,6 +47,9 @@ export async function GET() {
   const geocodedStops = sourceStops.filter((stop) => stop.latitude != null && stop.longitude != null);
   const reviewStops = sourceStops.filter((stop) => stop.coordinateStatus === "REVIEW");
   const storylessStops = sourceStops.filter((stop) => !stop.story?.narrativeMd).map((stop) => stop.name);
+  const batch15Stops = sourceStops.filter((stop) => stop.story?.experienceBatch === "01-05");
+  const batch15Excerpts = batch15Stops.filter((stop) => Boolean(stop.story?.publicExcerpt));
+  const batch15LookFor = batch15Stops.filter((stop) => Boolean(stop.story?.canonicalLookFor));
 
   return Response.json({
     ok: catalog.source === "supabase-v5-test"
@@ -56,7 +59,10 @@ export async function GET() {
       && storyStops.length === 119
       && geocodedStops.length === 104
       && reviewStops.length === 15
-      && storylessStops.length === 0,
+      && storylessStops.length === 0
+      && batch15Stops.length === 18
+      && batch15Excerpts.length === 17
+      && batch15LookFor.length === 3,
     source: catalog.source,
     routesTested: results.length,
     generatedPlans,
@@ -68,6 +74,11 @@ export async function GET() {
       geocodedStops: geocodedStops.length,
       reviewStops: reviewStops.length,
       storylessStops,
+      batch15: {
+        stops: batch15Stops.length,
+        excerpts: batch15Excerpts.length,
+        lookFor: batch15LookFor.length,
+      },
       sample: sourceStops.slice(0, 3).map((stop) => ({
         name: stop.name,
         storyTitle: stop.story?.title ?? null,

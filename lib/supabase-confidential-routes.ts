@@ -35,6 +35,12 @@ type StoryRow = {
   ambience: string | null;
   narrative_sounds: string[] | null;
   canonical_narrative_md: string;
+  canonical_public_excerpt: string | null;
+  canonical_why_it_matters: string | null;
+  canonical_look_for: string | null;
+  canonical_role: string | null;
+  experience_batch: string | null;
+  experience_status: string | null;
 };
 
 type StoryLinkRow = {
@@ -92,7 +98,7 @@ export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
       ),
       readView<StoryRow>(
         "vp_now_test_stories",
-        "story_id,route_id,title,status,proof_level,event_micro_location,presentation_anchor,look_for,hidden_detail,ambience,narrative_sounds,canonical_narrative_md",
+        "story_id,route_id,title,status,proof_level,event_micro_location,presentation_anchor,look_for,hidden_detail,ambience,narrative_sounds,canonical_narrative_md,canonical_public_excerpt,canonical_why_it_matters,canonical_look_for,canonical_role,experience_batch,experience_status",
       ),
       readView<StoryLinkRow>(
         "vp_now_test_story_stop_zones",
@@ -134,7 +140,7 @@ export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
             name: stop.label,
             access: toAccess(stop.access),
             alternative: rows[index + 1]?.label ?? rows[index - 1]?.label ?? stop.label,
-            storyExcerpt: story?.canonical_narrative_md ? narrativeExcerpt(story.canonical_narrative_md) : undefined,
+            storyExcerpt: story?.canonical_public_excerpt ?? (story?.canonical_narrative_md ? narrativeExcerpt(story.canonical_narrative_md) : undefined),
             story: story ? {
               id: story.story_id,
               title: story.title,
@@ -147,6 +153,12 @@ export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
               hiddenDetail: story.hidden_detail,
               ambience: story.ambience,
               narrativeSounds: story.narrative_sounds ?? [],
+              publicExcerpt: story.canonical_public_excerpt,
+              whyItMatters: story.canonical_why_it_matters,
+              canonicalLookFor: story.canonical_look_for,
+              canonicalRole: story.canonical_role,
+              experienceBatch: story.experience_batch,
+              experienceStatus: story.experience_status,
             } : undefined,
             latitude: stop.latitude,
             longitude: stop.longitude,
