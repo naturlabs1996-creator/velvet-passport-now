@@ -42,14 +42,39 @@ export async function GET() {
 
   const failed = results.filter((route) => !route.ok);
   const generatedPlans = results.reduce((sum, route) => sum + route.scenarios.length, 0);
+  const sourceStops = catalog.routes.flatMap((route) => route.stops);
+  const storyStops = sourceStops.filter((stop) => Boolean(stop.story?.narrativeMd));
+  const geocodedStops = sourceStops.filter((stop) => stop.latitude != null && stop.longitude != null);
+  const reviewStops = sourceStops.filter((stop) => stop.coordinateStatus === "REVIEW");
+  const storylessStops = sourceStops.filter((stop) => !stop.story?.narrativeMd).map((stop) => stop.name);
 
   return Response.json({
-    ok: catalog.source === "supabase-v5-test" && results.length === 30 && failed.length === 0,
+    ok: catalog.source === "supabase-v5-test"
+      && results.length === 30
+      && failed.length === 0
+      && sourceStops.length === 119
+      && storyStops.length === 119
+      && geocodedStops.length === 104
+      && reviewStops.length === 15
+      && storylessStops.length === 0,
     source: catalog.source,
     routesTested: results.length,
     generatedPlans,
     failedRoutes: failed.length,
     failures: failed,
+    content: {
+      sourceStops: sourceStops.length,
+      storyStops: storyStops.length,
+      geocodedStops: geocodedStops.length,
+      reviewStops: reviewStops.length,
+      storylessStops,
+      sample: sourceStops.slice(0, 3).map((stop) => ({
+        name: stop.name,
+        storyTitle: stop.story?.title ?? null,
+        excerpt: stop.storyExcerpt ?? null,
+        coordinateStatus: stop.coordinateStatus ?? null,
+      })),
+    },
     results,
   }, {
     status: failed.length ? 500 : 200,
