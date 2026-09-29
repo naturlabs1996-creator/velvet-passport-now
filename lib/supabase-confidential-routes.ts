@@ -62,7 +62,7 @@ async function readView<T>(view: string, select: string): Promise<T[]> {
         apikey: SUPABASE_PUBLISHABLE_KEY,
         Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
       },
-      next: { revalidate: 60 },
+      cache: "no-store",
     },
   );
   if (!response.ok) throw new Error(`Supabase ${view} failed: ${response.status}`);
