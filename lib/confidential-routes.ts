@@ -23,6 +23,7 @@ export type ConfidentialRouteStop = {
   alternative: string;
   storyExcerpt?: string;
   story?: ConfidentialRouteStory;
+  stories?: ConfidentialRouteStory[];
   latitude?: number | null;
   longitude?: number | null;
   coordinateStatus?: string | null;

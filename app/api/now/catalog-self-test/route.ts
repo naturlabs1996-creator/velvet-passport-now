@@ -50,6 +50,18 @@ export async function GET() {
   const batch15Stops = sourceStops.filter((stop) => stop.story?.experienceBatch === "01-05");
   const batch15Excerpts = batch15Stops.filter((stop) => Boolean(stop.story?.publicExcerpt));
   const batch15LookFor = batch15Stops.filter((stop) => Boolean(stop.story?.canonicalLookFor));
+  const batch610Stops = sourceStops.filter((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).some((story) => story.experienceBatch === "06-10")
+  );
+  const batch610StoryAppearances = batch610Stops.flatMap((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).filter((story) => story.experienceBatch === "06-10")
+  );
+  const batch610UniqueStories = new Map(batch610StoryAppearances.map((story) => [story.id, story]));
+  const batch610Excerpts = [...batch610UniqueStories.values()].filter((story) => Boolean(story.publicExcerpt));
+  const batch610LookFor = [...batch610UniqueStories.values()].filter((story) => Boolean(story.canonicalLookFor));
+  const batch610MultiStoryStops = batch610Stops.filter((stop) =>
+    (stop.stories ?? []).filter((story) => story.experienceBatch === "06-10").length > 1
+  );
 
   return Response.json({
     ok: catalog.source === "supabase-v5-test"
@@ -62,7 +74,13 @@ export async function GET() {
       && storylessStops.length === 0
       && batch15Stops.length === 18
       && batch15Excerpts.length === 17
-      && batch15LookFor.length === 3,
+      && batch15LookFor.length === 3
+      && batch610Stops.length === 21
+      && batch610StoryAppearances.length === 24
+      && batch610UniqueStories.size === 23
+      && batch610Excerpts.length === 19
+      && batch610LookFor.length === 5
+      && batch610MultiStoryStops.length === 3,
     source: catalog.source,
     routesTested: results.length,
     generatedPlans,
@@ -78,6 +96,14 @@ export async function GET() {
         stops: batch15Stops.length,
         excerpts: batch15Excerpts.length,
         lookFor: batch15LookFor.length,
+      },
+      batch610: {
+        stops: batch610Stops.length,
+        storyLinks: batch610StoryAppearances.length,
+        uniqueStories: batch610UniqueStories.size,
+        excerpts: batch610Excerpts.length,
+        lookFor: batch610LookFor.length,
+        multiStoryStops: batch610MultiStoryStops.length,
       },
       sample: sourceStops.slice(0, 3).map((stop) => ({
         name: stop.name,
