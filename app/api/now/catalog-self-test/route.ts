@@ -74,6 +74,13 @@ export async function GET() {
   const batch1620Stories = batch1620Stops.flatMap((stop) =>
     (stop.stories ?? (stop.story ? [stop.story] : [])).filter((story) => story.experienceBatch === "16-20")
   );
+  const batch2630Stops = sourceStops.filter((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).some((story) => story.experienceBatch === "26-30")
+  );
+  const batch2630Stories = batch2630Stops.flatMap((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).filter((story) => story.experienceBatch === "26-30")
+  );
+  const batch2630ReviewStops = batch2630Stops.filter((stop) => stop.coordinateStatus === "REVIEW");
 
   return Response.json({
     ok: catalog.source === "supabase-v5-test"
@@ -96,7 +103,10 @@ export async function GET() {
       && batch1115Stops.length === 20
       && batch1115Stories.length === 20
       && batch1620Stops.length === 20
-      && batch1620Stories.length === 20,
+      && batch1620Stories.length === 20
+      && batch2630Stops.length === 20
+      && batch2630Stories.length === 20
+      && batch2630ReviewStops.length === 7,
     source: catalog.source,
     routesTested: results.length,
     generatedPlans,
@@ -128,6 +138,11 @@ export async function GET() {
       batch1620: {
         stops: batch1620Stops.length,
         stories: batch1620Stories.length,
+      },
+      batch2630: {
+        stops: batch2630Stops.length,
+        stories: batch2630Stories.length,
+        reviewStops: batch2630ReviewStops.length,
       },
       sample: sourceStops.slice(0, 3).map((stop) => ({
         name: stop.name,
