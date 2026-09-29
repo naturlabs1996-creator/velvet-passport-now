@@ -8,6 +8,9 @@ export type NowStop = {
   title: string;
   detail: string;
   state?: "current" | "next" | "done" | "warning" | "destination";
+  story?: import("./confidential-routes").ConfidentialRouteStory;
+  coordinates?: { lat: number; lon: number } | null;
+  coordinateStatus?: string | null;
 };
 
 export type RoutePlan = {
@@ -292,7 +295,16 @@ export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30"
       time: index === 0 ? "NOW" : "+" + String(Math.round(effectiveDuration * index / plannedStops.length)).padStart(2, "0"),
       duration: Math.round(effectiveDuration / plannedStops.length) + " min",
       title: impacted ? stop.alternative : stop.name,
-      detail: impacted ? "Alternative selected · original stop unavailable" : stop.access === "opening-hours" ? "Check opening hours · alternative prepared" : "Confidential local address · public access",
+      detail: impacted
+        ? "Alternative selected · original stop unavailable"
+        : stop.storyExcerpt
+          ? stop.storyExcerpt + (stop.access === "opening-hours" ? " · Check opening hours" : "")
+          : stop.access === "opening-hours"
+            ? "Check opening hours · alternative prepared"
+            : "Confidential local address · public access",
+      story: impacted ? undefined : stop.story,
+      coordinates: impacted || stop.latitude == null || stop.longitude == null ? null : { lat: stop.latitude, lon: stop.longitude },
+      coordinateStatus: impacted ? null : stop.coordinateStatus ?? null,
       state: (index === plannedStops.length - 1 ? "destination" : impacted ? "warning" : index === 0 ? "current" : "next") as "current" | "next" | "warning" | "destination",
     };
   });
