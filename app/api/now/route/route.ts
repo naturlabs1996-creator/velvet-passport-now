@@ -1,5 +1,5 @@
 import { buildRoutePlan, buildIntegratedRoutePlan, isNowScenario, type RoutePlan } from "../../../../lib/now-engine";
-import { getConfidentialRoutes } from "../../../../lib/confidential-routes";
+import { getSupabaseRouteCatalog } from "../../../../lib/supabase-confidential-routes";
 import { getPassAccess } from "../../../../lib/pass-access";
 import { getLiveNeedChoices, type LiveNeedScenario, type LiveNeedChoice } from "../../../../lib/live-needs";
 import { getRouteDisruptions, type RouteDisruption } from "../../../../lib/disruptions";
@@ -347,7 +347,9 @@ export async function GET(request: Request) {
   const access = await getPassAccess();
   if (!access.allowed) return Response.json({ error: "A valid Paris NOW Pass is required" }, { status: 401 });
   const zone = new URL(request.url).searchParams.get("zone") ?? undefined;
-  return Response.json({ routes: getConfidentialRoutes(zone).map(({ id, zone, title, durationMinutes, stops, ticketProtection }) => ({ id, zone, title, durationMinutes, stopCount: stops.length, ticketProtection })) }, { headers: { "Cache-Control": "no-store" } });
+  const catalog = await getSupabaseRouteCatalog();
+  const routes = zone ? catalog.routes.filter((route) => route.zone === zone) : catalog.routes;
+  return Response.json({ routes: routes.map(({ id, zone, title, durationMinutes, stops, ticketProtection }) => ({ id, zone, title, durationMinutes, stopCount: stops.length, ticketProtection })) }, { headers: { "Cache-Control": "no-store", "X-NOW-Catalog-Source": catalog.source } });
 }
 
 export async function POST(request: Request) {
@@ -380,7 +382,8 @@ export async function POST(request: Request) {
   }
   const routeBudget = remainingAfterTransport;
   const routeId = normalized.routeId ?? null;
-  const confidential = routeId ? getConfidentialRoutes().find((route) => route.id === routeId) : undefined;
+  const routeCatalog = await getSupabaseRouteCatalog();
+  const confidential = routeId ? routeCatalog.routes.find((route) => route.id === routeId) : undefined;
   const exactLocation = normalized.location ?? locationFromInput(input.location);
 
   let routeDisruptions: RouteDisruption[] = [];
@@ -406,7 +409,7 @@ export async function POST(request: Request) {
       : weatherScenario;
 
   const selectedRoute = routeId
-    ? buildIntegratedRoutePlan(routeId, routeScenario, ticketTime, routeBudget, blockedStopForRoute)
+    ? buildIntegratedRoutePlan(routeId, routeScenario, ticketTime, routeBudget, blockedStopForRoute, confidential)
     : null;
   let plan = selectedRoute ?? buildRoutePlan(routeScenario, ticketTime);
 
@@ -500,6 +503,7 @@ export async function POST(request: Request) {
     headers: {
       "Cache-Control": "no-store",
       "X-NOW-Data-Mode": composablePlan ? "composable" : liveNeedChoices.length ? "internal-first-nearby" : transport ? "transport-integrated" : "prepared",
+      "X-NOW-Catalog-Source": routeCatalog.source,
     },
   });
 }
