@@ -180,3 +180,6 @@
 .storyMeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
 .storyMeta span{padding:5px 7px;background:#f0eadc;color:#71644a;font-size:8px;letter-spacing:.08em}
 @media(max-width:520px){.storyBody{padding:12px}.storyBody>p{font-size:12px}.storyLayer p{font-size:11px}}
+
+.storyTitle{margin:0 0 8px;color:#28231b;font:17px/1.25 Georgia,serif}
+.storyDetails .storyBody+.storyBody{margin-top:10px;border-top:1px solid #dfd5c2}
