@@ -85,6 +85,28 @@ function narrativeExcerpt(markdown: string) {
   return text.length <= 300 ? text : text.slice(0, 297).trimEnd() + "…";
 }
 
+function storyView(story: StoryRow) {
+  return {
+    id: story.story_id,
+    title: story.title,
+    status: story.status,
+    proofLevel: story.proof_level,
+    narrativeMd: story.canonical_narrative_md,
+    eventMicroLocation: story.event_micro_location,
+    presentationAnchor: story.presentation_anchor,
+    lookFor: story.look_for,
+    hiddenDetail: story.hidden_detail,
+    ambience: story.ambience,
+    narrativeSounds: story.narrative_sounds ?? [],
+    publicExcerpt: story.canonical_public_excerpt,
+    whyItMatters: story.canonical_why_it_matters,
+    canonicalLookFor: story.canonical_look_for,
+    canonicalRole: story.canonical_role,
+    experienceBatch: story.experience_batch,
+    experienceStatus: story.experience_status,
+  };
+}
+
 export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
   try {
     const [routeRows, stopRows, storyRows, storyLinks] = await Promise.all([
@@ -134,32 +156,18 @@ export async function getSupabaseRouteCatalog(): Promise<SupabaseRouteCatalog> {
         if (!rows.length) throw new Error(`No stop zones for ${row.route_id}`);
 
         const stops = rows.map((stop, index) => {
-          const storyId = storyIdsByStop.get(stop.stop_zone_id)?.[0];
-          const story = storyId ? storyById.get(storyId) : undefined;
+          const stories = (storyIdsByStop.get(stop.stop_zone_id) ?? [])
+            .map((storyId) => storyById.get(storyId))
+            .filter((story): story is StoryRow => Boolean(story))
+            .map(storyView);
+          const firstStory = stories[0];
           return {
             name: stop.label,
             access: toAccess(stop.access),
             alternative: rows[index + 1]?.label ?? rows[index - 1]?.label ?? stop.label,
-            storyExcerpt: story?.canonical_public_excerpt ?? (story?.canonical_narrative_md ? narrativeExcerpt(story.canonical_narrative_md) : undefined),
-            story: story ? {
-              id: story.story_id,
-              title: story.title,
-              status: story.status,
-              proofLevel: story.proof_level,
-              narrativeMd: story.canonical_narrative_md,
-              eventMicroLocation: story.event_micro_location,
-              presentationAnchor: story.presentation_anchor,
-              lookFor: story.look_for,
-              hiddenDetail: story.hidden_detail,
-              ambience: story.ambience,
-              narrativeSounds: story.narrative_sounds ?? [],
-              publicExcerpt: story.canonical_public_excerpt,
-              whyItMatters: story.canonical_why_it_matters,
-              canonicalLookFor: story.canonical_look_for,
-              canonicalRole: story.canonical_role,
-              experienceBatch: story.experience_batch,
-              experienceStatus: story.experience_status,
-            } : undefined,
+            storyExcerpt: firstStory?.publicExcerpt ?? (firstStory?.narrativeMd ? narrativeExcerpt(firstStory.narrativeMd) : undefined),
+            story: firstStory,
+            stories,
             latitude: stop.latitude,
             longitude: stop.longitude,
             coordinateStatus: stop.coordinate_status,
