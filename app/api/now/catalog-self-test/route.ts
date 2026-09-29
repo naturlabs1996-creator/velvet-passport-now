@@ -81,6 +81,20 @@ export async function GET() {
     (stop.stories ?? (stop.story ? [stop.story] : [])).filter((story) => story.experienceBatch === "26-30")
   );
   const batch2630ReviewStops = batch2630Stops.filter((stop) => stop.coordinateStatus === "REVIEW");
+  const batch2125Stops = sourceStops.filter((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).some((story) => story.experienceBatch === "21-25")
+  );
+  const batch2125Stories = batch2125Stops.flatMap((stop) =>
+    (stop.stories ?? (stop.story ? [stop.story] : [])).filter((story) => story.experienceBatch === "21-25")
+  );
+  const batch2125ReviewStops = batch2125Stops.filter((stop) => stop.coordinateStatus === "REVIEW");
+  const allStructuredStoryIds = new Set(
+    sourceStops.flatMap((stop) =>
+      (stop.stories ?? (stop.story ? [stop.story] : []))
+        .filter((story) => story.experienceStatus === "STRUCTURED_PREVIEW_READY")
+        .map((story) => story.id)
+    )
+  );
 
   return Response.json({
     ok: catalog.source === "supabase-v5-test"
@@ -106,7 +120,11 @@ export async function GET() {
       && batch1620Stories.length === 20
       && batch2630Stops.length === 20
       && batch2630Stories.length === 20
-      && batch2630ReviewStops.length === 7,
+      && batch2630ReviewStops.length === 7
+      && batch2125Stops.length === 20
+      && batch2125Stories.length === 20
+      && batch2125ReviewStops.length === 3
+      && allStructuredStoryIds.size === 121,
     source: catalog.source,
     routesTested: results.length,
     generatedPlans,
@@ -139,10 +157,20 @@ export async function GET() {
         stops: batch1620Stops.length,
         stories: batch1620Stories.length,
       },
+      batch2125: {
+        stops: batch2125Stops.length,
+        stories: batch2125Stories.length,
+        reviewStops: batch2125ReviewStops.length,
+      },
       batch2630: {
         stops: batch2630Stops.length,
         stories: batch2630Stories.length,
         reviewStops: batch2630ReviewStops.length,
+      },
+      industrialPass: {
+        structuredStories: allStructuredStoryIds.size,
+        expectedStories: 121,
+        complete: allStructuredStoryIds.size === 121,
       },
       sample: sourceStops.slice(0, 3).map((stop) => ({
         name: stop.name,
