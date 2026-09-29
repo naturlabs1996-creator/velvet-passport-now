@@ -29,6 +29,7 @@ type TicketState = {
 
 type GuardianLevel = "checkin" | "assistance" | "medical" | "emergency";
 type AppSection = "now" | "day" | "tickets" | "guardian";
+type NarrativeLanguage = "fr" | "en";
 type TransportMode = "metro" | "rer" | "bus" | "tram" | "taxi" | "walk";
 type TransportOption = { id: TransportMode; label: string; minutes: number; detail: string; source: "official" | "estimated"; transfers: number | null };
 type TransportResult = { origin: string; destination: string; options: TransportOption[]; provider: { connected: boolean; live: boolean; issue: boolean }; disclaimer: string };
@@ -66,6 +67,11 @@ type StopStory = {
   canonicalRole?: string | null;
   experienceBatch?: string | null;
   experienceStatus?: string | null;
+  editorialI18n?: {
+    fr?: { written?: string; audio?: string; lookFor?: string };
+    en?: { written?: string; audio?: string; lookFor?: string };
+  } | null;
+  editorialStatus?: string | null;
 };
 
 type Stop = {
@@ -182,6 +188,7 @@ const needs: { id: Need; label: string; icon: string }[] = [
 export default function ParisNowApp() {
   const [active, setActive] = useState<Need>("route");
   const [activeSection, setActiveSection] = useState<AppSection>("now");
+  const [narrativeLanguage, setNarrativeLanguage] = useState<NarrativeLanguage>("en");
   const [progress, setProgress] = useState(7);
   const [catalogRoutes, setCatalogRoutes] = useState<ConfidentialRouteSummary[]>([]);
   const [selectedZone, setSelectedZone] = useState("Louvre & Opéra");
@@ -215,6 +222,20 @@ export default function ParisNowApp() {
   const [returningToHotel, setReturningToHotel] = useState(false);
   const [transportMode, setTransportMode] = useState<TransportMode>("metro");
   const [transportResult, setTransportResult] = useState<TransportResult | null>(null);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("paris_now_narrative_language");
+    if (stored === "fr" || stored === "en") {
+      setNarrativeLanguage(stored);
+      return;
+    }
+    if (navigator.language.toLowerCase().startsWith("fr")) setNarrativeLanguage("fr");
+  }, []);
+
+  function chooseNarrativeLanguage(language: NarrativeLanguage) {
+    setNarrativeLanguage(language);
+    window.localStorage.setItem("paris_now_narrative_language", language);
+  }
   const [transportLoading, setTransportLoading] = useState(false);
   const [transportError, setTransportError] = useState("");
   const [transportApplied, setTransportApplied] = useState<TransportMode | null>(null);
@@ -934,31 +955,49 @@ export default function ParisNowApp() {
                   if (!stories.length) return null;
                   return (
                     <details className={styles.storyDetails}>
-                      <summary>{stories.length > 1 ? "Discover the stories" : "Discover the story"}</summary>
-                      {stories.map((story) => (
+                      <summary>{narrativeLanguage === "fr" ? (stories.length > 1 ? "Découvrir les histoires" : "Découvrir l’histoire") : (stories.length > 1 ? "Discover the stories" : "Discover the story")}</summary>
+                      <div className={styles.storyLanguage} aria-label={narrativeLanguage === "fr" ? "Langue narrative" : "Narrative language"}>
+                        <span>{narrativeLanguage === "fr" ? "LANGUE" : "LANGUAGE"}</span>
+                        <button type="button" aria-pressed={narrativeLanguage === "fr"} className={narrativeLanguage === "fr" ? styles.storyLanguageActive : ""} onClick={() => chooseNarrativeLanguage("fr")}>FR</button>
+                        <button type="button" aria-pressed={narrativeLanguage === "en"} className={narrativeLanguage === "en" ? styles.storyLanguageActive : ""} onClick={() => chooseNarrativeLanguage("en")}>EN</button>
+                      </div>
+                      {stories.map((story) => {
+                        const premium = story.editorialI18n?.[narrativeLanguage];
+                        const written = premium?.written ?? story.publicExcerpt;
+                        const lookFor = premium?.lookFor ?? story.canonicalLookFor;
+                        return (
                         <div className={styles.storyBody} key={story.id}>
                           {stories.length > 1 && <h4 className={styles.storyTitle}>{story.title}</h4>}
                           {story.canonicalRole && <span className={styles.storyRole}>{story.canonicalRole}</span>}
-                          {story.publicExcerpt && <p>{story.publicExcerpt}</p>}
-                          {story.whyItMatters && (
+                          {written && <p>{written}</p>}
+                          {!premium && story.whyItMatters && (
                             <div className={styles.storyLayer}>
-                              <b>WHY IT MATTERS</b>
+                              <b>{narrativeLanguage === "fr" ? "POURQUOI C’EST IMPORTANT" : "WHY IT MATTERS"}</b>
                               <p>{story.whyItMatters}</p>
                             </div>
                           )}
-                          {story.canonicalLookFor && (
+                          {lookFor && (
                             <div className={styles.storyLayer}>
-                              <b>LOOK FOR</b>
-                              <p>{story.canonicalLookFor}</p>
+                              <b>{narrativeLanguage === "fr" ? "À REGARDER" : "LOOK FOR"}</b>
+                              <p>{lookFor}</p>
+                            </div>
+                          )}
+                          {premium?.audio && (
+                            <div className={styles.storyAudio}>
+                              <b>{narrativeLanguage === "fr" ? "NARRATION" : "NARRATION"}</b>
+                              <p>{premium.audio}</p>
+                              <small>{narrativeLanguage === "fr" ? "Script audio premium · voix finale à connecter" : "Premium audio script · final voice to be connected"}</small>
                             </div>
                           )}
                           <div className={styles.storyMeta}>
-                            <span>{story.status === "LOCK" ? "CANONICAL STORY" : story.status.replace("_", " ")}</span>
+                            <span>{story.status === "LOCK" ? (narrativeLanguage === "fr" ? "HISTOIRE CANONIQUE" : "CANONICAL STORY") : story.status.replace("_", " ")}</span>
+                            {story.editorialStatus === "PREMIUM_REVIEW_READY" && <span>PREMIUM · {narrativeLanguage.toUpperCase()}</span>}
                             {story.proofLevel && <span>{story.proofLevel.replace("_", " ")}</span>}
-                            {stop.coordinateStatus === "REVIEW" && <span>HISTORICAL LOCATION · REVIEW</span>}
+                            {stop.coordinateStatus === "REVIEW" && <span>{narrativeLanguage === "fr" ? "LOCALISATION HISTORIQUE · À VÉRIFIER" : "HISTORICAL LOCATION · REVIEW"}</span>}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </details>
                   );
                 })()}
