@@ -9,6 +9,7 @@ export type NowStop = {
   detail: string;
   state?: "current" | "next" | "done" | "warning" | "destination";
   story?: import("./confidential-routes").ConfidentialRouteStory;
+  stories?: import("./confidential-routes").ConfidentialRouteStory[];
   coordinates?: { lat: number; lon: number } | null;
   coordinateStatus?: string | null;
 };
@@ -303,6 +304,7 @@ export function buildConfidentialRoutePlan(routeId: string, ticketTime = "16:30"
             ? "Check opening hours · alternative prepared"
             : "Confidential local address · public access",
       story: impacted ? undefined : stop.story,
+      stories: impacted ? [] : (stop.stories ?? (stop.story ? [stop.story] : [])),
       coordinates: impacted || stop.latitude == null || stop.longitude == null ? null : { lat: stop.latitude, lon: stop.longitude },
       coordinateStatus: impacted ? null : stop.coordinateStatus ?? null,
       state: (index === plannedStops.length - 1 ? "destination" : impacted ? "warning" : index === 0 ? "current" : "next") as "current" | "next" | "warning" | "destination",
