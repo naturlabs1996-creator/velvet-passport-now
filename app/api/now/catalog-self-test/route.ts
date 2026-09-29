@@ -1,5 +1,5 @@
-import { buildIntegratedRoutePlan } from "../../../../../lib/now-engine";
-import { getSupabaseRouteCatalog } from "../../../../../lib/supabase-confidential-routes";
+import { buildIntegratedRoutePlan } from "../../../../lib/now-engine";
+import { getSupabaseRouteCatalog } from "../../../../lib/supabase-confidential-routes";
 
 export const runtime = "nodejs";
 
