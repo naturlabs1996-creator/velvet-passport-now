@@ -98,7 +98,7 @@ function storyView(story: StoryRow) {
     hiddenDetail: story.hidden_detail,
     ambience: story.ambience,
     narrativeSounds: story.narrative_sounds ?? [],
-    publicExcerpt: story.canonical_public_excerpt,
+    publicExcerpt: story.canonical_public_excerpt ?? narrativeExcerpt(story.canonical_narrative_md),
     whyItMatters: story.canonical_why_it_matters,
     canonicalLookFor: story.canonical_look_for,
     canonicalRole: story.canonical_role,
