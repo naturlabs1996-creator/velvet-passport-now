@@ -7,6 +7,7 @@ export type VenuePoolSeed = {
   officialUrl?: string;
   category: string;
   source: "PARIS_DATA" | "WIKIDATA" | "WIKIPEDIA";
+  discoveryMethod: "PARIS_DATA" | "WIKI_DIRECT" | "WIKI_CATEGORY";
 };
 
 export type VenuePoolDiagnostic = {
@@ -330,7 +331,7 @@ async function parisDataSeeds(spec: VenueSpec, cap: number) {
       if (!name || !category || !Number.isFinite(lat) || !Number.isFinite(lon) || !inParis(lat, lon) || !row.url?.startsWith("https://www.paris.fr/lieux/")) continue;
       const key = normalize(name); if (!key || seen.has(key)) continue; seen.add(key);
       const list = byCategory.get(category) ?? [];
-      list.push({ id: `venue-paris-data:${row.id ?? key}`, name, lat, lon, officialUrl: row.url, category, source: "PARIS_DATA" });
+      list.push({ id: `venue-paris-data:${row.id ?? key}`, name, lat, lon, officialUrl: row.url, category, source: "PARIS_DATA", discoveryMethod: "PARIS_DATA" });
       byCategory.set(category, list);
     }
   }
@@ -418,7 +419,7 @@ async function directSeeds(spec: VenueSpec, cap: number) {
     if (inParis(coord?.lat, coord?.lon)) parisCount += 1;
     if (!page.title || institutionallyExcludedName(page.title) || !qid || !/^Q\d+$/.test(qid) || !category || !inParis(coord?.lat, coord?.lon)) continue;
     const list = byCategory.get(category) ?? [];
-    list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat: coord?.lat, lon: coord?.lon, category, source: "WIKIPEDIA" });
+    list.push({ id: "venue-direct:" + qid, name: page.title.trim(), qid, lat: coord?.lat, lon: coord?.lon, category, source: "WIKIPEDIA", discoveryMethod: "WIKI_DIRECT" });
     byCategory.set(category, list);
   }
   const coordinateSamples = pages.slice(0, 12).map((page) => ({ name: page.title, coord: page.coordinates?.[0], classified: classifyWikiVenue(page), inParis: inParis(page.coordinates?.[0]?.lat, page.coordinates?.[0]?.lon) }));
@@ -461,6 +462,7 @@ async function categorySeeds(spec: VenueSpec, cap: number) {
           lon: coord?.lon,
           category: entry.category,
           source: "WIKIPEDIA",
+          discoveryMethod: "WIKI_CATEGORY",
         });
         byCategory.set(entry.category, list);
       }
