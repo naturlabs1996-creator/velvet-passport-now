@@ -6,6 +6,7 @@ import { resolveParisPlaces, type PlaceResolution } from "./place-resolver";
 import { verifyIntentEvidence } from "./intent-evidence-bridge";
 import { extractPlaceEntitiesFromSources } from "./place-entity-extractor";
 import { enrichHistoryEvidence } from "./history-evidence-layer";
+import { extractHistoricalSpatialClues } from "./historical-spatial-clue-extractor";
 import { canonicalSourceFamily } from "./source-family";
 import { collectWikidataVenuePool } from "./wikidata-venue-pool";
 import { applyPhysicalEntityTypeGate } from "./physical-entity-type-gate";
@@ -173,7 +174,8 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
   if (localSignalDiagnostics.length) console.info("[CandidateLocalSignalDiagnostic]", JSON.stringify({ theme: packet.theme, candidates: localSignalDiagnostics }));
   const intentEvidence = await verifyIntentEvidence(candidateIntelligence.selected, maxIntentLookups);
   const historyEvidence = await enrichHistoryEvidence(intentEvidence.leads, maxHistoryLookups);
-  const relevance = applyResearchRelevanceEngine(historyEvidence.leads);
+  const historicalSpatial = extractHistoricalSpatialClues(historyEvidence.leads);
+  const relevance = applyResearchRelevanceEngine(historicalSpatial.leads);
   const leads = relevance.accepted;
   const trailSignals = buildTrailSignals(leads);
 
@@ -188,10 +190,11 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
     candidateIntelligence: { input: entityLock.accepted.length, selected: candidateIntelligence.selected.length, deepResearch: candidateIntelligence.deepResearch.length, test: candidateIntelligence.test.length, hold: candidateIntelligence.hold.length, rejected: candidateIntelligence.rejected.length, examples: candidateIntelligence.all.slice(0, 12).map((item) => ({ name: item.lead.name, score: item.score, decision: item.decision, depth: item.depth, confidence: item.confidence, dimensions: item.dimensions, positiveSignals: item.positiveSignals, negativeSignals: item.negativeSignals, unknowns: item.unknowns })), rule: candidateIntelligence.rule },
     intentEvidence: { lookups: intentEvidence.lookups, confirmed: intentEvidence.confirmed.length, partial: intentEvidence.partial.length, unconfirmed: intentEvidence.unconfirmed.length, examples: intentEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedTerms: item.matchedTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })), rule: intentEvidence.rule },
     historyEvidence: { lookups: historyEvidence.lookups, confirmed: historyEvidence.confirmed.length, partial: historyEvidence.partial.length, unconfirmed: historyEvidence.unconfirmed.length, examples: historyEvidence.results.slice(0, 10).map((item) => ({ name: item.lead.name, status: item.status, score: item.score, matchedHistoryTerms: item.matchedHistoryTerms, independentSources: item.independentSources, evidenceUrls: item.evidenceUrls, reasons: item.reasons })), rule: historyEvidence.rule },
+    historicalSpatial: { reconstructable: historicalSpatial.reconstructable.length, examples: historicalSpatial.results.filter((item) => item.clues.length > 0).slice(0, 10).map((item) => ({ name: item.lead.name, confidence: item.confidence, reconstructable: item.reconstructable, clues: item.clues.map((clue) => ({ relation: clue.relation, specificity: clue.specificity, hint: clue.normalizedHint, truthStatus: clue.truthStatus })), reasons: item.reasons })), rule: historicalSpatial.rule },
     leadCount: leads.length, independentSources: new Set(leads.map((lead) => canonicalSourceFamily(lead.independentKey))).size, leads, trailSignals: trailSignals.slice(0, 12),
     destinationEntityLock: { accepted: entityLock.accepted.length, rejected: entityLock.rejected.length, rejectedExamples: entityLock.rejected.slice(0, 8).map(({ lead, decision }) => ({ name: lead.name, reasons: decision.reasons })), rule: "PARIS TOKEN != PARIS DESTINATION. Bare Paris mentions, people, media, sport and homonymous places are rejected before focused intent research or candidate merging unless a Paris-France geographic anchor exists." },
     researchRelevance: { accepted: leads.length, rejected: relevance.rejected.length, rejectedExamples: relevance.rejected.slice(0, 8).map(({ lead, score }) => ({ name: lead.name, score: score.total, geography: score.geography, intent: score.intent, velvetUtility: score.velvetUtility, exposureLevel: score.exposureLevel, exposureScore: score.exposureScore, reasons: score.reasons })), rule: "A valid Paris entity must match the active traveler intent and remain useful to the Velvet layer. Exposure Intelligence is applied before acceptance. Historical depth can strengthen research value, but never substitutes for intent evidence or factual verification." },
-    note: "Deep Research Collector V3.3 keeps Candidate Intelligence between destination lock and Intent Evidence while removing legacy RSS web-search collectors. Initial discovery uses geographic/structured identity plus the official Paris venue pool; deep canonical evidence and the Independent Evidence Hunter perform claim research. Verification, exposure, history, factual and publication gates remain mandatory and fail-closed.",
+    note: "Deep Research Collector V3.4 keeps Candidate Intelligence between destination lock and Intent Evidence, then extracts hypothesis-only historical spatial clues after History Evidence. Witness geometry can guide micro-localization research but cannot grant location truth, Exposure, Access, Trust or LOCK. Initial discovery uses geographic/structured identity plus the official Paris venue pool; deep canonical evidence and the Independent Evidence Hunter perform claim research. Verification, exposure, history, factual and publication gates remain mandatory and fail-closed.",
   };
 }
 
