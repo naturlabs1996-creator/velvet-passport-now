@@ -68,7 +68,7 @@ const RULES: Array<{
     relation: "INSIDE_COURTYARD",
     specificity: "HIGH",
     patterns: [
-      /(?:au fond de|dans|inside|at the back of)\s+(?:la|une|the)?\s*(?:cour|courtyard)/i,
+      /(?:(?:au\s+)?fond de|dans|inside|at the back of)\s+(?:la|une|the)?\s*(?:cour|courtyard)/i,
       /(?:seconde?|deuxi[eè]me|second)\s+(?:cour|courtyard)/i,
     ],
   },
@@ -76,7 +76,7 @@ const RULES: Array<{
     relation: "FLOOR_LEVEL",
     specificity: "MEDIUM",
     patterns: [
-      /(?:rez[- ]de[- ]chauss[eé]e|premier|deuxi[eè]me|troisi[eè]me|1er|2e|3e)\s+(?:[eé]tage|floor)?/i,
+      /(?:rez[- ]de[- ]chauss[eé]e|(?:premier|deuxi[eè]me|troisi[eè]me|1er|2e|3e)\s+[eé]tage)/i,
       /(?:ground|first|second|third)\s+floor/i,
     ],
   },
@@ -109,7 +109,7 @@ const RULES: Array<{
     specificity: "HIGH",
     patterns: [
       /(?:entr[eé]e|porte|door|entrance)\s+(?:dans|sur|on|via|par)\s+[^.;]{3,100}/i,
-      /(?:en entrant|upon entering|after entering|apr[eè]s avoir franchi)\s+[^.;]{3,100}/i,
+      /(?:en entrant|upon entering|after entering|apr[eè]s avoir franchi)\s+[^.;]{3,100}/i,\n      /(?:entrer|entrait|entra|entr[eé]|enter|entered)\s+(?:par|through|via)\s+(?:la|le|the)?\s*(?:porte coch[eè]re|porte|entr[eé]e|door|entrance)/i,
     ],
   },
 ];
