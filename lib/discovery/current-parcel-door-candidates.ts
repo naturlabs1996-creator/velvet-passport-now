@@ -184,19 +184,22 @@ async function nearbyDoors(address: CurrentAddressCandidate, radiusMeters = 30) 
   const response = await queryDataset<DoorRecord & { distance_m?: number }>(DOORS_DATASET, where, 20, select);
   if (!response.ok) return [];
 
-  return response.records.map((row) => {
+  const doors: CurrentDoorCandidate[] = [];
+  for (const row of response.records) {
     const point = pointOf(row);
-    if (!point) return null;
-    return {
-      objectId: row.objectid,
-      pavementSheet: row.num_pave || undefined,
-      label: row.lib_classe || row.lib_level || undefined,
+    if (!point) continue;
+    const door: CurrentDoorCandidate = {
       lat: point.lat,
       lon: point.lon,
-      distanceMeters: typeof row.distance_m === "number" ? row.distance_m : undefined,
-      truthStatus: "CURRENT_DOOR_CANDIDATE_ONLY" as const,
+      truthStatus: "CURRENT_DOOR_CANDIDATE_ONLY",
     };
-  }).filter((row): row is CurrentDoorCandidate => Boolean(row))
+    if (typeof row.objectid === "number") door.objectId = row.objectid;
+    if (row.num_pave) door.pavementSheet = row.num_pave;
+    if (row.lib_classe || row.lib_level) door.label = row.lib_classe || row.lib_level || undefined;
+    if (typeof row.distance_m === "number") door.distanceMeters = row.distance_m;
+    doors.push(door);
+  }
+  return doors
     .sort((a, b) => (a.distanceMeters ?? Infinity) - (b.distanceMeters ?? Infinity))
     .slice(0, 8);
 }
