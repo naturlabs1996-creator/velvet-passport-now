@@ -109,7 +109,8 @@ const RULES: Array<{
     specificity: "HIGH",
     patterns: [
       /(?:entr[eé]e|porte|door|entrance)\s+(?:dans|sur|on|via|par)\s+[^.;]{3,100}/i,
-      /(?:en entrant|upon entering|after entering|apr[eè]s avoir franchi)\s+[^.;]{3,100}/i,\n      /(?:entrer|entrait|entra|entr[eé]|enter|entered)\s+(?:par|through|via)\s+(?:la|le|the)?\s*(?:porte coch[eè]re|porte|entr[eé]e|door|entrance)/i,
+      /(?:en entrant|upon entering|after entering|apr[eè]s avoir franchi)\s+[^.;]{3,100}/i,
+      /(?:entrer|entrait|entra|entr[eé]|enter|entered)\s+(?:par|through|via)\s+(?:la|le|the)?\s*(?:porte coch[eè]re|porte|entr[eé]e|door|entrance)/i,
     ],
   },
 ];
