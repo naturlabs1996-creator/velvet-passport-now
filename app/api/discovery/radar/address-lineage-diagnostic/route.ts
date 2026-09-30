@@ -1,53 +1,85 @@
 import { NextResponse } from "next/server";
+import type { HistoricalMicroLocationResult } from "@/lib/discovery/historical-micro-location-hypotheses";
+import type { ResearchLead } from "@/lib/discovery/research-collectors";
+import { resolveHistoricalAddressLineage } from "@/lib/discovery/historical-address-lineage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const BASE = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
+function fixtureLead(): ResearchLead {
+  return {
+    id: "diagnostic:rue-perdue",
+    pageId: "diagnostic",
+    theme: "historical-micro-location",
+    query: "diagnostic",
+    name: "Rue Perdue historical test",
+    snippet: "Le témoignage situe la scène rue Perdue, à la deuxième porte après l'angle.",
+    url: "https://example.invalid/diagnostic",
+    sourceType: "EDITORIAL",
+    publisher: "Diagnostic fixture",
+    independentKey: "diagnostic.invalid",
+    observedAt: new Date().toISOString(),
+    rawClaims: ["La scène est située rue Perdue."],
+  };
+}
 
-async function query(dataset: string, term: string) {
-  const where = `search(*, "${term.replace(/"/g, "\\\"")}")`;
-  const url = `${BASE}/${dataset}/records?where=${encodeURIComponent(where)}&limit=5`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 7000);
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "user-agent": "VelvetPassportAddressLineage/0.1 (official Paris Data diagnostic)",
-        accept: "application/json",
-      },
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    const text = await response.text();
-    let json: unknown = null;
-    try { json = JSON.parse(text); } catch { /* keep raw */ }
-    return {
-      ok: response.ok,
-      status: response.status,
-      url,
-      json,
-      raw: response.ok ? undefined : text.slice(0, 500),
-    };
-  } finally {
-    clearTimeout(timer);
-  }
+function microFixture(): HistoricalMicroLocationResult {
+  const lead = fixtureLead();
+  return {
+    lead,
+    fieldReady: true,
+    bestConfidence: "MEDIUM",
+    hypotheses: [{
+      rank: 1,
+      model: "CORNER_SEGMENT",
+      score: 90,
+      confidence: "MEDIUM",
+      supportingRelations: ["CORNER_OFFSET", "DOOR_SEQUENCE"],
+      hypothesis: "Historical frontage sequence measured from a known corner.",
+      nextChecks: ["Verify numbering and parcel order."],
+      blockers: ["No present-day coordinate may be asserted from witness testimony alone."],
+      truthStatus: "HYPOTHESIS_ONLY",
+    }],
+    reasons: ["Diagnostic field-ready fixture."],
+  };
 }
 
 export async function GET() {
   try {
-    const [caduc, current] = await Promise.all([
-      query("denominations-des-voies-caduques", "rue Perdue"),
-      query("denominations-emprises-voies-actuelles", "Maître Albert"),
-    ]);
+    const result = await resolveHistoricalAddressLineage([microFixture()], 1);
+    const item = result.results[0];
+
+    const checks = {
+      confirmedBidirectionalLineage: item?.status === "CONFIRMED_NAME_LINEAGE",
+      historicalStreetIsRuePerdue: item?.historicalStreet === "rue Perdue",
+      currentStreetIsMaitreAlbert: item?.currentStreet === "rue Maître Albert",
+      parcelSheetsRecovered: Boolean(item?.parcelSheets.includes("91D1") || item?.parcelSheets.includes("91D3")),
+      currentPointIsStreetReferenceOnly: item?.currentStreetReferencePoint?.truthStatus === "STREET_REFERENCE_ONLY",
+      parcelReconstructionStillRequired: item?.requiresParcelReconstruction === true,
+      noDoorCoordinateCreated: typeof item?.lead.lat !== "number" && typeof item?.lead.lon !== "number",
+    };
+
+    const ok = Object.values(checks).every(Boolean);
 
     return NextResponse.json({
-      ok: caduc.ok && current.ok,
+      ok,
       generatedAt: new Date().toISOString(),
-      caduc,
-      current,
+      checks,
+      result: item ? {
+        status: item.status,
+        confidence: item.confidence,
+        historicalStreet: item.historicalStreet,
+        currentStreet: item.currentStreet,
+        parcelSheets: item.parcelSheets,
+        numberingReferences: item.numberingReferences,
+        alignmentReferences: item.alignmentReferences,
+        currentStreetReferencePoint: item.currentStreetReferencePoint,
+        requiresParcelReconstruction: item.requiresParcelReconstruction,
+        reasons: item.reasons,
+      } : null,
+      rule: result.rule,
     }, {
-      status: caduc.ok && current.ok ? 200 : 502,
+      status: ok ? 200 : 500,
       headers: { "cache-control": "no-store, max-age=0" },
     });
   } catch (error) {
