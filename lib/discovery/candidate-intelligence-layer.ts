@@ -190,7 +190,7 @@ function normalize(value: string) {
 }
 
 function nonMetadataClaims(lead: ResearchLead) {
-  return lead.rawClaims.filter((claim) => !/^(?:VENUE_POOL_CATEGORY|VENUE_POOL_DISCOVERY_ONLY|WIKIDATA_COORDINATES|WIKIDATA_ENTITY|WIKIDATA_SOURCE_URL|PARIS_DATA_|SOURCE_PAGE_HYPOTHESIS|SOURCE_PAGE_LOCAL_HYPOTHESIS|PLACE_ENTITY_|SOURCE_CONTEXT)/i.test(claim));
+  return lead.rawClaims.filter((claim) => !/^(?:VENUE_POOL_CATEGORY|VENUE_POOL_DISCOVERY_METHOD|VENUE_POOL_DISCOVERY_ONLY|WIKIDATA_COORDINATES|WIKIDATA_ENTITY|WIKIDATA_SOURCE_URL|PARIS_DATA_|SOURCE_PAGE_HYPOTHESIS|SOURCE_PAGE_LOCAL_HYPOTHESIS|PLACE_ENTITY_|SOURCE_CONTEXT)/i.test(claim));
 }
 function rawText(lead: ResearchLead) {
   const snippet = /physical venue pool/i.test(lead.query) ? "" : (lead.snippet ?? "");
@@ -219,6 +219,8 @@ function hasResolvedIdentity(lead: ResearchLead) { return typeof lead.lat === "n
 function hasOfficialSeed(lead: ResearchLead) { return lead.sourceType === "OFFICIAL" || lead.rawClaims.some((claim) => /PARIS_DATA_OFFICIAL_VENUE|PARIS_DATA_SOURCE_URL/i.test(claim)); }
 function hasStructuredIdentity(lead: ResearchLead) { return lead.rawClaims.some((claim) => /WIKIDATA_ENTITY\s+Q\d+|PARIS_DATA_OFFICIAL_VENUE/i.test(claim)); }
 function venueCategory(lead: ResearchLead) { return lead.rawClaims.map((claim) => claim.match(/^VENUE_POOL_CATEGORY\s+(.+)$/i)?.[1]).find(Boolean) ?? ""; }
+function venueDiscoveryMethod(lead: ResearchLead) { return lead.rawClaims.map((claim) => claim.match(/^VENUE_POOL_DISCOVERY_METHOD\s+(.+)$/i)?.[1]).find(Boolean) ?? ""; }
+function movableInstitutionCategory(lead: ResearchLead) { return /museum|library|archive|cultural venue|gallery|collection|documentation/i.test(venueCategory(lead)); }
 function themeCompatible(lead: ResearchLead) { const rules = THEME_CATEGORY_RULES[lead.theme]; if (!rules?.length) return true; const category = venueCategory(lead); const text = category || `${lead.name} ${lead.snippet ?? ""}`; return rules.some((rule) => rule.test(text)); }
 function traceFamilies(lead: ResearchLead) { return new Set((lead.evidenceTrace ?? []).map((item) => item.independentKey).filter(Boolean)); }
 function canonicalEntity(value: string) { return normalize(value).replace(/\b(musee|museum|theatre|bibliotheque|paris|ville|official|site)\b/g, " ").replace(/\s+/g, " ").trim(); }
@@ -241,6 +243,11 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const shellLike = SHELL_OR_NON_EXPERIENCE.some((pattern) => pattern.test(lead.name.trim()));
   const iconic = ICONIC_NAMES.some((pattern) => pattern.test(lead.name));
   const mainstreamPrior = MAINSTREAM_INSTITUTION_PRIORS.some((pattern) => pattern.test(lead.name));
+  const staleLocationRisk = venueDiscoveryMethod(lead) === "WIKI_CATEGORY" && movableInstitutionCategory(lead) && !hasOfficialSeed(lead) && peer.focusedAppearances === 0;
+  if (staleLocationRisk) {
+    negativeSignals.push("wiki category seed for a movable institution lacks current independent location confirmation");
+    unknowns.push("current operating location in Paris");
+  }
 
   if (sourceHypotheses.length) positiveSignals.push(`whole-page source hypotheses observed for diagnostics only: ${sourceHypotheses.join(", ")}`);
   if (localSourceHypotheses.length) positiveSignals.push(`candidate-local source hypotheses (zero truth credit): ${localSourceHypotheses.join(", ")}`);
@@ -324,7 +331,8 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
 
   let decision: CandidateDecision;
   let depth: CandidateDepth;
-  if (shellLike || !hasResolvedIdentity(lead) || !themeCompatible(lead)) { decision = score < 28 || shellLike ? "REJECT" : "HOLD"; depth = "0X"; }
+  if (staleLocationRisk) { decision = "REJECT"; depth = "0X"; }
+  else if (shellLike || !hasResolvedIdentity(lead) || !themeCompatible(lead)) { decision = score < 28 || shellLike ? "REJECT" : "HOLD"; depth = "0X"; }
   else if (discriminatingSignals >= 4 && interestPotential >= 58 && exposureOpportunity >= 48 && score >= 68) { decision = "DEEP_RESEARCH"; depth = discriminatingSignals >= 5 && score >= 78 ? "6X" : "2X"; }
   else if (discriminatingSignals >= 2 && interestPotential >= 45 && exposureOpportunity >= 38 && score >= 52) { decision = "DEEP_RESEARCH"; depth = "2X"; }
   else if (discriminatingSignals >= 1 && interestPotential >= 34 && exposureOpportunity >= 28 && score >= 38) { decision = "TEST"; depth = "1X"; }
