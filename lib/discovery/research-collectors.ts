@@ -124,6 +124,7 @@ export async function collectResearchPacket(packet: ResearchPacket, budget: Rese
         ...(seed.qid && seed.officialUrl ? [`WIKIDATA_SOURCE_URL ${seed.officialUrl}`] : []),
         ...(fromParisData ? ["PARIS_DATA_OFFICIAL_VENUE", ...(seed.officialUrl ? [`PARIS_DATA_SOURCE_URL ${seed.officialUrl}`] : [])] : []),
         `VENUE_POOL_CATEGORY ${seed.category}`,
+        `VENUE_POOL_DISCOVERY_METHOD ${seed.discoveryMethod}`,
         "VENUE_POOL_DISCOVERY_ONLY",
       ],
     };
