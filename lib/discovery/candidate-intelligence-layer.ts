@@ -244,9 +244,14 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   const iconic = ICONIC_NAMES.some((pattern) => pattern.test(lead.name));
   const mainstreamPrior = MAINSTREAM_INSTITUTION_PRIORS.some((pattern) => pattern.test(lead.name));
   const staleLocationRisk = venueDiscoveryMethod(lead) === "WIKI_CATEGORY" && movableInstitutionCategory(lead) && !hasOfficialSeed(lead) && peer.focusedAppearances === 0;
+  const currentOperationUnconfirmed = venueDiscoveryMethod(lead) === "WIKI_DIRECT" && movableInstitutionCategory(lead) && !hasOfficialSeed(lead) && peer.focusedAppearances === 0;
   if (staleLocationRisk) {
     negativeSignals.push("wiki category seed for a movable institution lacks current independent location confirmation");
     unknowns.push("current operating location in Paris");
+  }
+  if (currentOperationUnconfirmed) {
+    negativeSignals.push("wiki direct seed for a movable institution needs current independent operating-status confirmation before deeper research");
+    unknowns.push("current operating status and access");
   }
 
   if (sourceHypotheses.length) positiveSignals.push(`whole-page source hypotheses observed for diagnostics only: ${sourceHypotheses.join(", ")}`);
@@ -332,6 +337,7 @@ function evaluateCandidate(lead: ResearchLead, peer: PeerContext): CandidateInte
   let decision: CandidateDecision;
   let depth: CandidateDepth;
   if (staleLocationRisk) { decision = "REJECT"; depth = "0X"; }
+  else if (currentOperationUnconfirmed) { decision = "TEST"; depth = "1X"; }
   else if (shellLike || !hasResolvedIdentity(lead) || !themeCompatible(lead)) { decision = score < 28 || shellLike ? "REJECT" : "HOLD"; depth = "0X"; }
   else if (discriminatingSignals >= 4 && interestPotential >= 58 && exposureOpportunity >= 48 && score >= 68) { decision = "DEEP_RESEARCH"; depth = discriminatingSignals >= 5 && score >= 78 ? "6X" : "2X"; }
   else if (discriminatingSignals >= 2 && interestPotential >= 45 && exposureOpportunity >= 38 && score >= 52) { decision = "DEEP_RESEARCH"; depth = "2X"; }
