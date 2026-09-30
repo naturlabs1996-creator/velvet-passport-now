@@ -2,24 +2,25 @@ import { NextResponse } from "next/server";
 import type { HistoricalMicroLocationResult } from "@/lib/discovery/historical-micro-location-hypotheses";
 import type { ResearchLead } from "@/lib/discovery/research-collectors";
 import { resolveHistoricalAddressLineage } from "@/lib/discovery/historical-address-lineage";
+import { resolveCurrentParcelDoorCandidates } from "@/lib/discovery/current-parcel-door-candidates";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 function fixtureLead(): ResearchLead {
   return {
-    id: "diagnostic:rue-perdue",
+    id: "diagnostic:23-rue-perdue",
     pageId: "diagnostic",
     theme: "historical-micro-location",
     query: "diagnostic",
-    name: "Rue Perdue historical test",
-    snippet: "Le témoignage situe la scène rue Perdue, à la deuxième porte après l'angle.",
+    name: "23 rue Perdue historical test",
+    snippet: "Le témoignage situe la scène au 23 rue Perdue, à la deuxième porte après l'angle.",
     url: "https://example.invalid/diagnostic",
     sourceType: "EDITORIAL",
     publisher: "Diagnostic fixture",
     independentKey: "diagnostic.invalid",
     observedAt: new Date().toISOString(),
-    rawClaims: ["La scène est située rue Perdue."],
+    rawClaims: ["La scène est située au 23 rue Perdue."],
   };
 }
 
@@ -46,17 +47,20 @@ function microFixture(): HistoricalMicroLocationResult {
 
 export async function GET() {
   try {
-    const result = await resolveHistoricalAddressLineage([microFixture()], 1);
-    const item = result.results[0];
+    const lineage = await resolveHistoricalAddressLineage([microFixture()], 1);
+    const parcelDoor = await resolveCurrentParcelDoorCandidates(lineage.results, 1);
+    const lineageItem = lineage.results[0];
+    const parcelItem = parcelDoor.results[0];
 
     const checks = {
-      confirmedBidirectionalLineage: item?.status === "CONFIRMED_NAME_LINEAGE",
-      historicalStreetIsRuePerdue: item?.historicalStreet === "rue Perdue",
-      currentStreetIsMaitreAlbert: item?.currentStreet === "rue Maître Albert",
-      parcelSheetsRecovered: Boolean(item?.parcelSheets.includes("91D1") || item?.parcelSheets.includes("91D3")),
-      currentPointIsStreetReferenceOnly: item?.currentStreetReferencePoint?.truthStatus === "STREET_REFERENCE_ONLY",
-      parcelReconstructionStillRequired: item?.requiresParcelReconstruction === true,
-      noDoorCoordinateCreated: typeof item?.lead.lat !== "number" && typeof item?.lead.lon !== "number",
+      confirmedBidirectionalLineage: lineageItem?.status === "CONFIRMED_NAME_LINEAGE",
+      historicalStreetIsRuePerdue: lineageItem?.historicalStreet === "rue Perdue",
+      currentStreetIsMaitreAlbert: lineageItem?.currentStreet === "rue Maître Albert",
+      historicalNumberExtracted: parcelItem?.historicalAddress?.number === 23,
+      numberContinuityStillUnverified: parcelItem?.currentAddressCandidates.every((item) => item.numberContinuity === "UNVERIFIED") ?? true,
+      noHistoricalParcelMatchClaimed: parcelItem?.exactHistoricalParcelMatch === false,
+      noHistoricalDoorTruthClaimed: parcelItem?.currentDoorCandidates.every((item) => item.truthStatus === "CURRENT_DOOR_CANDIDATE_ONLY") ?? true,
+      noLeadCoordinateMutated: typeof parcelItem?.lead.lat !== "number" && typeof parcelItem?.lead.lon !== "number",
     };
 
     const ok = Object.values(checks).every(Boolean);
@@ -65,19 +69,28 @@ export async function GET() {
       ok,
       generatedAt: new Date().toISOString(),
       checks,
-      result: item ? {
-        status: item.status,
-        confidence: item.confidence,
-        historicalStreet: item.historicalStreet,
-        currentStreet: item.currentStreet,
-        parcelSheets: item.parcelSheets,
-        numberingReferences: item.numberingReferences,
-        alignmentReferences: item.alignmentReferences,
-        currentStreetReferencePoint: item.currentStreetReferencePoint,
-        requiresParcelReconstruction: item.requiresParcelReconstruction,
-        reasons: item.reasons,
+      lineage: lineageItem ? {
+        status: lineageItem.status,
+        confidence: lineageItem.confidence,
+        historicalStreet: lineageItem.historicalStreet,
+        currentStreet: lineageItem.currentStreet,
+        parcelSheets: lineageItem.parcelSheets,
+        alignmentReferences: lineageItem.alignmentReferences,
       } : null,
-      rule: result.rule,
+      currentParcelDoor: parcelItem ? {
+        status: parcelItem.status,
+        confidence: parcelItem.confidence,
+        historicalAddress: parcelItem.historicalAddress,
+        currentAddressCandidates: parcelItem.currentAddressCandidates,
+        currentDoorCandidates: parcelItem.currentDoorCandidates,
+        cadParcels: parcelItem.cadParcels,
+        exactHistoricalParcelMatch: parcelItem.exactHistoricalParcelMatch,
+        reasons: parcelItem.reasons,
+      } : null,
+      rules: {
+        lineage: lineage.rule,
+        parcelDoor: parcelDoor.rule,
+      },
     }, {
       status: ok ? 200 : 500,
       headers: { "cache-control": "no-store, max-age=0" },
