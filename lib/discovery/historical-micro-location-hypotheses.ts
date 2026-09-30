@@ -125,7 +125,7 @@ function makeHypothesis(
 
 function buildCandidateModels(result: HistoricalSpatialResult) {
   const relations = new Set(result.clues.map((clue) => clue.relation));
-  const candidates: Omit<MicroLocationHypothesis, "rank">[] = [];
+  const candidates: MicroLocationHypothesis[] = [];
 
   if (has(relations, "CORNER_OFFSET") || has(relations, "DOOR_SEQUENCE")) {
     let score = 58;
@@ -141,7 +141,7 @@ function buildCandidateModels(result: HistoricalSpatialResult) {
       ["CORNER_OFFSET", "DOOR_SEQUENCE", "SIDE_OF_STREET", "DISTANCE_RELATIVE"],
       "The historical point may be recoverable as a frontage/door sequence measured from a known street corner.",
     );
-    candidates.push({ ...built, rank: undefined as never });
+    candidates.push(built);
   }
 
   if (has(relations, "OPPOSITE_LANDMARK")) {
@@ -156,7 +156,7 @@ function buildCandidateModels(result: HistoricalSpatialResult) {
       ["OPPOSITE_LANDMARK", "SIDE_OF_STREET", "ADJACENT"],
       "The historical point may lie on the frontage geometrically opposite a named landmark, subject to historical footprint and street-alignment continuity.",
     );
-    candidates.push({ ...built, rank: undefined as never });
+    candidates.push(built);
   }
 
   if (has(relations, "INSIDE_COURTYARD") || has(relations, "BEHIND_FRONTAGE")) {
@@ -172,7 +172,7 @@ function buildCandidateModels(result: HistoricalSpatialResult) {
       ["INSIDE_COURTYARD", "BEHIND_FRONTAGE", "ENTRANCE_RELATION"],
       "The historical point may be internal to the parcel rather than on the street frontage; courtyard and access geometry must be reconstructed first.",
     );
-    candidates.push({ ...built, rank: undefined as never });
+    candidates.push(built);
   }
 
   if (has(relations, "ENTRANCE_RELATION")) {
@@ -187,7 +187,7 @@ function buildCandidateModels(result: HistoricalSpatialResult) {
       ["ENTRANCE_RELATION", "DOOR_SEQUENCE", "INSIDE_COURTYARD"],
       "The witness account may encode a path from a specific entrance into the parcel; reconstruct the entrance before projecting the interior destination.",
     );
-    candidates.push({ ...built, rank: undefined as never });
+    candidates.push(built);
   }
 
   if (has(relations, "FLOOR_LEVEL")) {
@@ -202,7 +202,7 @@ function buildCandidateModels(result: HistoricalSpatialResult) {
       ["FLOOR_LEVEL", "ENTRANCE_RELATION", "DOOR_SEQUENCE"],
       "A vertical location is described, but it is useful only after the correct historical building and entrance are independently established.",
     );
-    candidates.push({ ...built, rank: undefined as never });
+    candidates.push(built);
   }
 
   if (!candidates.length && result.clues.length) {
@@ -214,7 +214,7 @@ function buildCandidateModels(result: HistoricalSpatialResult) {
       [...relations],
       "The testimony narrows the general frontage but does not yet contain enough geometry to identify a modern door or parcel.",
     );
-    candidates.push({ ...built, rank: undefined as never });
+    candidates.push(built);
   }
 
   if (!candidates.length) {
@@ -226,7 +226,7 @@ function buildCandidateModels(result: HistoricalSpatialResult) {
       [],
       "No defensible micro-location hypothesis can be generated from the current evidence.",
     );
-    candidates.push({ ...built, rank: undefined as never });
+    candidates.push(built);
   }
 
   return candidates
