@@ -65,6 +65,17 @@ export async function GET() {
     narrative: { score: 9.6, justification: "Exceptional story, but narrative strength cannot substitute for location continuity." },
   }));
 
+  const oldButBanal = evaluatePredatorCandidateRubric(base({
+    placeAnchorType: "SURVIVING_BUILDING",
+    placeContinuity: "Old building survives well and is easy to visit.",
+    qualityExperience: { score: 5.8, justification: "Historically old and attractive, but the traveler reveal is limited." },
+    narrative: { score: 5.6, justification: "No exceptional event, character arc, tension or consequential story has been established." },
+    trust: { score: 9.0, justification: "The building history is well documented." },
+    microLocalization: { score: 9.4, justification: "Exact building and address are known." },
+    visualAudiovisualPayoff: { score: 8.6, justification: "Strong surviving fabric and visual appeal." },
+    exposureDegree: { score: 8.5, justification: "The exact banal history is not highly packaged for tourists." },
+  }));
+
   const spectacularButOverexposed = evaluatePredatorCandidateRubric(base({
     placeAnchorType: "SQUARE",
     placeContinuity: "Historical event is precisely tied to the current square.",
@@ -81,6 +92,7 @@ export async function GET() {
     demolishedParkCanStillLock: demolishedNowPark.verdict === "LOCK",
     competingParcelsHold: competingParcels.verdict === "HOLD",
     vanishedUnanchoredHoldsDespiteStory: vanishedUnanchored.verdict === "HOLD",
+    oldButBanalDoesNotLock: oldButBanal.verdict !== "LOCK",
     overexposedRejectsEvenWithPerfectAnchor: spectacularButOverexposed.verdict === "REJECT",
   };
 
@@ -98,6 +110,7 @@ export async function GET() {
       demolishedNowPark,
       competingParcels,
       vanishedUnanchored,
+      oldButBanal,
       spectacularButOverexposed,
     },
     doctrine:
