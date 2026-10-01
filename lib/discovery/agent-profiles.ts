@@ -1,6 +1,7 @@
 import { buildAgentSafetyProtocol } from "./agent-safety-protocol";
 
 export type IntelligenceAgentProfile = {
+  curriculum: string[];
   agentId: string;
   label: string;
   mission: string;
@@ -24,6 +25,22 @@ const competitiveDomains = [
 ];
 
 export const COMPETITIVE_INTELLIGENCE_AGENT: IntelligenceAgentProfile = {
+  curriculum: [
+    "competitive intelligence and OSINT",
+    "advanced marketing strategy",
+    "brand positioning and differentiation",
+    "offer design and value proposition",
+    "pricing and monetization strategy",
+    "paid search and paid social strategy",
+    "SEO and content strategy",
+    "landing pages and conversion-rate optimization",
+    "funnels and lifecycle marketing",
+    "creative strategy and ad-message analysis",
+    "audience segmentation and buyer psychology",
+    "attribution, unit economics and channel measurement",
+    "distribution, partnerships and go-to-market strategy",
+    "launch and competitive response strategy",
+  ],
   agentId: "competitive-intelligence-1",
   label: "Competitive Intelligence Agent",
   mission:
@@ -49,6 +66,7 @@ export const COMPETITIVE_INTELLIGENCE_AGENT: IntelligenceAgentProfile = {
     "Separate observed facts from inference, hypothesis and strategic interpretation.",
     "Material competitor claims require source trace, observation date and confidence.",
     "No external action is allowed solely because a competitive signal is urgent.",
+    "Every material intelligence finding should include commercial implications for positioning, offer, pricing, acquisition, creative, funnel, distribution or launch where evidence supports them.",
     "A newly discovered domain or target outside NOW, Parent Ready or CapitalCheck requires HOLD pending authorization.",
   ],
 };
@@ -66,6 +84,22 @@ const opportunityDomains = [
 ];
 
 export const OPPORTUNITY_INTELLIGENCE_AGENT: IntelligenceAgentProfile = {
+  curriculum: [
+    "unmet-needs and market-gap research",
+    "advanced marketing strategy",
+    "problem-solution fit and demand validation",
+    "offer design and value proposition",
+    "pricing and willingness-to-pay analysis",
+    "paid search and paid social strategy",
+    "SEO, content and demand-capture strategy",
+    "landing pages and conversion-rate optimization",
+    "funnels and lifecycle marketing",
+    "creative strategy and message-market fit",
+    "audience segmentation and buyer psychology",
+    "attribution, unit economics and channel viability",
+    "distribution and go-to-market strategy",
+    "launch strategy and product commercialization",
+  ],
   agentId: "opportunity-intelligence-1",
   label: "Opportunity Intelligence Agent",
   mission:
@@ -93,6 +127,7 @@ export const OPPORTUNITY_INTELLIGENCE_AGENT: IntelligenceAgentProfile = {
     "Strong demand with strong incumbent solutions is not automatically a gap.",
     "A candidate remains a hypothesis until a separate validation pass confirms both need and weak solution coverage.",
     "No opportunity may self-promote to product build, spend or launch.",
+    "Every high-confidence opportunity should include a commercialization hypothesis covering target buyer, positioning, offer, pricing, acquisition channels, funnel, creative angle, distribution and validation plan.",
   ],
 };
 
