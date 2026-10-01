@@ -25,7 +25,7 @@ export type PredatorCandidateRubricInput = {
   exposureDegree: PredatorCriterionScore;
   singularity?: string;
   placeContinuity?: string;
-  placeAnchorType?: "SURVIVING_BUILDING" | "CURRENT_CIVIC_ADDRESS" | "CURRENT_PARCEL" | "PUBLIC_PLACE" | "SQUARE" | "PARK" | "INTERSECTION" | "OTHER_EXISTING_ANCHOR" | "LOST_UNANCHORED";
+  placeAnchorType?: "SURVIVING_BUILDING" | "POST_EVENT_BUILDING" | "CURRENT_CIVIC_ADDRESS" | "CURRENT_PARCEL" | "PUBLIC_PLACE" | "SQUARE" | "PARK" | "INTERSECTION" | "OTHER_EXISTING_ANCHOR" | "LOST_UNANCHORED";
   exposureSourceQuality?: string;
 };
 
@@ -43,7 +43,7 @@ export type PredatorCandidateRubricResult = {
   nonScored: {
     singularity?: string;
     placeContinuity?: string;
-    placeAnchorType?: "SURVIVING_BUILDING" | "CURRENT_CIVIC_ADDRESS" | "CURRENT_PARCEL" | "PUBLIC_PLACE" | "SQUARE" | "PARK" | "INTERSECTION" | "OTHER_EXISTING_ANCHOR" | "LOST_UNANCHORED";
+    placeAnchorType?: "SURVIVING_BUILDING" | "POST_EVENT_BUILDING" | "CURRENT_CIVIC_ADDRESS" | "CURRENT_PARCEL" | "PUBLIC_PLACE" | "SQUARE" | "PARK" | "INTERSECTION" | "OTHER_EXISTING_ANCHOR" | "LOST_UNANCHORED";
     exposureSourceQuality?: string;
   };
 };
@@ -166,7 +166,7 @@ export const PREDATOR_CANONICAL_CANDIDATE_RUBRIC = {
     "Quality of exact sources used for Exposure",
   ],
   placeContinuityDoctrine:
-    "Survival of the historical building is not required. A demolished or transformed building remains eligible when the historical event can be defensibly tied to a current civic address, current parcel, public place, square, park, intersection or another existing physical anchor. Demolition by itself never causes REJECT. What fails is an unanchored or materially vague historical location.",
+    "Survival of the historical building is not required. A demolished or transformed building remains eligible when the historical event can be defensibly tied to a current civic address, current parcel, public place, square, park, intersection or another existing physical anchor. A building erected after the historical event is POST_EVENT_BUILDING: it may anchor the present-day location but must never be described as a material witness to the event. Demolition or later construction by itself never causes REJECT. What fails is an unanchored or materially vague historical location.",
   doctrine:
     "A spectacular historical story can still be rejected. Access and Exposure are absolute gates and cannot be averaged away by stronger scores elsewhere. Building survival is not an absolute gate; defensible continuity of place is what matters. A LOST_UNANCHORED site cannot LOCK and remains HOLD until a current physical anchor is established.",
 } as const;
