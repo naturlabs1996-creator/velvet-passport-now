@@ -273,10 +273,10 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
 
   const maxLookups = request.requestedDepth === "MAXIMUM" ? 12 : request.requestedDepth === "DEEP" ? 8 : 4;
   const history: any = await enrichHistoryEvidence(seeds, maxLookups);
+  const streetLineage: any = await resolveHistoricalStreetLineageFromLeads(history.leads, Math.min(3, maxLookups));
   const spatial: any = extractHistoricalSpatialClues(history.leads);
   const micro: any = buildHistoricalMicroLocationHypotheses(spatial.results);
-  const lineage: any = await resolveHistoricalAddressLineage(micro.results, Math.min(3, maxLookups));
-  const parcelDoor: any = await resolveCurrentParcelDoorCandidates(lineage.results, Math.min(3, maxLookups));
+  const parcelDoor: any = await resolveCurrentParcelDoorCandidates(streetLineage.results, Math.min(3, maxLookups));
 
   const sourceUrls = [...new Set([
     ...seeds.flatMap((lead) => (lead.evidenceTrace ?? []).map((e) => e.url)),
