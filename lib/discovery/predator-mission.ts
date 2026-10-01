@@ -191,7 +191,7 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
       missionId: id,
       status: "HOLD_CAPABILITY_GAP" as PredatorMissionStatus,
       city: adapter.cityLabel,
-      missingAutomation: adapter.sources.filter((source) => source.automated === false).map((source) => source.label),
+      missingAutomation: adapter.sources.filter((source: any) => source.automated === false).map((source: any) => source.label),
       reasons: ["The city adapter exists, but the targeted operational research pipeline is not yet automated for this city. Predator fails closed instead of borrowing Paris-specific logic."],
     };
   }
@@ -202,7 +202,7 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
     cityId: input.cityId,
     activeDomain: "HISTORICAL_MISSION",
     activeTask: objective,
-    activeSourceFamilies: adapter.sources.map((source) => new URL(source.url).hostname),
+    activeSourceFamilies: adapter.sources.map((source: any) => new URL(source.url).hostname),
     openProposalIds: [],
     lastAuthorizedAction: "Execute bounded historical mission in shadow mode",
     lastBenchmarkStatus: "PASS",
@@ -237,24 +237,24 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
   }
 
   const maxLookups = request.requestedDepth === "MAXIMUM" ? 12 : request.requestedDepth === "DEEP" ? 8 : 4;
-  const history = await enrichHistoryEvidence(seeds, maxLookups);
-  const spatial = extractHistoricalSpatialClues(history.leads);
-  const micro = buildHistoricalMicroLocationHypotheses(spatial.results);
-  const lineage = await resolveHistoricalAddressLineage(micro.results, Math.min(3, maxLookups));
-  const parcelDoor = await resolveCurrentParcelDoorCandidates(lineage.results, Math.min(3, maxLookups));
+  const history: any = await enrichHistoryEvidence(seeds, maxLookups);
+  const spatial: any = extractHistoricalSpatialClues(history.leads);
+  const micro: any = buildHistoricalMicroLocationHypotheses(spatial.results);
+  const lineage: any = await resolveHistoricalAddressLineage(micro.results, Math.min(3, maxLookups));
+  const parcelDoor: any = await resolveCurrentParcelDoorCandidates(lineage.results, Math.min(3, maxLookups));
 
   const sourceUrls = [...new Set([
     ...seeds.flatMap((lead) => (lead.evidenceTrace ?? []).map((e) => e.url)),
-    ...history.results.flatMap((item) => item.evidenceUrls),
+    ...history.results.flatMap((item: any) => item.evidenceUrls),
   ].filter((url) => url && url !== "about:blank"))];
   const sourceFamilies = new Set(sourceUrls.map((url) => {
     try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
   }));
 
-  const bestHistory = [...history.results].sort((a, b) => b.score - a.score)[0];
-  const bestMicro = micro.results.find((item) => item.fieldReady) ?? micro.results[0];
-  const bestLineage = lineage.results.find((item) => item.status === "CONFIRMED_NAME_LINEAGE") ?? lineage.results[0];
-  const bestParcel = parcelDoor.results.find((item) => item.cadParcels.length > 0) ?? parcelDoor.results[0];
+  const bestHistory = [...history.results].sort((a: any, b: any) => b.score - a.score)[0];
+  const bestMicro = micro.results.find((item: any) => item.fieldReady) ?? micro.results[0];
+  const bestLineage = lineage.results.find((item: any) => item.status === "CONFIRMED_NAME_LINEAGE") ?? lineage.results[0];
+  const bestParcel = parcelDoor.results.find((item: any) => item.cadParcels.length > 0) ?? parcelDoor.results[0];
 
   const factualStatus =
     bestHistory?.status === "CONFIRMED" && bestLineage?.status === "CONFIRMED_NAME_LINEAGE"
@@ -297,7 +297,7 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
       lon: lead.lon,
       source: lead.url,
     })),
-    historicalEvidence: history.results.slice(0, 5).map((item) => ({
+    historicalEvidence: history.results.slice(0, 5).map((item: any) => ({
       name: item.lead.name,
       status: item.status,
       score: item.score,
