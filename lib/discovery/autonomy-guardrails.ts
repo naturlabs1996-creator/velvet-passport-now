@@ -15,6 +15,7 @@ export const PROTECTED_DOCTRINE: ProtectedDoctrine[] = [
   { id: "NO_GATE_WEAKENING", statement: "Protected gates and evidence thresholds cannot be weakened by autonomous learning.", immutable: true },
   { id: "TRACEABILITY", statement: "Every factual conclusion must remain traceable to evidence and every autonomous change to a benchmarked proposal.", immutable: true },
   { id: "ROLLBACK", statement: "Every promoted improvement must retain a rollback baseline.", immutable: true },
+  { id: "EVIDENCE_INTEGRITY", statement: "Fabricated sources, unsupported verification claims, concealed contradictions, hypothesis-to-fact promotion and unjustified confidence inflation are severe integrity violations.", immutable: true },
 ];
 
 export type AutonomyBudget = {
@@ -43,6 +44,7 @@ export type AutonomyTelemetry = {
   attemptedGateWeakening: boolean;
   attemptedThresholdWeakening: boolean;
   attemptedDirectProductionPromotion: boolean;
+  integrityViolationDetected: boolean;
   benchmarkRegression: boolean;
   traceabilityBroken: boolean;
   rollbackBaselineMissing: boolean;
@@ -65,6 +67,7 @@ export function evaluateAutonomyGuardrails(
     telemetry.attemptedGateWeakening ||
     telemetry.attemptedThresholdWeakening ||
     telemetry.attemptedDirectProductionPromotion ||
+    telemetry.integrityViolationDetected ||
     telemetry.traceabilityBroken;
 
   if (severe) {
@@ -72,6 +75,7 @@ export function evaluateAutonomyGuardrails(
     if (telemetry.attemptedGateWeakening) reasons.push("Protected gate weakening attempted.");
     if (telemetry.attemptedThresholdWeakening) reasons.push("Protected threshold weakening attempted.");
     if (telemetry.attemptedDirectProductionPromotion) reasons.push("Direct autonomous production promotion attempted.");
+    if (telemetry.integrityViolationDetected) reasons.push("Evidence integrity violation detected.");
     if (telemetry.traceabilityBroken) reasons.push("Evidence/change traceability was broken.");
     return {
       state: "KILL_SWITCH",
