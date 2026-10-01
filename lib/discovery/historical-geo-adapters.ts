@@ -133,9 +133,104 @@ export const MONTREAL_HISTORICAL_GEO_ADAPTER: HistoricalGeoAdapter = {
   },
 };
 
+
+export const QUEBEC_CITY_HISTORICAL_GEO_ADAPTER: HistoricalGeoAdapter = {
+  cityId: "quebec-city-ca",
+  cityLabel: "Québec",
+  countryCode: "CA",
+  languageHints: ["fr", "en"],
+  streetTypes: ["rue", "avenue", "boulevard", "chemin", "place", "côte", "cote", "montée", "montee", "terrasse", "carré", "carre", "quai", "faubourg"],
+  capabilities: [
+    "STREET_LINEAGE",
+    "CURRENT_ADDRESS",
+    "CURRENT_PARCEL",
+    "HISTORICAL_PARCEL",
+    "HISTORICAL_MAP",
+    "NUMBERING_HISTORY",
+  ],
+  sources: [
+    {
+      id: "quebec-city-archives",
+      label: "Archives de la Ville de Québec",
+      authority: "Ville de Québec",
+      sourceType: "OFFICIAL_ARCHIVE",
+      capabilities: ["HISTORICAL_PARCEL", "HISTORICAL_MAP", "NUMBERING_HISTORY", "STREET_LINEAGE"],
+      url: "https://www.ville.quebec.qc.ca/citoyens/patrimoine/archives/",
+      automated: true,
+      notes: ["Searchable archive descriptions include textual records, maps, plans, photographs and images. Exact parcel continuity still requires plan/geometry verification."],
+    },
+    {
+      id: "quebec-city-addresses",
+      label: "Adresses de la Ville de Québec",
+      authority: "Ville de Québec / Données Québec",
+      sourceType: "OFFICIAL_OPEN_DATA",
+      capabilities: ["CURRENT_ADDRESS"],
+      url: "https://www.donneesquebec.ca/recherche/dataset/adresses-de-la-ville-de-quebec",
+      automated: true,
+    },
+    {
+      id: "quebec-rqa",
+      label: "Référentiel québécois des adresses",
+      authority: "Ministère des Ressources naturelles et des Forêts",
+      sourceType: "OFFICIAL_OPEN_DATA",
+      capabilities: ["CURRENT_ADDRESS", "CURRENT_PARCEL", "STREET_LINEAGE"],
+      url: "https://mrnf.gouv.qc.ca/repertoire-geographique/adresses-referentiel-quebecois-adresses/",
+      automated: false,
+      notes: ["Monthly province-wide reference contains municipal number, odonym, lot number and coordinates; odonym renvois support street-name changes. Flat-file integration remains bounded/manual until a stable web-service binding is confirmed."],
+    },
+    {
+      id: "quebec-city-matrice",
+      label: "Matrice graphique de la Ville de Québec",
+      authority: "Ville de Québec",
+      sourceType: "OFFICIAL_REGISTRY",
+      capabilities: ["CURRENT_ADDRESS", "CURRENT_PARCEL"],
+      url: "https://www.ville.quebec.qc.ca/carteinteractive/",
+      automated: false,
+      notes: ["Property-level map exposes civic number, lot/cadastre and evaluation context. Do not treat current lot as historical lot proof."],
+    },
+    {
+      id: "quebec-city-public-places",
+      label: "Lieux publics",
+      authority: "Ville de Québec / Données Québec",
+      sourceType: "OFFICIAL_OPEN_DATA",
+      capabilities: ["CURRENT_ADDRESS", "HISTORICAL_MAP"],
+      url: "https://www.donneesquebec.ca/recherche/dataset/vque_14",
+      automated: true,
+      notes: ["Useful for present-day park, square, monument and public-place anchors when historical buildings are gone."],
+    },
+    {
+      id: "quebec-city-building-footprints",
+      label: "Empreintes des bâtiments",
+      authority: "Ville de Québec / Données Québec",
+      sourceType: "OFFICIAL_OPEN_DATA",
+      capabilities: ["CURRENT_PARCEL"],
+      url: "https://www.donneesquebec.ca/recherche/dataset/empreintes-des-batiments",
+      automated: false,
+      notes: ["Large monthly footprint dataset; use only for bounded geometry work, never as historical continuity proof."],
+    },
+    {
+      id: "quebec-rpcq",
+      label: "Répertoire du patrimoine culturel du Québec",
+      authority: "Ministère de la Culture et des Communications",
+      sourceType: "OFFICIAL_HERITAGE",
+      capabilities: ["HISTORICAL_MAP", "STREET_LINEAGE", "NUMBERING_HISTORY"],
+      url: "https://www.patrimoine-culturel.gouv.qc.ca/",
+      automated: true,
+      notes: ["Useful for building chronology, historical names, associated persons/events and heritage status. Heritage status is not itself a Velvet LOCK signal."],
+    },
+  ],
+  rules: {
+    sameNumberIsContinuityProof: false,
+    currentParcelIsHistoricalParcelProof: false,
+    currentEntranceIsHistoricalEntranceProof: false,
+    requireIndependentHistoricalGeometryForExactMatch: true,
+  },
+};
+
 export const HISTORICAL_GEO_ADAPTERS = {
   [PARIS_HISTORICAL_GEO_ADAPTER.cityId]: PARIS_HISTORICAL_GEO_ADAPTER,
   [MONTREAL_HISTORICAL_GEO_ADAPTER.cityId]: MONTREAL_HISTORICAL_GEO_ADAPTER,
+  [QUEBEC_CITY_HISTORICAL_GEO_ADAPTER.cityId]: QUEBEC_CITY_HISTORICAL_GEO_ADAPTER,
 } as const;
 
 export function getHistoricalGeoAdapter(cityId: keyof typeof HISTORICAL_GEO_ADAPTERS) {
