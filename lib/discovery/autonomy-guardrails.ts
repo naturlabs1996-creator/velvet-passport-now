@@ -1,4 +1,4 @@
-export type AutonomyState = "NORMAL" | "HOLD" | "KILL_SWITCH";
+export type AutonomyState = "NORMAL" | "HOLD" | "MUZZLED" | "KILL_SWITCH";
 
 export type ProtectedDoctrine = {
   id: string;
@@ -62,6 +62,8 @@ export function evaluateAutonomyGuardrails(
   budget: AutonomyBudget = DEFAULT_AUTONOMY_BUDGET,
 ): AutonomyGuardrailDecision {
   const reasons: string[] = [];
+  const muzzleRequired = telemetry.benchmarkRegression || telemetry.rollbackBaselineMissing || telemetry.consecutiveFailedExperiments >= budget.maxConsecutiveFailedExperiments;
+
   const severe =
     telemetry.attemptedProtectedDoctrineChange ||
     telemetry.attemptedGateWeakening ||
@@ -94,14 +96,34 @@ export function evaluateAutonomyGuardrails(
     };
   }
 
+  if (muzzleRequired) {
+    if (telemetry.benchmarkRegression) reasons.push("A benchmark regression requires read-only containment.");
+    if (telemetry.rollbackBaselineMissing) reasons.push("Rollback baseline is missing; autonomous writes are disabled.");
+    if (telemetry.consecutiveFailedExperiments >= budget.maxConsecutiveFailedExperiments) reasons.push("Repeated failed experiments require containment.");
+    return {
+      state: "MUZZLED",
+      reasons,
+      allowedActions: [
+        "Read existing evidence and diagnostics.",
+        "Run read-only benchmarks.",
+        "Compare against the last known-good baseline.",
+        "Generate a containment report and proposed recovery plan.",
+      ],
+      blockedActions: [
+        "Write or promote new rules.",
+        "Expand source scope.",
+        "Start new experiments.",
+        "Publish, merge or deploy autonomous changes.",
+      ],
+    };
+  }
+
   const overBudget =
     telemetry.openProposals > budget.maxOpenProposals ||
     telemetry.rulesTouched > budget.maxRulesTouchedPerProposal ||
     telemetry.domainsTouched > budget.maxDomainsTouchedPerProposal ||
     telemetry.newExternalSourceFamilies > budget.maxNewExternalSourceFamiliesPerProposal ||
-    telemetry.consecutiveFailedExperiments >= budget.maxConsecutiveFailedExperiments ||
-    telemetry.benchmarkRegression ||
-    telemetry.rollbackBaselineMissing;
+    false;
 
   if (overBudget) {
     if (telemetry.openProposals > budget.maxOpenProposals) reasons.push("Too many autonomous proposals are open.");
@@ -148,4 +170,6 @@ export function evaluateAutonomyGuardrails(
 }
 
 export const AUTONOMY_GUARDRAIL_RULE =
-  "Predator has bounded autonomy: it may improve methods but cannot rewrite its constitution, weaken proof standards, self-promote to production, or continue experimenting after drift signals exceed budget. HOLD narrows activity; KILL_SWITCH freezes autonomous change and requires rollback/post-mortem.";
+  "Predator has bounded autonomy: NORMAL permits bounded learning; HOLD narrows scope; MUZZLED is read-only containment with no autonomous writes, experiments, source expansion, publication or deployment; KILL_SWITCH freezes autonomous change and requires rollback/post-mortem. Protected doctrine and evidence integrity remain non-negotiable.";
+
+export const MUZZLE_RULE = "MUZZLED is a reversible containment mode: Predator may inspect and explain, but may not change its behavior or the outside world until explicitly released through the controlled path.";
