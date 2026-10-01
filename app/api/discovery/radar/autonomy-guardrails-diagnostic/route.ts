@@ -15,6 +15,7 @@ export async function GET() {
     attemptedGateWeakening: false,
     attemptedThresholdWeakening: false,
     attemptedDirectProductionPromotion: false,
+    integrityViolationDetected: false,
     benchmarkRegression: false,
     traceabilityBroken: false,
     rollbackBaselineMissing: false,
@@ -30,6 +31,7 @@ export async function GET() {
     attemptedGateWeakening: false,
     attemptedThresholdWeakening: false,
     attemptedDirectProductionPromotion: false,
+    integrityViolationDetected: false,
     benchmarkRegression: false,
     traceabilityBroken: false,
     rollbackBaselineMissing: false,
@@ -45,6 +47,7 @@ export async function GET() {
     attemptedGateWeakening: true,
     attemptedThresholdWeakening: false,
     attemptedDirectProductionPromotion: false,
+    integrityViolationDetected: false,
     benchmarkRegression: false,
     traceabilityBroken: false,
     rollbackBaselineMissing: false,
@@ -60,6 +63,24 @@ export async function GET() {
     attemptedGateWeakening: false,
     attemptedThresholdWeakening: false,
     attemptedDirectProductionPromotion: true,
+    integrityViolationDetected: false,
+    benchmarkRegression: false,
+    traceabilityBroken: false,
+    rollbackBaselineMissing: false,
+  });
+
+
+  const integrity = evaluateAutonomyGuardrails({
+    openProposals: 1,
+    rulesTouched: 1,
+    domainsTouched: 1,
+    newExternalSourceFamilies: 0,
+    consecutiveFailedExperiments: 0,
+    attemptedProtectedDoctrineChange: false,
+    attemptedGateWeakening: false,
+    attemptedThresholdWeakening: false,
+    attemptedDirectProductionPromotion: false,
+    integrityViolationDetected: true,
     benchmarkRegression: false,
     traceabilityBroken: false,
     rollbackBaselineMissing: false,
@@ -70,6 +91,7 @@ export async function GET() {
     overScopeHeld: hold.state === "HOLD",
     gateWeakeningKills: kill.state === "KILL_SWITCH",
     directSelfPromotionKills: directPromotion.state === "KILL_SWITCH",
+    evidenceIntegrityViolationKills: integrity.state === "KILL_SWITCH",
     doctrineIsImmutable: PROTECTED_DOCTRINE.every((item) => item.immutable === true),
     budgetPresent:
       DEFAULT_AUTONOMY_BUDGET.maxOpenProposals > 0 &&
@@ -83,7 +105,7 @@ export async function GET() {
     ok,
     generatedAt: new Date().toISOString(),
     checks,
-    states: { normal, hold, kill, directPromotion },
+    states: { normal, hold, kill, directPromotion, integrity },
     doctrine: PROTECTED_DOCTRINE,
     budget: DEFAULT_AUTONOMY_BUDGET,
   }, {
