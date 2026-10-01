@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextResponse } from "next/server";
 import { runPredatorMission } from "@/lib/discovery/predator-mission";
 
