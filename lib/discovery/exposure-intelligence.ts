@@ -41,10 +41,10 @@ export type ExposureResult = {
 };
 
 const MASS_TERMS = ["eiffel tower", "louvre museum", "musée du louvre", "arc de triomphe", "champs-élysées", "disneyland paris"];
-const OFFICIAL_TOURISM_HOSTS = ["parisjetaime.com", "visitparisregion.com", "france.fr"];
+const OFFICIAL_TOURISM_HOSTS = ["parisjetaime.com", "visitparisregion.com", "france.fr", "mtl.org", "quebec-cite.com", "bonjourquebec.com"];
 const CIVIC_EDITORIAL_HOSTS = ["paris.fr"];
 const TRAVEL_EDITORIAL_HOSTS = ["sortiraparis.com", "parissecret.com", "timeout.com", "lonelyplanet.com", "cntraveler.com", "travelandleisure.com", "atlasobscura.com"];
-const MARKETPLACE_HOSTS = ["tripadvisor.com", "getyourguide.com", "viator.com"];
+const MARKETPLACE_HOSTS = ["tripadvisor.com", "getyourguide.com", "viator.com", "google.com", "maps.google.com"];
 const MASS_LANGUAGE = /top 10|top 15|must-see|must see|most visited|iconic|world-famous|world famous|incontournable|les plus visit[eé]s/i;
 const MIN_AUDITED_FAMILIES_FOR_PASS = 3;
 const MIN_OFFICIAL_TOURISM_FAMILIES_FOR_PASS = 1;
