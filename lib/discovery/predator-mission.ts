@@ -2,6 +2,8 @@
 import type { ResearchEvidence } from "./research-verification";
 import type { ResearchLead } from "./research-collectors";
 import { enrichHistoryEvidence } from "./history-evidence-layer";
+import { enrichQuebecHistoryEvidence } from "./quebec-history-evidence";
+import { QUEBEC_CITY_HISTORY_ERAS, QUEBEC_CITY_AUTHORITY_SOURCES } from "./quebec-history-context";
 import { extractHistoricalSpatialClues } from "./historical-spatial-clue-extractor";
 import { buildHistoricalMicroLocationHypotheses } from "./historical-micro-location-hypotheses";
 import { resolveHistoricalStreetLineageFromLeads } from "./historical-address-lineage";
@@ -29,7 +31,7 @@ export type PredatorMissionStatus =
   | "REJECTED_MANDATE"
   | "CONTAINED";
 
-const EXECUTABLE_CITY_IDS = new Set(["paris-fr"]);
+const EXECUTABLE_CITY_IDS = new Set(["paris-fr", "quebec-city-ca"]);
 const BASELINE = "0cb3eb08287e4d7e2a17a89d8965c37c1c4037d9";
 const USER_AGENT = "VelvetPassportPredator/2.0 (bounded historical mission runner; fail closed)";
 
@@ -273,11 +275,62 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
   }
 
   const maxLookups = request.requestedDepth === "MAXIMUM" ? 12 : request.requestedDepth === "DEEP" ? 8 : 4;
-  const history: any = await enrichHistoryEvidence(seeds, maxLookups);
-  const streetLineage: any = await resolveHistoricalStreetLineageFromLeads(history.leads, Math.min(3, maxLookups));
+  const isQuebecCity = request.cityId === "quebec-city-ca";
+  const history: any = isQuebecCity
+    ? await enrichQuebecHistoryEvidence(seeds, maxLookups)
+    : await enrichHistoryEvidence(seeds, maxLookups);
+
   const spatial: any = extractHistoricalSpatialClues(history.leads);
   const micro: any = buildHistoricalMicroLocationHypotheses(spatial.results);
-  const parcelDoor: any = await resolveCurrentParcelDoorCandidates(streetLineage.results, Math.min(3, maxLookups));
+
+  // Paris has a fully automated street-lineage/current parcel narrowing stack.
+  // Quebec City is operational for historical reconnaissance and place anchoring,
+  // but exact lot/parcel continuity remains fail-closed until the municipal/RQA
+  // parcel services are bound to a stable machine interface.
+  const streetLineage: any = isQuebecCity
+    ? {
+        results: history.leads.map((lead: any) => ({
+          lead,
+          status: "UNRESOLVED",
+          parcelSheets: [],
+          numberingReferences: [],
+          alignmentReferences: [],
+          requiresParcelReconstruction: true,
+          confidence: "NONE",
+          reasons: [
+            "Quebec City mission uses official/local historical sources and current place identity, but automated historical street-lineage/lot continuity is not yet granted.",
+            "Use RQA odonym renvois, Ville de Québec matrice graphique, archives maps/plans and independent geometry before exact parcel continuity.",
+          ],
+        })),
+      }
+    : await resolveHistoricalStreetLineageFromLeads(history.leads, Math.min(3, maxLookups));
+
+  const parcelDoor: any = isQuebecCity
+    ? {
+        results: history.leads.map((lead: any) => ({
+          lead,
+          currentAddressCandidates: seeds
+            .filter((seed: any) => seed.address || (typeof seed.lat === "number" && typeof seed.lon === "number"))
+            .slice(0, 3)
+            .map((seed: any) => ({
+              label: seed.address || seed.name,
+              lat: seed.lat,
+              lon: seed.lon,
+              truthStatus: "CURRENT_ADDRESS_CANDIDATE_ONLY",
+              numberContinuity: "UNVERIFIED",
+            })),
+          currentDoorCandidates: [],
+          cadParcels: [],
+          status: "CURRENT_ADDRESS_CANDIDATES_FOUND",
+          exactHistoricalParcelMatch: false,
+          confidence: "LOW",
+          reasons: [
+            "Current Quebec City place/address identity is an anchor candidate only.",
+            "No current lot or historical parcel continuity is asserted without RQA/matrice/archival geometry reconciliation.",
+          ],
+        })),
+      }
+    : await resolveCurrentParcelDoorCandidates(streetLineage.results, Math.min(3, maxLookups));
 
   const bestHistory = [...history.results].sort((a: any, b: any) => b.score - a.score)[0];
   const bestMicro = micro.results.find((item: any) => item.fieldReady) ?? micro.results[0];
@@ -285,16 +338,26 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
   const bestParcel = parcelDoor.results.find((item: any) => item.cadParcels.length > 0) ?? parcelDoor.results[0];
 
   const operationalSources: string[] = [];
-  if (bestLineage?.status && bestLineage.status !== "UNRESOLVED") {
+  if (isQuebecCity) {
+    operationalSources.push(
+      ...QUEBEC_CITY_AUTHORITY_SOURCES.map((source) => source.url),
+      "https://www.donneesquebec.ca/recherche/dataset/adresses-de-la-ville-de-quebec",
+      "https://www.donneesquebec.ca/recherche/dataset/vque_14",
+      "https://www.donneesquebec.ca/recherche/dataset/empreintes-des-batiments",
+      "https://mrnf.gouv.qc.ca/repertoire-geographique/adresses-referentiel-quebecois-adresses/",
+      "https://www.ville.quebec.qc.ca/carteinteractive/"
+    );
+  }
+  if (!isQuebecCity && bestLineage?.status && bestLineage.status !== "UNRESOLVED") {
     operationalSources.push(
       "https://opendata.paris.fr/explore/dataset/denominations-des-voies-caduques/",
       "https://opendata.paris.fr/explore/dataset/denominations-emprises-voies-actuelles/",
     );
   }
-  if ((bestParcel?.cadParcels ?? []).length > 0) {
+  if (!isQuebecCity && (bestParcel?.cadParcels ?? []).length > 0) {
     operationalSources.push("https://opendata.paris.fr/explore/dataset/adresses-ban/");
   }
-  if ((bestParcel?.currentDoorCandidates ?? []).length > 0) {
+  if (!isQuebecCity && (bestParcel?.currentDoorCandidates ?? []).length > 0) {
     operationalSources.push("https://opendata.paris.fr/explore/dataset/plan-de-voirie-portes-cocheres/");
   }
 
@@ -441,6 +504,10 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
       reasons: bestParcel.reasons,
     } : undefined,
     independentIntegrity: integrity,
+    cityHistoricalContext: isQuebecCity ? {
+      eras: QUEBEC_CITY_HISTORY_ERAS,
+      rule: "Historical context guides queries and contradiction checks only; it is never publishable evidence by itself.",
+    } : undefined,
     candidateEvaluation: candidateRubric,
     candidateRubricDefinition: PREDATOR_CANONICAL_CANDIDATE_RUBRIC,
     sources: sourceUrls.slice(0, 20),
