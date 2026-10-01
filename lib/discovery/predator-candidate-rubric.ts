@@ -25,6 +25,7 @@ export type PredatorCandidateRubricInput = {
   exposureDegree: PredatorCriterionScore;
   singularity?: string;
   placeContinuity?: string;
+  placeAnchorType?: "SURVIVING_BUILDING" | "CURRENT_CIVIC_ADDRESS" | "CURRENT_PARCEL" | "PUBLIC_PLACE" | "SQUARE" | "PARK" | "INTERSECTION" | "OTHER_EXISTING_ANCHOR" | "LOST_UNANCHORED";
   exposureSourceQuality?: string;
 };
 
@@ -42,6 +43,7 @@ export type PredatorCandidateRubricResult = {
   nonScored: {
     singularity?: string;
     placeContinuity?: string;
+    placeAnchorType?: "SURVIVING_BUILDING" | "CURRENT_CIVIC_ADDRESS" | "CURRENT_PARCEL" | "PUBLIC_PLACE" | "SQUARE" | "PARK" | "INTERSECTION" | "OTHER_EXISTING_ANCHOR" | "LOST_UNANCHORED";
     exposureSourceQuality?: string;
   };
 };
@@ -129,6 +131,7 @@ export function evaluatePredatorCandidateRubric(
     nonScored: {
       singularity: input.singularity,
       placeContinuity: input.placeContinuity,
+      placeAnchorType: input.placeAnchorType,
       exposureSourceQuality: input.exposureSourceQuality,
     },
   };
@@ -154,8 +157,11 @@ export const PREDATOR_CANONICAL_CANDIDATE_RUBRIC = {
   nonScoredReportFields: [
     "Singularity / Uniqueness",
     "Continuity of place/building",
+    "Existing-place anchor type when the historical building has disappeared",
     "Quality of exact sources used for Exposure",
   ],
+  placeContinuityDoctrine:
+    "Survival of the historical building is not required. A demolished or transformed building remains eligible when the historical event can be defensibly tied to a current civic address, current parcel, public place, square, park, intersection or another existing physical anchor. Demolition by itself never causes REJECT. What fails is an unanchored or materially vague historical location.",
   doctrine:
-    "A spectacular historical story can still be rejected. Access and Exposure are absolute gates and cannot be averaged away by stronger scores elsewhere.",
+    "A spectacular historical story can still be rejected. Access and Exposure are absolute gates and cannot be averaged away by stronger scores elsewhere. Building survival is not an absolute gate; defensible continuity of place is what matters.",
 } as const;
