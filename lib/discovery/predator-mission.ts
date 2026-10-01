@@ -11,6 +11,7 @@ import { buildGovernanceTelemetry } from "./predator-governance-telemetry";
 import { evaluatePredatorHeartbeat } from "./predator-heartbeat-watchdog";
 import { verifyIntegrity } from "./independent-integrity-verifier";
 import { PREDATOR_GRADUATION } from "./predator-graduation";
+import { evaluatePredatorCandidateRubric, PREDATOR_CANONICAL_CANDIDATE_RUBRIC } from "./predator-candidate-rubric";
 
 export type PredatorMissionRequest = {
   cityId: keyof typeof HISTORICAL_GEO_ADAPTERS;
@@ -330,6 +331,65 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
   const contained = integrity.verdict === "KILL_SWITCH";
   const held = integrity.verdict === "HOLD";
 
+  // Canonical candidate evaluation is deliberately conservative.
+  // Unknown dimensions remain unscored and force HOLD instead of fabricated precision.
+  const candidateRubric = evaluatePredatorCandidateRubric({
+    qualityExperience: {
+      score: null,
+      justification: "Requires explicit assessment of whether the on-site experience is singular and worth the detour.",
+    },
+    access: {
+      score: null,
+      gate: "UNKNOWN",
+      justification: "Current address/door candidates do not by themselves establish traveler access, visibility, opening conditions or understandability on site.",
+    },
+    trust: {
+      score: bestHistory?.status === "CONFIRMED"
+        ? Math.max(7, Math.min(10, Math.round((bestHistory.score / 10) * 10) / 10))
+        : bestHistory?.status === "PARTIAL"
+          ? Math.max(4, Math.min(6.9, Math.round((bestHistory.score / 10) * 10) / 10))
+          : null,
+      justification: bestHistory?.status === "CONFIRMED"
+        ? "Historical evidence reached confirmed status with independent source support."
+        : bestHistory?.status === "PARTIAL"
+          ? "Historical evidence is partial; corroboration remains incomplete."
+          : "Historical evidence has not yet reached a defensible scored state.",
+    },
+    microLocalization: {
+      score: bestParcel?.exactHistoricalParcelMatch === true
+        ? 10
+        : bestLineage?.status === "CONFIRMED_NAME_LINEAGE" && (bestParcel?.cadParcels ?? []).length
+          ? 6
+          : bestLineage?.status === "CONFIRMED_NAME_LINEAGE"
+            ? 4.5
+            : null,
+      justification: bestParcel?.exactHistoricalParcelMatch === true
+        ? "Historical-to-current parcel continuity is independently established."
+        : (bestParcel?.cadParcels ?? []).length
+          ? "Street lineage and current parcel candidates are known, but historical parcel/door continuity remains unproved."
+          : bestLineage?.status === "CONFIRMED_NAME_LINEAGE"
+            ? "Street-name lineage is confirmed, but parcel/entrance continuity remains unresolved."
+            : "Micro-location remains unresolved.",
+    },
+    narrative: {
+      score: null,
+      justification: "Requires explicit assessment of character, tension, causality, surprise, progression and consequence.",
+    },
+    visualAudiovisualPayoff: {
+      score: null,
+      justification: "Requires explicit inspection for an authentic look-for, archival visual, plan, photograph, engraving, object or physical trace.",
+    },
+    exposureDegree: {
+      score: null,
+      justification: "Exposure audit is not complete until official tourism plus mainstream tourist-facing sources are confronted under the exact angle.",
+    },
+    singularity: "Must be stated explicitly in the final candidate report.",
+    placeContinuity: bestParcel?.exactHistoricalParcelMatch === true
+      ? "Historical/current continuity established."
+      : "Continuity not yet established at historical parcel/entrance level.",
+    exposureSourceQuality: "Must list the exact tourism-facing source families checked, including the official destination tourism office and mainstream traveler channels.",
+  });
+
   const report = {
     missionId: id,
     agent: "Predator 2.0",
@@ -381,6 +441,8 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
       reasons: bestParcel.reasons,
     } : undefined,
     independentIntegrity: integrity,
+    candidateEvaluation: candidateRubric,
+    candidateRubricDefinition: PREDATOR_CANONICAL_CANDIDATE_RUBRIC,
     sources: sourceUrls.slice(0, 20),
     unresolved: [
       ...(bestParcel?.exactHistoricalParcelMatch === false ? ["Exact historical parcel/door continuity is not established until historical plan geometry is independently aligned."] : []),
@@ -399,4 +461,4 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
 }
 
 export const PREDATOR_MISSION_RULE =
-  "A Predator mission is human-authorized, historical-only, city-capability aware, heartbeat-gated, independently verified, and fail-closed. Unsupported city automation, missing evidence, integrity mismatch, or exact historical continuity gaps can never be silently filled with inference.";
+  "A Predator mission is human-authorized, historical-only, city-capability aware, heartbeat-gated, independently verified, and fail-closed. Every candidate report uses the canonical seven-criterion /10 rubric with Access and Exposure as absolute gates. Unknown Access or Exposure forces HOLD. Unsupported city automation, missing evidence, integrity mismatch, or exact historical continuity gaps can never be silently filled with inference.";
