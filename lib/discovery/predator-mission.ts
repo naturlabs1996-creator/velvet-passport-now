@@ -182,7 +182,7 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
     };
   }
 
-  if (PREDATOR_GRADUATION.status !== "SHADOW_READY") {
+  if (String(PREDATOR_GRADUATION.status) !== "SHADOW_READY") {
     return { missionId: id, status: "CONTAINED" as PredatorMissionStatus, reasons: ["Predator is not in SHADOW_READY state."] };
   }
 
