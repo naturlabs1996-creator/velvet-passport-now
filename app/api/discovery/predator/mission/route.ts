@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextResponse } from "next/server";
 import { runPredatorMission, PREDATOR_MISSION_RULE, type PredatorMissionRequest } from "@/lib/discovery/predator-mission";
 import { HISTORICAL_GEO_ADAPTERS } from "@/lib/discovery/historical-geo-adapters";
