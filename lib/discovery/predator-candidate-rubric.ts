@@ -105,6 +105,16 @@ export function evaluatePredatorCandidateRubric(
 
   if (anyUnknownCore) reasons.push("At least one non-gate criterion is still unscored.");
 
+  const narrativeTooWeak =
+    scores.qualityExperience.score !== null &&
+    scores.narrative.score !== null &&
+    scores.qualityExperience.score < 6.5 &&
+    scores.narrative.score < 6.5;
+
+  if (narrativeTooWeak) {
+    reasons.push("Historical age or architectural interest alone is insufficient: both Quality / Experience and Narrative are below 6.5/10, so the candidate cannot LOCK.");
+  }
+
   const placeAnchorUnresolved = input.placeAnchorType === "LOST_UNANCHORED";
   if (placeAnchorUnresolved) {
     reasons.push("The historical building may be gone, which is acceptable, but the event is not yet defensibly anchored to a current civic address, parcel, public place, square, park, intersection or other existing physical reference.");
@@ -117,6 +127,8 @@ export function evaluatePredatorCandidateRubric(
     verdict = "REJECT";
   } else if (input.access.gate === "UNKNOWN" || exposureGate === "UNKNOWN" || anyUnknownCore || placeAnchorUnresolved) {
     verdict = "HOLD";
+  } else if (narrativeTooWeak) {
+    verdict = "RESERVE";
   } else if (exposure === "EXCEPTION_ONLY") {
     verdict = "RESERVE";
   } else {
@@ -168,5 +180,5 @@ export const PREDATOR_CANONICAL_CANDIDATE_RUBRIC = {
   placeContinuityDoctrine:
     "Survival of the historical building is not required. A demolished or transformed building remains eligible when the historical event can be defensibly tied to a current civic address, current parcel, public place, square, park, intersection or another existing physical anchor. A building erected after the historical event is POST_EVENT_BUILDING: it may anchor the present-day location but must never be described as a material witness to the event. Demolition or later construction by itself never causes REJECT. What fails is an unanchored or materially vague historical location.",
   doctrine:
-    "A spectacular historical story can still be rejected. Access and Exposure are absolute gates and cannot be averaged away by stronger scores elsewhere. Building survival is not an absolute gate; defensible continuity of place is what matters. A LOST_UNANCHORED site cannot LOCK and remains HOLD until a current physical anchor is established.",
+    "A spectacular historical story can still be rejected. Access and Exposure are absolute gates and cannot be averaged away by stronger scores elsewhere. Building survival is not an absolute gate; defensible continuity of place is what matters. A LOST_UNANCHORED site cannot LOCK and remains HOLD until a current physical anchor is established. Old age, heritage status, architectural beauty or survival of fabric never justify LOCK by themselves: the candidate still needs a strong traveler experience and a memorable narrative."
 } as const;
