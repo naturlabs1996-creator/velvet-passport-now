@@ -325,3 +325,128 @@ export async function resolveHistoricalAddressLineage(
     rule: "Official Paris Data may establish street-name lineage, numbering/alignement references and parcel-sheet targets. Street polygons and centroids are orientation aids only. Door-, building- and parcel-level continuity requires independent historical plans/cadastre and cannot be inferred from a current street geometry.",
   };
 }
+
+
+/**
+ * Mission-mode street lineage resolver.
+ * This deliberately resolves only street-name/numbering/alignment lineage from
+ * explicit evidence attached to a lead. It does NOT require field-ready
+ * micro-location clues because street-name history is independently verifiable.
+ * It never grants door, building or parcel continuity.
+ */
+export async function resolveHistoricalStreetLineageFromLeads(
+  leads: ResearchLead[],
+  maxLookups = 3,
+) {
+  const output: HistoricalAddressLineageResult[] = [];
+  let allocated = 0;
+
+  for (const lead of leads) {
+    if (allocated >= maxLookups) {
+      output.push({
+        lead,
+        status: "UNRESOLVED",
+        parcelSheets: [],
+        numberingReferences: [],
+        alignmentReferences: [],
+        requiresParcelReconstruction: false,
+        confidence: "NONE",
+        reasons: ["Mission street-lineage lookup budget was not allocated to this candidate."],
+      });
+      continue;
+    }
+
+    const references = extractStreetReferences(lead);
+    if (!references.length) {
+      output.push({
+        lead,
+        status: "UNRESOLVED",
+        parcelSheets: [],
+        numberingReferences: [],
+        alignmentReferences: [],
+        requiresParcelReconstruction: false,
+        confidence: "NONE",
+        reasons: ["No explicit street reference could be extracted from the mission evidence."],
+      });
+      continue;
+    }
+
+    allocated += 1;
+    let resolved: Awaited<ReturnType<typeof resolveOneStreet>> | null = null;
+    let usedReference: string | undefined;
+
+    for (const reference of references.slice(0, 3)) {
+      const candidate = await resolveOneStreet(reference);
+      if (
+        candidate.status === "CONFIRMED_NAME_LINEAGE" ||
+        candidate.status === "HISTORICAL_STREET_ONLY" ||
+        candidate.status === "CURRENT_STREET_ONLY"
+      ) {
+        resolved = candidate;
+        usedReference = reference;
+        break;
+      }
+      if (!resolved && candidate.status === "AMBIGUOUS") {
+        resolved = candidate;
+        usedReference = reference;
+      }
+    }
+
+    if (!resolved) resolved = { status: "UNRESOLVED", reciprocal: false };
+
+    const parcelSheets = stringArray(resolved.currentRecord?.feuille);
+    const numberingReferences = [
+      resolved.historicalRecord?.numerotage,
+      resolved.currentRecord?.numerotage,
+    ].filter((value): value is string => Boolean(value));
+    const alignmentReferences = [
+      resolved.historicalRecord?.alignement,
+      resolved.currentRecord?.alignement,
+    ].filter((value): value is string => Boolean(value));
+
+    const point = resolved.currentRecord?.geo_point_2d;
+    const currentStreetReferencePoint =
+      typeof point?.lat === "number" && typeof point?.lon === "number"
+        ? { lat: point.lat, lon: point.lon, truthStatus: "STREET_REFERENCE_ONLY" as const }
+        : undefined;
+
+    const confidence: HistoricalAddressLineageResult["confidence"] =
+      resolved.status === "CONFIRMED_NAME_LINEAGE" ? "HIGH" :
+      resolved.status === "HISTORICAL_STREET_ONLY" || resolved.status === "CURRENT_STREET_ONLY" ? "MEDIUM" :
+      resolved.status === "AMBIGUOUS" ? "LOW" : "NONE";
+
+    const result: HistoricalAddressLineageResult = {
+      lead,
+      status: resolved.status,
+      historicalStreet: resolved.historicalStreet,
+      currentStreet: resolved.currentStreet,
+      historicalRecord: resolved.historicalRecord,
+      currentRecord: resolved.currentRecord,
+      parcelSheets,
+      numberingReferences,
+      alignmentReferences,
+      currentStreetReferencePoint,
+      requiresParcelReconstruction: resolved.status !== "UNRESOLVED",
+      confidence,
+      reasons: [
+        usedReference
+          ? `Mission street reference tested against official Paris Data: ${usedReference}.`
+          : "No street reference resolved in official Paris Data.",
+        resolved.status === "CONFIRMED_NAME_LINEAGE"
+          ? "Former and current street records corroborate the naming lineage in both directions."
+          : "Street-name continuity is incomplete or one-sided.",
+        "Street lineage alone never proves historical parcel, building or entrance continuity.",
+      ],
+    };
+    result.lead = attachClaims(result);
+    output.push(result);
+  }
+
+  return {
+    results: output,
+    leads: output.map((item) => item.lead),
+    confirmed: output.filter((item) => item.status === "CONFIRMED_NAME_LINEAGE"),
+    allocated,
+    rule: "Mission street-lineage resolution may precede micro-location because official naming history is independently verifiable. It cannot establish parcel, building or entrance continuity.",
+  };
+}
