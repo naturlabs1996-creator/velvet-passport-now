@@ -4,7 +4,7 @@ import type { ResearchLead } from "./research-collectors";
 import { enrichHistoryEvidence } from "./history-evidence-layer";
 import { extractHistoricalSpatialClues } from "./historical-spatial-clue-extractor";
 import { buildHistoricalMicroLocationHypotheses } from "./historical-micro-location-hypotheses";
-import { resolveHistoricalAddressLineage } from "./historical-address-lineage";
+import { resolveHistoricalStreetLineageFromLeads } from "./historical-address-lineage";
 import { resolveCurrentParcelDoorCandidates } from "./current-parcel-door-candidates";
 import { HISTORICAL_GEO_ADAPTERS } from "./historical-geo-adapters";
 import { buildGovernanceTelemetry } from "./predator-governance-telemetry";
@@ -69,11 +69,44 @@ async function buildSeedLeads(request: PredatorMissionRequest, id: string): Prom
   const leads: ResearchLead[] = [];
   const observedAt = new Date().toISOString();
 
+  // Bind every mission to the explicit human target before discovery.
+  // This seed is NOT evidence; it simply prevents discovery drift.
+  if (request.knownAddress || /\\b(?:rue|quai|boulevard|avenue|place|passage|impasse|cour|all[eé]e|square|chemin|route)\\b/i.test(request.subject)) {
+    leads.push({
+      id: `${id}:target`,
+      pageId: id,
+      theme: "predator-historical-mission",
+      query: q,
+      name: request.subject,
+      snippet: request.objective,
+      url: "about:blank",
+      sourceType: "MAP",
+      publisher: "Mission target",
+      independentKey: "mission-target",
+      observedAt,
+      address: request.knownAddress,
+      rawClaims: request.knownFacts ?? [],
+      evidenceTrace: [],
+    });
+  }
+
+  const normalizedTarget = `${request.subject} ${request.knownAddress ?? ""}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\\u0300-\\u036f]/g, "");
+  const generic = new Set(["rue","quai","boulevard","avenue","place","passage","impasse","cour","allee","square","chemin","route","paris","france"]);
+  const targetTokens = normalizedTarget.split(/[^a-z0-9]+/).filter((token) => token.length >= 4 && !generic.has(token) && !/^\\d+$/.test(token));
+  const targetMatch = (text: string) => {
+    const normalized = text.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    return targetTokens.length === 0 || targetTokens.some((token) => normalized.includes(token));
+  };
+
   const osm = await fetchJson(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&q=${encodeURIComponent(q)}`) as
     | Array<{ place_id?: number; display_name?: string; lat?: string; lon?: string; name?: string }>
     | undefined;
 
   for (const item of osm ?? []) {
+    if (!targetMatch(`${item.name ?? ""} ${item.display_name ?? ""}`)) continue;
     const lat = Number(item.lat);
     const lon = Number(item.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
@@ -114,6 +147,7 @@ async function buildSeedLeads(request: PredatorMissionRequest, id: string): Prom
 
   for (const item of wiki?.query?.search ?? []) {
     const snippet = clean(item.snippet?.replace(/<[^>]+>/g, " "), 350);
+    if (!targetMatch(`${item.title} ${snippet}`)) continue;
     const url = `https://fr.wikipedia.org/?curid=${item.pageid}`;
     const evidence: ResearchEvidence = {
       sourceId: `predator-wikipedia:${item.pageid}`,
@@ -162,7 +196,7 @@ async function buildSeedLeads(request: PredatorMissionRequest, id: string): Prom
     });
   }
 
-  return leads.slice(0, 6);
+  return leads.filter((lead, index, all) => all.findIndex((other) => other.name === lead.name && other.address === lead.address) === index).slice(0, 6);
 }
 
 export async function runPredatorMission(input: PredatorMissionRequest) {
@@ -254,7 +288,7 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
 
   const bestHistory = [...history.results].sort((a: any, b: any) => b.score - a.score)[0];
   const bestMicro = micro.results.find((item: any) => item.fieldReady) ?? micro.results[0];
-  const bestLineage = lineage.results.find((item: any) => item.status === "CONFIRMED_NAME_LINEAGE") ?? lineage.results[0];
+  const bestLineage = streetLineage.results.find((item: any) => item.status === "CONFIRMED_NAME_LINEAGE") ?? streetLineage.results[0];
   const bestParcel = parcelDoor.results.find((item: any) => item.cadParcels.length > 0) ?? parcelDoor.results[0];
 
   const factualStatus =
