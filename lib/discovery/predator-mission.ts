@@ -278,18 +278,33 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
   const micro: any = buildHistoricalMicroLocationHypotheses(spatial.results);
   const parcelDoor: any = await resolveCurrentParcelDoorCandidates(streetLineage.results, Math.min(3, maxLookups));
 
-  const sourceUrls = [...new Set([
-    ...seeds.flatMap((lead) => (lead.evidenceTrace ?? []).map((e) => e.url)),
-    ...history.results.flatMap((item: any) => item.evidenceUrls),
-  ].filter((url) => url && url !== "about:blank"))];
-  const sourceFamilies = new Set(sourceUrls.map((url) => {
-    try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
-  }));
-
   const bestHistory = [...history.results].sort((a: any, b: any) => b.score - a.score)[0];
   const bestMicro = micro.results.find((item: any) => item.fieldReady) ?? micro.results[0];
   const bestLineage = streetLineage.results.find((item: any) => item.status === "CONFIRMED_NAME_LINEAGE") ?? streetLineage.results[0];
   const bestParcel = parcelDoor.results.find((item: any) => item.cadParcels.length > 0) ?? parcelDoor.results[0];
+
+  const operationalSources: string[] = [];
+  if (bestLineage?.status && bestLineage.status !== "UNRESOLVED") {
+    operationalSources.push(
+      "https://opendata.paris.fr/explore/dataset/denominations-des-voies-caduques/",
+      "https://opendata.paris.fr/explore/dataset/denominations-emprises-voies-actuelles/",
+    );
+  }
+  if ((bestParcel?.cadParcels ?? []).length > 0) {
+    operationalSources.push("https://opendata.paris.fr/explore/dataset/adresses-ban/");
+  }
+  if ((bestParcel?.currentDoorCandidates ?? []).length > 0) {
+    operationalSources.push("https://opendata.paris.fr/explore/dataset/plan-de-voirie-portes-cocheres/");
+  }
+
+  const sourceUrls = [...new Set([
+    ...seeds.flatMap((lead) => (lead.evidenceTrace ?? []).map((e) => e.url)),
+    ...history.results.flatMap((item: any) => item.evidenceUrls),
+    ...operationalSources,
+  ].filter((url) => url && url !== "about:blank"))];
+  const sourceFamilies = new Set(sourceUrls.map((url) => {
+    try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+  }));
 
   const factualStatus =
     bestHistory?.status === "CONFIRMED" && bestLineage?.status === "CONFIRMED_NAME_LINEAGE"
@@ -376,7 +391,7 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
 
   return {
     missionId: id,
-    status: contained ? "CONTAINED" as PredatorMissionStatus : "COMPLETED" as PredatorMissionStatus,
+    status: contained ? "CONTAINED" as PredatorMissionStatus : held ? "PARTIAL" as PredatorMissionStatus : "COMPLETED" as PredatorMissionStatus,
     telemetry,
     heartbeat,
     report,
