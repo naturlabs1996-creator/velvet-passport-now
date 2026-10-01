@@ -25,6 +25,13 @@ export async function GET() {
     placeContinuity: "Historical building survives substantially in place.",
   }));
 
+  const postEventBuilding = evaluatePredatorCandidateRubric(base({
+    placeAnchorType: "POST_EVENT_BUILDING",
+    placeContinuity: "Current building is old but was erected after the historical event; it is a spatial anchor only, not a material witness.",
+    microLocalization: { score: 8.1, justification: "Historical location is well tied to the present address/footprint, but material continuity is absent." },
+    visualAudiovisualPayoff: { score: 7.4, justification: "Current building helps orient the traveler, while archival imagery must carry the historical material truth." },
+  }));
+
   const transformedBuilding = evaluatePredatorCandidateRubric(base({
     placeAnchorType: "CURRENT_CIVIC_ADDRESS",
     placeContinuity: "Building transformed, but the historical location is defensibly tied to the current civic address.",
@@ -68,6 +75,7 @@ export async function GET() {
 
   const checks = {
     survivingBuildingCanLock: survivingBuilding.verdict === "LOCK",
+    postEventBuildingCanLockAsSpatialAnchor: postEventBuilding.verdict === "LOCK",
     transformedBuildingCanLock: transformedBuilding.verdict === "LOCK",
     demolishedParcelCanStillLock: demolishedCurrentParcel.verdict === "LOCK",
     demolishedParkCanStillLock: demolishedNowPark.verdict === "LOCK",
@@ -84,6 +92,7 @@ export async function GET() {
     checks,
     cases: {
       survivingBuilding,
+      postEventBuilding,
       transformedBuilding,
       demolishedCurrentParcel,
       demolishedNowPark,
@@ -92,7 +101,7 @@ export async function GET() {
       spectacularButOverexposed,
     },
     doctrine:
-      "Quebec calibration: building survival is a bonus, not a requirement. A demolished site may LOCK when the historical event is defensibly anchored to a current parcel, civic address, public place, square, park, intersection or equivalent physical reference. Ambiguous or unanchored geography remains HOLD; overexposure can still REJECT.",
+      "Quebec calibration: building survival is a bonus, not a requirement. A later building may serve as a spatial anchor but can never be described as a material witness to an earlier event. A demolished site may LOCK when the historical event is defensibly anchored to a current parcel, civic address, public place, square, park, intersection or equivalent physical reference. Ambiguous or unanchored geography remains HOLD; overexposure can still REJECT.",
   }, {
     status: ok ? 200 : 500,
     headers: { "cache-control": "no-store, max-age=0" },
