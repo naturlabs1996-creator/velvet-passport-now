@@ -105,12 +105,17 @@ export function evaluatePredatorCandidateRubric(
 
   if (anyUnknownCore) reasons.push("At least one non-gate criterion is still unscored.");
 
+  const placeAnchorUnresolved = input.placeAnchorType === "LOST_UNANCHORED";
+  if (placeAnchorUnresolved) {
+    reasons.push("The historical building may be gone, which is acceptable, but the event is not yet defensibly anchored to a current civic address, parcel, public place, square, park, intersection or other existing physical reference.");
+  }
+
   let verdict: PredatorCandidateVerdict;
   let lockEligible = false;
 
   if (input.access.gate === "FAIL" || exposureGate === "FAIL") {
     verdict = "REJECT";
-  } else if (input.access.gate === "UNKNOWN" || exposureGate === "UNKNOWN" || anyUnknownCore) {
+  } else if (input.access.gate === "UNKNOWN" || exposureGate === "UNKNOWN" || anyUnknownCore || placeAnchorUnresolved) {
     verdict = "HOLD";
   } else if (exposure === "EXCEPTION_ONLY") {
     verdict = "RESERVE";
@@ -163,5 +168,5 @@ export const PREDATOR_CANONICAL_CANDIDATE_RUBRIC = {
   placeContinuityDoctrine:
     "Survival of the historical building is not required. A demolished or transformed building remains eligible when the historical event can be defensibly tied to a current civic address, current parcel, public place, square, park, intersection or another existing physical anchor. Demolition by itself never causes REJECT. What fails is an unanchored or materially vague historical location.",
   doctrine:
-    "A spectacular historical story can still be rejected. Access and Exposure are absolute gates and cannot be averaged away by stronger scores elsewhere. Building survival is not an absolute gate; defensible continuity of place is what matters.",
+    "A spectacular historical story can still be rejected. Access and Exposure are absolute gates and cannot be averaged away by stronger scores elsewhere. Building survival is not an absolute gate; defensible continuity of place is what matters. A LOST_UNANCHORED site cannot LOCK and remains HOLD until a current physical anchor is established.",
 } as const;
