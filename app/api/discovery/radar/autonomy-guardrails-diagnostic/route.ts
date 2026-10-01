@@ -86,9 +86,27 @@ export async function GET() {
     rollbackBaselineMissing: false,
   });
 
+
+  const muzzled = evaluateAutonomyGuardrails({
+    openProposals: 1,
+    rulesTouched: 1,
+    domainsTouched: 1,
+    newExternalSourceFamilies: 0,
+    consecutiveFailedExperiments: 3,
+    attemptedProtectedDoctrineChange: false,
+    attemptedGateWeakening: false,
+    attemptedThresholdWeakening: false,
+    attemptedDirectProductionPromotion: false,
+    integrityViolationDetected: false,
+    benchmarkRegression: false,
+    traceabilityBroken: false,
+    rollbackBaselineMissing: false,
+  });
+
   const checks = {
     normalAllowed: normal.state === "NORMAL",
     overScopeHeld: hold.state === "HOLD",
+    repeatedFailuresMuzzle: muzzled.state === "MUZZLED",
     gateWeakeningKills: kill.state === "KILL_SWITCH",
     directSelfPromotionKills: directPromotion.state === "KILL_SWITCH",
     evidenceIntegrityViolationKills: integrity.state === "KILL_SWITCH",
@@ -105,7 +123,7 @@ export async function GET() {
     ok,
     generatedAt: new Date().toISOString(),
     checks,
-    states: { normal, hold, kill, directPromotion, integrity },
+    states: { normal, hold, muzzled, kill, directPromotion, integrity },
     doctrine: PROTECTED_DOCTRINE,
     budget: DEFAULT_AUTONOMY_BUDGET,
   }, {
