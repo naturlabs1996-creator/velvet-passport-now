@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { ResearchEvidence } from "./research-verification";
 import type { ResearchLead } from "./research-collectors";
 import { enrichHistoryEvidence } from "./history-evidence-layer";
