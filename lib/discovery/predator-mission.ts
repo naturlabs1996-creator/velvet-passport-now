@@ -4,6 +4,7 @@ import type { ResearchLead } from "./research-collectors";
 import { enrichHistoryEvidence } from "./history-evidence-layer";
 import { enrichQuebecHistoryEvidence } from "./quebec-history-evidence";
 import { QUEBEC_CITY_HISTORY_ERAS, QUEBEC_CITY_AUTHORITY_SOURCES } from "./quebec-history-context";
+import { researchQuebecLinkagePieces } from "./quebec-linkage-research";
 import { extractHistoricalSpatialClues } from "./historical-spatial-clue-extractor";
 import { buildHistoricalMicroLocationHypotheses } from "./historical-micro-location-hypotheses";
 import { resolveHistoricalStreetLineageFromLeads } from "./historical-address-lineage";
@@ -332,6 +333,13 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
       }
     : await resolveCurrentParcelDoorCandidates(streetLineage.results, Math.min(3, maxLookups));
 
+  const linkage: any = isQuebecCity
+    ? await researchQuebecLinkagePieces(
+        history.leads.filter((lead: any) => lead.address || lead.name).slice(0, Math.min(4, maxLookups)),
+        Math.min(4, maxLookups),
+      )
+    : { results: [] };
+
   const bestHistory = [...history.results].sort((a: any, b: any) => b.score - a.score)[0];
   const bestMicro = micro.results.find((item: any) => item.fieldReady) ?? micro.results[0];
   const bestLineage = streetLineage.results.find((item: any) => item.status === "CONFIRMED_NAME_LINEAGE") ?? streetLineage.results[0];
@@ -492,6 +500,17 @@ export async function runPredatorMission(input: PredatorMissionRequest) {
       alignmentReferences: bestLineage.alignmentReferences,
       confidence: bestLineage.confidence,
       reasons: bestLineage.reasons,
+    } : undefined,
+    linkageResearch: isQuebecCity ? {
+      results: linkage.results.map((item: any) => ({
+        name: item.lead.name,
+        status: item.status,
+        score: item.score,
+        strongestTypes: item.strongestTypes,
+        pieces: item.pieces.slice(0, 12),
+        reasons: item.reasons,
+      })),
+      rule: linkage.rule,
     } : undefined,
     currentParcelAndEntrances: bestParcel ? {
       status: bestParcel.status,
