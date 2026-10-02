@@ -45,6 +45,27 @@ const missions = [
       "Around 1919 about twenty women processed mica there for export.",
     ],
   },
+  {
+    subject: "Manoir Saint-Roch / Maison blanche, 1775",
+    objective: "Test site continuity for the Manoir Saint-Roch / Maison blanche episode of 1775. Determine whether the present-day anchor at 870 rue Saint-Vallier Est occupies the defensible historical site of the British defensive position burned during the American invasion. Explicitly separate site continuity, surviving old cellars or other remnants, and any post-1775 building fabric. Identify the best NOW stopping point without treating later construction as a material witness to 1775.",
+    knownAddress: "870 rue Saint-Vallier Est, Québec, QC, Canada",
+    knownFacts: [
+      "The Manoir Saint-Roch / Maison blanche was used as a British defensive position in 1775 and was burned during withdrawal to prevent American use.",
+      "The present-day site is associated with 870 rue Saint-Vallier Est.",
+      "Old vaulted cellar elements are reported to survive, but their precise dating and continuity must be verified independently.",
+    ],
+  },
+  {
+    subject: "Two soldiers hanged after brandy theft, 31 August 1759",
+    objective: "Reconstruct the most defensible present-day geography of the 31 August 1759 episode in Saint-Roch involving two soldiers who stole a quarter-cask of brandy from M. Soupiran's cellar, rolled or moved it to Charland's house, and were hanged at 3 PM. Identify who Soupiran and Charland were, locate their properties if possible, distinguish the theft site from Charland's house, and determine the execution site only if archival or spatial evidence supports it. Do not invent a gallows location from neighborhood-level context.",
+    knownAddress: "Saint-Roch, Québec, QC, Canada",
+    knownFacts: [
+      "On 31 August 1759 two soldiers stole a quarter-cask of brandy from M. Soupiran's cellar.",
+      "The cask was rolled or deposited at Charland's house in Saint-Roch.",
+      "The two soldiers were hanged at 3 PM the same day.",
+      "The identities and properties of Soupiran and Charland, and the exact execution site, remain unresolved.",
+    ],
+  },
 ];
 
 export async function GET() {
