@@ -64,7 +64,21 @@ function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return "unknown"; }
 }
 function authorityWeight(host: string) {
-  return AUTHORITY_HINTS.some((hint) => host.includes(hint)) ? 2 : 1;
+  return AUTHORITY_HINTS.some((hint) => host.includes(hint)) ? 2 : 0;
+}
+
+function targetTokens(lead: ResearchLead) {
+  const generic = new Set(["quebec","québec","rue","saint","ville","canada","qc","tavern","taverne","brewery","brasserie","shipyard","chantier","workshop","atelier"]);
+  return normalize(`${lead.name} ${lead.address ?? ""}`).split(/[^a-z0-9]+/).filter((token) => token.length >= 4 && !generic.has(token) && !/^\\d+$/.test(token));
+}
+
+function targetRelevant(lead: ResearchLead, text: string) {
+  const n = normalize(text);
+  const geographicallyRelevant = n.includes("quebec") || n.includes("saint-roch") || n.includes("saint roch");
+  if (!geographicallyRelevant) return false;
+  const tokens = targetTokens(lead);
+  if (!tokens.length) return true;
+  return tokens.some((token) => n.includes(token));
 }
 function xmlItems(xml: string) {
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
@@ -133,9 +147,12 @@ export async function researchQuebecLinkagePieces(
         const xml = await response.text();
         for (const item of xmlItems(xml).slice(0, 8)) {
           const combined = `${item.title} ${item.description}`;
+          const host = hostOf(item.link);
+          const weight = authorityWeight(host);
+          if (weight === 0) continue;
+          if (!targetRelevant(lead, combined)) continue;
           const types = pieceTypes(combined);
           if (!types.length) continue;
-          const host = hostOf(item.link);
           for (const hit of types) {
             found.push({
               type: hit.type,
@@ -144,7 +161,7 @@ export async function researchQuebecLinkagePieces(
               host,
               snippet: item.description.slice(0, 500),
               matchedTerms: hit.terms,
-              authorityWeight: authorityWeight(host),
+              authorityWeight: weight,
             });
           }
         }
@@ -182,6 +199,7 @@ export async function researchQuebecLinkagePieces(
           : status === "PARTIAL_LINKAGE"
             ? "Potential linkage pieces were found, but the chain is not yet strong enough for exact continuity."
             : "No usable linkage piece was recovered from the allocated searches.",
+        "Only Quebec-relevant authoritative/local search hits are retained; generic keyword collisions are rejected before classification.",
         "Search hits are leads, not continuity proof. Exact numbering/parcel continuity still requires the underlying document to support the claimed relation.",
       ],
     });
