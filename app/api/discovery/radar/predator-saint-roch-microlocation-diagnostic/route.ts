@@ -66,6 +66,7 @@ export async function GET() {
       addressLineage: report?.historicalAddressLineage,
       microLocation: report?.microLocation,
       currentParcelAndEntrances: report?.currentParcelAndEntrances,
+      linkageResearch: report?.linkageResearch,
       unresolved: report?.unresolved,
       sourceUrls: report?.sourceUrls,
       integrity: report?.independentIntegrity,
