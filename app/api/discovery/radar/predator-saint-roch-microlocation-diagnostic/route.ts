@@ -9,6 +9,7 @@ const missions = [
   {
     subject: "Patrick Pearl / Michael Lawlor tavern, 1863",
     objective: "Determine the most defensible present-day micro-location of Michael Lawlor's tavern on rue Saint-Vallier where the Patrick Pearl case began. Resolve historical numbering, street continuity, parcel or present physical anchor if possible. Fail closed on any unproven exactness.",
+    knownAddress: "rue Saint-Vallier, Québec, QC, Canada",
     knownFacts: [
       "The incident began at Michael Lawlor's tavern on rue Saint-Vallier on 11 September 1863.",
       "Patrick Pearl was 16 and later died from the assault.",
@@ -17,6 +18,7 @@ const missions = [
   {
     subject: "Duncan McCallum brewery explosion, 1842",
     objective: "Determine the most defensible present-day footprint or physical anchor for Duncan McCallum's brewery destroyed by explosion on 4 March 1842, using the stated north side of rue Saint-Paul and relationship to the St. Roch Brewery. Distinguish current anchor from historical-building survival.",
+    knownAddress: "rue Saint-Paul, Québec, QC, Canada",
     knownFacts: [
       "The brewery was on the north side of rue Saint-Paul.",
       "It stood opposite the St. Roch Brewery.",
@@ -26,6 +28,7 @@ const missions = [
   {
     subject: "John Munn shipyard strike scene, 1840",
     objective: "Determine the most defensible current physical anchor for the December 1840 strike/riot scene associated with John Munn's shipyard in Saint-Roch. Use historical plans, shoreline, streets and parcel continuity where available. Do not reduce a large shipyard to a false single door.",
+    knownAddress: "rue Saint-Paul et rue Saint-Vallier, Québec, QC, Canada",
     knownFacts: [
       "A strike involving shipyard workers occurred in December 1840.",
       "An episode on 8 December was reported near John Munn's shipyard.",
@@ -35,6 +38,7 @@ const missions = [
   {
     subject: "Louis Richard mica workshop, 1919",
     objective: "Resolve the historical address lineage of Louis Richard's rue Arago industrial premises where about twenty women processed mica around 1919, including old numbering 121 and later 159-161/161 if supported, and identify the present-day physical anchor without assuming number continuity.",
+    knownAddress: "161 rue Arago, Québec, QC, Canada",
     knownFacts: [
       "Louis Richard operated on rue Arago.",
       "The premises are associated in sources with 121 rue Arago and later 159-161/161.",
@@ -50,6 +54,7 @@ export async function GET() {
       cityId: "quebec-city-ca",
       subject: item.subject,
       objective: item.objective,
+      knownAddress: item.knownAddress,
       knownFacts: item.knownFacts,
       requestedDepth: "MAXIMUM",
     });
