@@ -57,7 +57,7 @@ const missions = [
   },
   {
     subject: "Two soldiers hanged after brandy theft, 31 August 1759",
-    objective: "Reconstruct the most defensible present-day geography of the 31 August 1759 episode in Saint-Roch involving two soldiers who stole a quarter-cask of brandy from M. Soupiran's cellar, rolled or moved it to Charland's house, and were hanged at 3 PM. Identify who Soupiran and Charland were, locate their properties if possible, distinguish the theft site from Charland's house, and determine the execution site only if archival or spatial evidence supports it. Do not invent a gallows location from neighborhood-level context.",
+    objective: "Conduct a historical archival micro-location reconstruction of the 31 August 1759 Saint-Roch episode involving two soldiers who stole a quarter-cask of brandy from M. Soupiran's cellar, moved it to Charland's house, and were hanged at 3 PM. Identify Soupiran and Charland, locate their historical properties if possible, distinguish the theft site from Charland's house, and determine the execution site only when archival, property, plan, or spatial evidence supports it. Do not invent a gallows location from neighborhood-level context.",
     knownAddress: "Saint-Roch, Québec, QC, Canada",
     knownFacts: [
       "On 31 August 1759 two soldiers stole a quarter-cask of brandy from M. Soupiran's cellar.",
