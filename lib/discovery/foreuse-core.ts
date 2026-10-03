@@ -1,3 +1,5 @@
+import { searchPublicWeb } from "./public-search-provider";
+
 export type ForeuseSourceFamily = {
   id: string;
   label: string;
@@ -48,7 +50,7 @@ export type ForeuseResult = {
   rule: string;
 };
 
-const USER_AGENT = "VelvetPassportForeuse/0.1 (adaptive research; evidence leads only; fail closed)";
+const USER_AGENT = "VelvetPassportForeuse/0.2 (adaptive research; multi-index; evidence leads only; fail closed)";
 
 function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -97,6 +99,26 @@ function rssItems(xml: string) {
     link: read(block, "link"),
     description: read(block, "description"),
   })).filter((item) => item.title && item.link);
+}
+
+async function searchIndex(query: string, maxResults: number) {
+  try {
+    const bing = await fetchWithTimeout(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(query)}`);
+    if (bing.ok) {
+      const items = rssItems(await bing.text()).slice(0, maxResults);
+      if (items.length) return { provider: "BING_RSS", items };
+    }
+  } catch {}
+
+  const fallback = await searchPublicWeb(query, maxResults);
+  return {
+    provider: fallback.provider,
+    items: fallback.results.map((item) => ({
+      title: item.title,
+      link: item.link,
+      description: item.description,
+    })),
+  };
 }
 
 function extractLinks(html: string, baseUrl: string) {
@@ -221,9 +243,8 @@ export async function runForeuse(
     if (next.familyId) stats.get(next.familyId)!.searches++;
 
     try {
-      const search = await fetchWithTimeout(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(next.query)}`);
-      if (!search.ok) continue;
-      const items = rssItems(await search.text()).slice(0, maxSearchHits);
+      const search = await searchIndex(next.query, maxSearchHits);
+      const items = search.items.slice(0, maxSearchHits);
       for (const item of items) {
         if (seenUrls.has(item.link)) continue;
         const family = familyForUrl(item.link, target.sourceFamilies);
@@ -274,8 +295,6 @@ export async function runForeuse(
           fetched,
         });
 
-        // Firecrawl-style map/crawl behavior, but bounded: map only same-authority links
-        // and convert promising child links into new targeted search queries instead of blindly crawling.
         if (relevance >= 55) {
           const mapped = links
             .filter((url) => familyForUrl(url, target.sourceFamilies)?.id === family.id)
@@ -290,7 +309,6 @@ export async function runForeuse(
       }
     } catch {}
 
-    // Adaptive reallocation: after each search, push more budget toward families producing useful evidence.
     const ranked = [...stats.values()].sort((a, b) => b.yieldScore - a.yieldScore).slice(0, 2);
     for (const stat of ranked) {
       if (stat.hits === 0) continue;
@@ -316,6 +334,6 @@ export async function runForeuse(
     attemptedQueries,
     generatedQueries: [...new Set(generatedQueries)].slice(0, 30),
     droppedEarly,
-    rule: "Foreuse Core may search, map, fetch, triage and adapt query allocation, but every discovered page remains a lead until Predator verifies the underlying evidence. Adaptive yield may change search budget; it may never weaken evidence gates, Access/Exposure gates or fail-closed behavior.",
+    rule: "Foreuse Core may search, map, fetch, triage and adapt query allocation, but every discovered page remains a lead until Predator verifies the underlying evidence. Multi-index fallback may change discovery path; it may never weaken evidence gates, Access/Exposure gates or fail-closed behavior.",
   };
 }
