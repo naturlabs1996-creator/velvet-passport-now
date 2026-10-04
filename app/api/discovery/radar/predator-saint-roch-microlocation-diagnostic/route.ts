@@ -129,5 +129,5 @@ export async function GET() {
       integrity: report?.independentIntegrity,
     });
   }
-  return NextResponse.json({ ok: true, foreuseVersion: "0.3-direct-catalogues", results }, { headers: { "cache-control": "no-store, max-age=0" } });
+  return NextResponse.json({ ok: true, foreuseVersion: "0.4-identity-advitam-rqa", results }, { headers: { "cache-control": "no-store, max-age=0" } });
 }
