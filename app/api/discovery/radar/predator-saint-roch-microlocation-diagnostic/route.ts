@@ -116,6 +116,7 @@ export async function GET() {
           relevance: doc.relevance,
           evidenceSignals: doc.evidenceSignals,
           fetched: doc.fetched,
+          discoveryMode: doc.query,
         })),
         familyStats: foreuse.familyStats,
         attemptedQueries: foreuse.attemptedQueries.length,
@@ -128,5 +129,5 @@ export async function GET() {
       integrity: report?.independentIntegrity,
     });
   }
-  return NextResponse.json({ ok: true, foreuseVersion: "0.1", results }, { headers: { "cache-control": "no-store, max-age=0" } });
+  return NextResponse.json({ ok: true, foreuseVersion: "0.3-direct-catalogues", results }, { headers: { "cache-control": "no-store, max-age=0" } });
 }
