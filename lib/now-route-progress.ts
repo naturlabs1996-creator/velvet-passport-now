@@ -12,7 +12,7 @@ export type RouteProgress = {
 };
 export type ProgressResult =
   | { ok: true; progress: RouteProgress }
-  | { ok: false; reason: "unavailable" | "invalid" };
+  | { ok: false; reason: "unavailable" | "missing" | "invalid" };
 
 const PREFIX = "vp-now-route-progress-v1:";
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -50,7 +50,7 @@ export function loadRouteProgress(city: string, routeId: string, expectedStopCou
   if (!s) return { ok: false, reason: "unavailable" };
   try {
     const raw = s.getItem(k);
-    if (!raw) return { ok: false, reason: "unavailable" };
+    if (raw === null) return { ok: false, reason: "missing" };
     const p: unknown = JSON.parse(raw);
     if (!p || typeof p !== "object") return { ok: false, reason: "invalid" };
     const v = p as Partial<RouteProgress>;
