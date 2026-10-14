@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type DemoStop = { time: string; duration: string; name: string; detail: string };
 type PassPlan = "72h" | "7d";
@@ -22,6 +22,7 @@ const foodOptions = [{ tag: "BEST FIT", name: "Chez Vong", rating: "9.1/10", rev
 const scenarioGroups = [{ label: "CITY & ROUTE", keys: ["rain","heat","ticket","blocked"] as const },{ label: "HUMAN NEEDS", keys: ["food","water","restroom","care"] as const },{ label: "DISCOVERY & SAFETY", keys: ["secret","guardian"] as const }] as const;
 
 export default function Home(){
+  const checkoutInFlight = useRef(false);
   const [scenario,setScenario]=useState<keyof typeof scenarios>("rain");
   const [openFaq,setOpenFaq]=useState(0);
   const [checkout,setCheckout]=useState<"idle"|"loading"|"error">("idle");
@@ -38,7 +39,34 @@ export default function Home(){
   const displayedTitle=scenario==="food"&&demoPhase==="result"?(selectedFood.fits?`${selectedFood.name} fits your day.`:`${selectedFood.name} does not fit safely before the Louvre.`):selected.title;
   const displayedMeta=scenario==="food"&&demoPhase==="result"?(selectedFood.fits?`${foodArrival+selectedFood.resume} min total · ${selectedFood.margin} min ticket margin retained`:`${foodArrival+selectedFood.resume} min total · 52 min ticket conflict`):selected.meta;
   const displayedCompatibility=scenario==="food"?(selectedFood.fits?"95%":"34%"):selected.compatibility;
-  const buy=async(plan:PassPlan)=>{setCheckout("loading");setCheckoutError("");try{const response=await fetch("/api/now/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({plan,channel:"direct"})});const data=await response.json() as {checkoutUrl?:string;error?:string};if(!response.ok||!data.checkoutUrl)throw new Error(data.error||"Checkout is temporarily unavailable");window.location.assign(data.checkoutUrl)}catch(error){setCheckout("error");setCheckoutError(error instanceof Error?error.message:"Checkout is temporarily unavailable");setTimeout(()=>document.querySelector("#checkout")?.scrollIntoView({behavior:"smooth",block:"center"}),20)}};
+  const buy=async(plan:PassPlan)=>{
+    if(checkoutInFlight.current)return;
+    checkoutInFlight.current=true;
+    setCheckout("loading");setCheckoutError("");
+    try{
+      // Reuse the attempt ID after a timeout to prevent a duplicate Stripe session.
+      const storageKey=`vp-now-checkout-attempt-${plan}`;
+      let attemptId=sessionStorage.getItem(storageKey);
+      if(!attemptId){attemptId=crypto.randomUUID().replace(/-/g,"")+crypto.randomUUID().replace(/-/g,"");sessionStorage.setItem(storageKey,attemptId)}
+      const response=await fetch("/api/now/checkout",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-now-checkout-attempt":attemptId},
+        body:JSON.stringify({plan,channel:"direct"}),
+        signal:AbortSignal.timeout(15000),
+      });
+      const data=await response.json() as {checkoutUrl?:string;error?:string};
+      if(!response.ok||!data.checkoutUrl)throw new Error(data.error||"Checkout is temporarily unavailable");
+      sessionStorage.removeItem(storageKey);
+      window.location.assign(data.checkoutUrl);
+    }catch(error){
+      setCheckout("error");
+      const message=error instanceof Error&&error.name==="TimeoutError"
+        ?"The connection took too long. Please retry; your checkout attempt will be reused."
+        :error instanceof Error?error.message:"Checkout is temporarily unavailable";
+      setCheckoutError(message);
+      setTimeout(()=>document.querySelector("#checkout")?.scrollIntoView({behavior:"smooth",block:"center"}),20);
+    }finally{checkoutInFlight.current=false}
+  };
   const faqs=[["When does my Pass start?","Only when you press “Activate now” and confirm. Buying or opening your link does not start the clock."],["Do I need to download an app?","No. The launch version opens as a secure web app on your phone. You may add it to your home screen."],["Are museum tickets included?","No. NOW can protect a ticket you own and help find booking options, but attraction tickets are purchased separately."],["Is Paris Uncovered required?","Never. Paris NOW is complete on its own. Uncovered is an optional permanent premium guide."],["What language is available?","The launch edition is in English. Additional languages and destinations are planned."]];
   return <main>
     <header className="nav"><a className="wordmark nowWordmark" href="#top"><span className="rings"><i/><i/></span><span className="productBrand"><b><span>Paris</span><em>NOW</em></b></span></a><nav><a href="#how">How it works</a><a href="#features">Inside NOW</a><a href="#passes">Passes</a></nav><div className="navRight"><span className="navHouse"><small>BY</small><img src="/images/velvet-passport-logo.png" alt="Velvet Passport"/></span><a className="navCta" href="#passes">GET PARIS NOW</a></div></header>
