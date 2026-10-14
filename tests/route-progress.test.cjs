@@ -75,3 +75,16 @@ test("completion clears the saved position", () => {
   assert.equal(api.clearRouteProgress("quebec", "qc-01"), true);
   assert.equal(api.loadRouteProgress("quebec", "qc-01", 5).ok, false);
 });
+
+test("missing progress is normal, not a storage outage", () => {
+  const { api } = createHarness();
+  assert.equal(api.loadRouteProgress("quebec", "qc-01", 5).reason, "missing");
+  api.saveRouteProgress("quebec", "qc-01", 4, 5);
+  assert.equal(api.clearRouteProgress("quebec", "qc-01"), true);
+  assert.equal(api.loadRouteProgress("quebec", "qc-01", 5).reason, "missing");
+});
+
+test("unavailable localStorage is reported separately", () => {
+  const { api } = createHarness({ noWindow: true });
+  assert.equal(api.loadRouteProgress("quebec", "qc-01", 5).reason, "unavailable");
+});
