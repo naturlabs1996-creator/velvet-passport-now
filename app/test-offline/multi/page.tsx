@@ -21,7 +21,19 @@ export default function Multi(){
   if(busy)return;setBusy(true);setStatus("Téléchargement "+id.toUpperCase()+"…");
   const staging=version+"-"+id+"-staging",destination=version+"-"+id;
   try{
+   if(!("serviceWorker" in navigator))throw Error("Service worker indisponible");
+   const reg=await navigator.serviceWorker.register("/test-offline/sw.js",{scope:"/"});
+   await navigator.serviceWorker.ready;await reg.update();
+   if(!navigator.serviceWorker.controller)await new Promise<void>((resolve,reject)=>{const t=setTimeout(()=>reject(Error("Service worker non actif")),6000);navigator.serviceWorker.addEventListener("controllerchange",()=>{clearTimeout(t);resolve();},{once:true});});
    await caches.delete(staging);const temp=await caches.open(staging);
+   const htmlResponse=await fetch("/test-offline/multi",{cache:"reload"});
+   if(!htmlResponse.ok)throw Error("Page inaccessible");
+   const html=await htmlResponse.text();
+   const doc=new DOMParser().parseFromString(html,"text/html");
+   const assets=new Set<string>();
+   for(const node of doc.querySelectorAll("script[src],link[rel=stylesheet][href],link[rel=modulepreload][href]")){const raw=node.getAttribute("src")||node.getAttribute("href");if(!raw)continue;const url=new URL(raw,location.origin);if(url.origin===location.origin&&url.pathname.startsWith("/_next/static/"))assets.add(url.href);}
+   await temp.put("/test-offline/multi",new Response(html,{headers:{"Content-Type":"text/html"}}));
+   for(const asset of assets){const r=await fetch(asset,{cache:"reload"});if(!r.ok)throw Error("Ressource indisponible");await temp.put(asset,r);}
    for(const p of paths(id)){
     const r=await fetch(p,{cache:"reload"});
     if(!r.ok)throw Error("Fichier inaccessible : "+p);
@@ -29,10 +41,10 @@ export default function Multi(){
     if(data.byteLength<1000)throw Error("Fichier vide ou trop court : "+p);
     await temp.put(p,new Response(data,{headers:{"Content-Type":r.headers.get("content-type")||"application/octet-stream"}}));
    }
-   const checks=await Promise.all(paths(id).map(p=>temp.match(p)));
+   const checks=await Promise.all(["/test-offline/multi",...assets,...paths(id)].map(p=>temp.match(p)));
    if(checks.some(r=>!r))throw Error("Paquet incomplet");
    const target=await caches.open(destination);
-   for(const p of paths(id)){const r=await temp.match(p);if(!r)throw Error("Fichier manquant");await target.put(p,r);}
+   for(const p of ["/test-offline/multi",...assets,...paths(id)]){const r=await temp.match(p);if(!r)throw Error("Fichier manquant");await target.put(p,r);}
    await caches.delete(staging);
    await inspect();setStatus("Parcours "+id.toUpperCase()+" téléchargé et vérifié.");
   }catch(e){await caches.delete(staging);setStatus("ÉCHEC : "+(e instanceof Error?e.message:"inconnu"));}
