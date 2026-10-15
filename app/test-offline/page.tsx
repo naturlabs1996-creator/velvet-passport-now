@@ -7,8 +7,14 @@ const CACHE="vp-offline-lab-v4", STAGING="vp-offline-lab-v4-staging";
 export default function OfflineLab(){
  const [message,setMessage]=useState("Préparation non commencée.");
  const [ready,setReady]=useState(false);
+ const [busy,setBusy]=useState(false);
+ const [integrity,setIntegrity]=useState("");
  useEffect(()=>{if(!("serviceWorker" in navigator))setMessage("Service worker non disponible.");},[]);
- async function prepare(){
+ async function prepare(simulateFailure=false){
+  if(busy)return;
+  setBusy(true);setIntegrity("");
+  const existing=await caches.open(CACHE);
+  const baseline=await Promise.all(media.map(async p=>{const r=await existing.match(p);return r? (await r.arrayBuffer()).byteLength:0;}));
   setReady(false);setMessage("Préparation des 5 arrêts…");
   try{
    if(!("serviceWorker" in navigator))throw Error("Service worker indisponible");
@@ -46,6 +52,7 @@ export default function OfflineLab(){
     if(path.includes("/audio/")&&(!r.headers.get("content-type")?.includes("audio/wav")||body.byteLength<1000))throw Error("Audio invalide : "+path);
     bytes+=body.byteLength;
     await staging.put(path,new Response(body,{headers:{"Content-Type":r.headers.get("content-type")||"application/octet-stream"}}));
+    if(simulateFailure&&i===2)throw Error("Interruption volontaire après 3 fichiers");
    }
    for(const path of ["/test-offline",...resources]){
     const r=await staging.match(path);
@@ -64,14 +71,19 @@ export default function OfflineLab(){
    setMessage(`Téléchargement vérifié : 5 images + 5 sons, ${(bytes/1024).toFixed(0)} Ko au total. Tu peux couper le Wi-Fi.`);
   }catch(e){
    await caches.delete(STAGING).catch(()=>{});
-   setMessage("ÉCHEC — téléchargement incomplet : "+(e instanceof Error?e.message:"erreur inconnue")+". Garde le Wi-Fi.");
-  }
+   const after=await Promise.all(media.map(async p=>{const r=await existing.match(p);return r?(await r.arrayBuffer()).byteLength:0;}));
+   const preserved=baseline.every((n,i)=>n===after[i]);
+   setIntegrity(preserved?"Cache précédent préservé : OUI":"ATTENTION : cache précédent modifié");
+   setMessage("ÉCHEC — téléchargement incomplet : "+(e instanceof Error?e.message:"erreur inconnue")+". Aucun nouveau téléchargement validé.");
+  }finally{setBusy(false);}
  }
  return <main style={{maxWidth:680,margin:"2rem auto",padding:"0 1rem",fontFamily:"system-ui",lineHeight:1.6}}>
-  <h1>Velvet Passport NOW — OFFLINE-04</h1>
+  <h1>Velvet Passport NOW — OFFLINE-05 — conditions difficiles</h1>
   <p>Laboratoire de 5 arrêts avec 5 images et 5 tonalités audio distinctes (pas des narrations historiques).</p>
-  <button type="button" onClick={prepare} style={{padding:12}}>Télécharger les 5 arrêts (10 médias)</button>
-  <p role="status">{message}</p>
+  <button type="button" disabled={busy} onClick={()=>void prepare(false)} style={{padding:12}}>Téléchargement normal (10 médias)</button>
+  <button type="button" disabled={busy} onClick={()=>void prepare(true)} style={{padding:12,marginLeft:8}}>Simuler une panne après 3 fichiers</button>
+  <p><strong>Ordre :</strong> télécharge normalement une fois, puis simule la panne. Vérifie que le cache précédent reste intact et que les médias fonctionnent hors ligne. Recommence ensuite le téléchargement normal.</p>
+  <p role="status">{message}</p><p role="status">{integrity}</p>
   {ready&&<p>Après vérification : coupe le Wi-Fi, teste les cinq sons et images, actualise puis ferme et rouvre cette même adresse.</p>}
   {stops.map((stop,i)=><section key={stop.id} style={{borderTop:"1px solid #ccc",marginTop:18}}>
    <h2>{stop.title}</h2><p>{stop.description}</p>
