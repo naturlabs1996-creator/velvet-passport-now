@@ -11,7 +11,7 @@ export default function Multi(){
   const next:Record<string,boolean>={};
   for(const route of routes){
    const cache=await caches.open(version+"-"+route.id);
-   const entries=await Promise.all(paths(route.id).map(p=>cache.match(p)));
+   const entries=await Promise.all(["/test-offline/multi",...paths(route.id)].map(p=>cache.match(p)));
    next[route.id]=entries.every(Boolean);
   }
   setState(next);return next;
@@ -46,18 +46,20 @@ export default function Multi(){
    const target=await caches.open(destination);
    for(const p of ["/test-offline/multi",...assets,...paths(id)]){const r=await temp.match(p);if(!r)throw Error("Fichier manquant");await target.put(p,r);}
    await caches.delete(staging);
-   await inspect();setStatus("Parcours "+id.toUpperCase()+" téléchargé et vérifié.");
+   const check=await inspect();if(!check[id])throw Error("Cache final incomplet");
+   setStatus("Parcours "+id.toUpperCase()+" téléchargé et vérifié, page comprise.");
   }catch(e){await caches.delete(staging);setStatus("ÉCHEC : "+(e instanceof Error?e.message:"inconnu"));}
   finally{setBusy(false);}
  }
  async function verify(){
   const result=await inspect();
-  setStatus(result.a&&result.b?"SUCCÈS : les deux parcours sont conservés. Coupe le Wi-Fi, actualise, puis teste les deux sons.":"ATTENTION : au moins un parcours manque.");
+  const worker=!!navigator.serviceWorker?.controller;
+  setStatus(result.a&&result.b&&worker?"SUCCÈS : pages et médias A+B en cache, Service Worker actif. Coupe le Wi-Fi.":"ATTENTION : téléchargement hors ligne NON confirmé. A="+result.a+", B="+result.b+", Service Worker="+worker+". Garde le Wi-Fi.");
  }
  return <main style={{maxWidth:650,margin:"2rem auto",padding:"0 1rem",fontFamily:"system-ui"}}>
   <h1>OFFLINE-06 — Deux parcours indépendants</h1>
   <p>Laboratoire technique : chaque parcours possède son cache séparé, une image et un son de démonstration.</p>
-  <p role="status">{status}</p>
+  <p role="status">{status}</p><p><strong>Important :</strong> la mention READY de Vercel ne suffit pas. N’éteins le Wi-Fi qu’après le message SUCCÈS de vérification.</p>
   {routes.map(r=><section key={r.id} style={{padding:16,marginBottom:18,border:"1px solid #888",borderRadius:8}}>
    <h2>{r.name} — {state[r.id]?"Téléchargé":"Non vérifié"}</h2>
    <button disabled={busy} onClick={()=>void download(r.id)}>Télécharger {r.name}</button>
