@@ -7,6 +7,7 @@ export default function Multi(){
  const [status,setStatus]=useState("Commence avec le Wi-Fi actif.");
  const [state,setState]=useState<Record<string,boolean>>({});
  const [busy,setBusy]=useState(false);
+ const [hydrated,setHydrated]=useState(false);
  async function inspect(){
   const next:Record<string,boolean>={};
   for(const route of routes){
@@ -16,7 +17,7 @@ export default function Multi(){
   }
   setState(next);return next;
  }
- useEffect(()=>{void inspect().catch(()=>setStatus("Stockage indisponible."));},[]);
+ useEffect(()=>{setHydrated(true);void inspect().catch(()=>setStatus("Stockage indisponible."));},[]);
  async function download(id:string){
   if(busy)return;setBusy(true);setStatus("Téléchargement "+id.toUpperCase()+"…");
   const staging=version+"-"+id+"-staging",destination=version+"-"+id;
@@ -26,9 +27,11 @@ export default function Multi(){
    await navigator.serviceWorker.ready;await reg.update();
    if(!navigator.serviceWorker.controller)await new Promise<void>((resolve,reject)=>{const t=setTimeout(()=>reject(Error("Service worker non actif")),6000);navigator.serviceWorker.addEventListener("controllerchange",()=>{clearTimeout(t);resolve();},{once:true});});
    await caches.delete(staging);const temp=await caches.open(staging);
-   const htmlResponse=await fetch("/test-offline/multi",{cache:"reload"});
+   const htmlResponse=await fetch("/test-offline/multi",{cache:"no-store",headers:{"X-VP-Offline-Package":"1"}});
    if(!htmlResponse.ok)throw Error("Page inaccessible");
+   if(!htmlResponse.headers.get("content-type")?.includes("text/html"))throw Error("La réponse n’est pas HTML");
    const html=await htmlResponse.text();
+   if(!html.includes("OFFLINE-06"))throw Error("Page HTML incorrecte");
    const doc=new DOMParser().parseFromString(html,"text/html");
    const assets=new Set<string>();
    for(const node of doc.querySelectorAll("script[src],link[rel=stylesheet][href],link[rel=modulepreload][href]")){const raw=node.getAttribute("src")||node.getAttribute("href");if(!raw)continue;const url=new URL(raw,location.origin);if(url.origin===location.origin&&url.pathname.startsWith("/_next/static/"))assets.add(url.href);}
@@ -65,7 +68,7 @@ export default function Multi(){
  return <main style={{maxWidth:650,margin:"2rem auto",padding:"0 1rem",fontFamily:"system-ui"}}>
   <h1>OFFLINE-06 — Deux parcours indépendants</h1>
   <p>Laboratoire technique : chaque parcours possède son cache séparé, une image et un son de démonstration.</p>
-  <p role="status">{status}</p><p><strong>Important :</strong> la mention READY de Vercel ne suffit pas. N’éteins le Wi-Fi qu’après le message SUCCÈS de vérification.</p>
+  <p role="status">{status}</p><p role="status"><strong>Diagnostic JavaScript : {hydrated?"ACTIF — boutons connectés":"INACTIF — page non initialisée"}</strong></p><p><strong>Important :</strong> la mention READY de Vercel ne suffit pas. N’éteins le Wi-Fi qu’après le message SUCCÈS de vérification.</p>
   {routes.map(r=><section key={r.id} style={{padding:16,marginBottom:18,border:"1px solid #888",borderRadius:8}}>
    <h2>{r.name} — {state[r.id]?"Téléchargé":"Non vérifié"}</h2>
    <button disabled={busy} onClick={()=>void download(r.id)}>Télécharger {r.name}</button>
