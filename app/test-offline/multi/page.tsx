@@ -8,6 +8,8 @@ export default function Multi(){
  const [state,setState]=useState<Record<string,boolean>>({});
  const [busy,setBusy]=useState(false);
  const [hydrated,setHydrated]=useState(false);
+ const [verdict,setVerdict]=useState("Aucune vérification lancée.");
+ const [checking,setChecking]=useState(false);
  async function inspect(){
   const next:Record<string,boolean>={};
   for(const route of routes){
@@ -60,6 +62,9 @@ export default function Multi(){
   finally{setBusy(false);}
  }
  async function verify(){
+  if(checking||busy)return;
+  setChecking(true);setVerdict("Vérification en cours…");
+  try{
   const result=await inspect();
   let probe: {a?:boolean;b?:boolean;media?:boolean[];version?:string}|null=null;
   try{
@@ -68,7 +73,10 @@ export default function Multi(){
   }catch{}
   const worker=!!navigator.serviceWorker?.controller;
   const pass=!!(result.a&&result.b&&worker&&probe?.a&&probe?.b&&probe?.media?.every(Boolean)&&probe.version==="offline06-probe-2");
-  setStatus(pass?"SUCCÈS : les deux pages et les quatre médias sont trouvés directement par le Service Worker. Coupe le Wi-Fi.":"NON VALIDÉ : A="+result.a+", B="+result.b+", Service Worker="+worker+", sonde="+JSON.stringify(probe)+". Garde le Wi-Fi.");
+  const message=pass?"SUCCÈS : les deux pages et les quatre médias sont trouvés directement par le Service Worker. Coupe le Wi-Fi.":"NON VALIDÉ : A="+result.a+", B="+result.b+", Service Worker="+worker+", sonde="+JSON.stringify(probe)+". Garde le Wi-Fi.";
+  setVerdict(message);setStatus(message);
+  }catch(e){setVerdict("ERREUR DE VÉRIFICATION : "+(e instanceof Error?e.message:"inconnue")+". Garde le Wi-Fi.");}
+  finally{setChecking(false);}
  }
  return <main style={{maxWidth:650,margin:"2rem auto",padding:"0 1rem",fontFamily:"system-ui"}}>
   <h1>OFFLINE-06 — Deux parcours indépendants</h1>
@@ -80,7 +88,8 @@ export default function Multi(){
    <p><img src={paths(r.id)[0]} alt={"Image "+r.name} style={{width:"100%",maxWidth:320}} /></p>
    <audio controls preload="none" src={paths(r.id)[1]}/>
   </section>)}
-  <button disabled={busy} onClick={()=>void verify()}>Vérifier les deux parcours (sonde hors réseau)</button>
+  <button disabled={busy||checking} onClick={()=>void verify()}>{checking?"Vérification en cours…":"Vérifier les deux parcours (sonde hors réseau)"}</button>
+  <p role="status" aria-live="polite" style={{padding:12,border:"2px solid #555",borderRadius:6,fontWeight:700}}>{verdict}</p>
   <p>Test : télécharge A puis B avec Wi-Fi. Attends le message SUCCÈS de la sonde, puis coupe le Wi-Fi, actualise et réécoute les deux sons. Ferme et rouvre la même adresse hors ligne. Utilise le même navigateur pour toutes les étapes.</p>
  </main>;
 }
