@@ -21,8 +21,8 @@ export default function StorageLab(){
    setEstimate("Utilisé : "+Math.round((e.usage||0)/1024)+" Ko ; quota estimé : "+Math.round((e.quota||0)/1024/1024)+" Mo");
   }catch(e){setEstimate("Estimation indisponible : "+String(e));}
  }
- async function run(fail:boolean){
-  if(busy)return;setBusy(true);setStatus(fail?"Simulation d’un refus d’écriture…":"Téléchargement du parcours témoin…");
+ async function run(){
+  if(busy)return;setBusy(true);setStatus("Téléchargement du parcours témoin…");
   try{
    if(!("caches" in window))throw Error("Cache Storage indisponible");
 
@@ -34,7 +34,7 @@ export default function StorageLab(){
     const data=await r.arrayBuffer();
     if(data.byteLength<100)throw Error("Ressource trop courte : "+path);
     await staging.put(path,new Response(data,{headers:{"Content-Type":r.headers.get("content-type")||"application/octet-stream"}}));
-    if(fail&&i===0)throw new DOMException("Quota exceeded (simulation contrôlée)","QuotaExceededError");
+
    }
    const verified=await signature(TEMP);
    if(!verified.every(n=>n>0))throw Error("Paquet incomplet");
@@ -74,7 +74,7 @@ export default function StorageLab(){
   <p>Simulation contrôlée d’un stockage saturé. Ne remplit pas la mémoire et ne supprime pas les autres parcours.</p>
   <p role="status" style={{border:"2px solid #666",padding:12}}>{status}</p>
   <p>Parcours témoin : <strong>{baseline?"Présent":"Non confirmé"}</strong></p>
-  <button disabled={busy} onClick={()=>void run(false)}>1. Préparer le parcours témoin</button>
+  <button disabled={busy} onClick={()=>void run()}>1. Préparer le parcours témoin</button>
   <p><button disabled={busy||!baseline} onClick={()=>void simulate()}>2. Simuler stockage saturé</button></p>
   <p><button disabled={busy} onClick={()=>void storageEstimate()}>Afficher l’espace estimé</button></p>
   <p>{estimate}</p>
