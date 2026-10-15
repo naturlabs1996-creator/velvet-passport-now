@@ -53,8 +53,14 @@ export default function Multi(){
  }
  async function verify(){
   const result=await inspect();
+  let probe: {a?:boolean;b?:boolean;media?:boolean[];version?:string}|null=null;
+  try{
+   const r=await fetch("/test-offline/offline-probe",{cache:"no-store"});
+   if(r.ok)probe=await r.json();
+  }catch{}
   const worker=!!navigator.serviceWorker?.controller;
-  setStatus(result.a&&result.b&&worker?"SUCCÈS : pages et médias A+B en cache, Service Worker actif. Coupe le Wi-Fi.":"ATTENTION : téléchargement hors ligne NON confirmé. A="+result.a+", B="+result.b+", Service Worker="+worker+". Garde le Wi-Fi.");
+  const pass=!!(result.a&&result.b&&worker&&probe?.a&&probe?.b&&probe?.media?.every(Boolean)&&probe.version==="offline06-probe-2");
+  setStatus(pass?"SUCCÈS : les deux pages et les quatre médias sont trouvés directement par le Service Worker. Coupe le Wi-Fi.":"NON VALIDÉ : A="+result.a+", B="+result.b+", Service Worker="+worker+", sonde="+JSON.stringify(probe)+". Garde le Wi-Fi.");
  }
  return <main style={{maxWidth:650,margin:"2rem auto",padding:"0 1rem",fontFamily:"system-ui"}}>
   <h1>OFFLINE-06 — Deux parcours indépendants</h1>
@@ -66,7 +72,7 @@ export default function Multi(){
    <p><img src={paths(r.id)[0]} alt={"Image "+r.name} style={{width:"100%",maxWidth:320}} /></p>
    <audio controls preload="none" src={paths(r.id)[1]}/>
   </section>)}
-  <button onClick={()=>void verify()}>Vérifier les deux parcours</button>
-  <p>Test : télécharge A puis B avec Wi-Fi, vérifie les deux, coupe le Wi-Fi, actualise et réécoute les deux sons. Ferme et rouvre la même adresse hors ligne.</p>
+  <button disabled={busy} onClick={()=>void verify()}>Vérifier les deux parcours (sonde hors réseau)</button>
+  <p>Test : télécharge A puis B avec Wi-Fi. Attends le message SUCCÈS de la sonde, puis coupe le Wi-Fi, actualise et réécoute les deux sons. Ferme et rouvre la même adresse hors ligne. Utilise le même navigateur pour toutes les étapes.</p>
  </main>;
 }
