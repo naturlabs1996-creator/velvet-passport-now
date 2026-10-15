@@ -37,11 +37,21 @@ export default function OfflineLab() {
         }
       }
       const cache = await caches.open("vp-offline-lab-v3");
+      const media = ["/test-offline/media/illustration.svg", "/test-offline/media/son.wav"];
       await cache.put("/test-offline", new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
       for (const asset of assetPaths) {
         const assetResponse = await fetch(asset);
         if (!assetResponse.ok) throw Error("Ressource indisponible");
         await cache.put(asset, assetResponse);
+      }
+      for (const asset of media) {
+        const response = await fetch(asset, { cache: "reload" });
+        if (!response.ok) throw Error("Média non disponible : " + asset);
+        await cache.put(asset, response);
+      }
+      for (const asset of media) {
+        const response = await cache.match(asset);
+        if (!response || !(await response.clone().arrayBuffer()).byteLength) throw Error("Média absent du cache : " + asset);
       }
       const verified = await cache.match("/test-offline");
       if (!verified || !(await verified.text()).includes("Velvet Passport")) throw Error("Cache HTML non vérifié");
@@ -53,17 +63,19 @@ export default function OfflineLab() {
         });
       }
       setReady(true);
-      setMessage("Cache HTML et ressources vérifiés. Le test de réouverture sans Wi-Fi reste nécessaire.");
+      setMessage("Cache HTML, illustration et audio vérifiés. Teste maintenant hors Wi-Fi.");
     } catch (error) {
       setMessage("Téléchargement incomplet : " + (error instanceof Error ? error.message : "erreur inconnue") + ". Ne coupe pas le Wi-Fi.");
     }
   }
   return <main style={{ maxWidth: 680, margin: "2rem auto", padding: "0 1rem", fontFamily: "system-ui", lineHeight: 1.6 }}>
     <h1>Velvet Passport NOW — laboratoire hors ligne</h1>
-    <p>Prototype technique : textes seulement. Pas encore de cartes, images ou audio téléchargés.</p>
+    <p>Laboratoire technique : une illustration et un son de démonstration, pas des archives historiques.</p>
     <button type="button" onClick={prepare} style={{ padding: 12 }}>Télécharger le parcours de test</button>
     <p role="status">{message}</p>
     {ready && <p>Test : avance à l’arrêt 3, coupe le Wi-Fi, ferme l’onglet et rouvre exactement cette adresse. La reprise doit afficher l’arrêt 3.</p>}
+    <figure><img src="/test-offline/media/illustration.svg" alt="Illustration de test Velvet Passport" style={{width:"100%",maxWidth:500}} /><figcaption>Illustration de test — doit rester visible hors ligne.</figcaption></figure>
+    <p><strong>Son de test :</strong> <audio controls preload="auto" src="/test-offline/media/son.wav" /> (une tonalité, pas encore une narration).</p>
     <NowRouteNavigator city="quebec" routeId="offline-lab-v1" routeTitle="Parcours hors ligne — 5 arrêts" stops={stops} />
     <p>La disponibilité hors ligne dépend du navigateur et de son stockage. Ce test ne garantit pas encore une application complète hors connexion.</p>
   </main>;
