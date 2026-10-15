@@ -41,7 +41,12 @@ export default function Multi(){
     const r=await fetch(p,{cache:"reload"});
     if(!r.ok)throw Error("Fichier inaccessible : "+p);
     const data=await r.arrayBuffer();
-    if(data.byteLength<1000)throw Error("Fichier vide ou trop court : "+p);
+    const type=r.headers.get("content-type")||"";
+    if(p.includes("/visuel/")){
+     if(!type.includes("image/svg+xml")||data.byteLength<50||!new TextDecoder().decode(data).includes("<svg"))throw Error("Illustration invalide : "+p);
+    }else if(p.includes("/audio/")){
+     if(!type.includes("audio/wav")||data.byteLength<1000)throw Error("Audio invalide : "+p);
+    }else if(!data.byteLength)throw Error("Fichier vide : "+p);
     await temp.put(p,new Response(data,{headers:{"Content-Type":r.headers.get("content-type")||"application/octet-stream"}}));
    }
    const checks=await Promise.all(["/test-offline/multi",...assets,...paths(id)].map(p=>temp.match(p)));
