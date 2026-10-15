@@ -22,6 +22,7 @@ export default function OfflineLab() {
       if (!("serviceWorker" in navigator)) throw Error("Service worker indisponible");
       const registration = await navigator.serviceWorker.register("/test-offline/sw.js", { scope: "/test-offline" });
       await navigator.serviceWorker.ready;
+      await registration.update();
       if (!registration.active) throw Error("Service worker non actif");
       const response = await fetch("/test-offline", { cache: "reload" });
       if (!response.ok) throw Error("Page non disponible");
@@ -35,15 +36,18 @@ export default function OfflineLab() {
           if (url.origin === location.origin && url.pathname.startsWith("/_next/static/")) assetPaths.add(url.href);
         }
       }
-      const cache = await caches.open("vp-offline-lab-v1");
+      const cache = await caches.open("vp-offline-lab-v2");
       await cache.put("/test-offline", new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
       for (const asset of assetPaths) {
         const assetResponse = await fetch(asset);
         if (!assetResponse.ok) throw Error("Ressource indisponible");
         await cache.put(asset, assetResponse);
       }
+      const verified = await cache.match("/test-offline");
+      if (!verified || !(await verified.text()).includes("Velvet Passport")) throw Error("Cache HTML non vérifié");
+      if (!registration.active) throw Error("Service worker non actif");
       setReady(true);
-      setMessage("Parcours préparé. Tu peux maintenant tester une réouverture sans Wi-Fi.");
+      setMessage("Cache HTML et ressources vérifiés. Le test de réouverture sans Wi-Fi reste nécessaire.");
     } catch (error) {
       setMessage("Téléchargement incomplet : " + (error instanceof Error ? error.message : "erreur inconnue") + ". Ne coupe pas le Wi-Fi.");
     }
