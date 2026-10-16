@@ -17,7 +17,14 @@ export default function ParisFivePilotPage() {
       <p style={{ fontWeight: 700 }}>VELVET PASSPORT NOW · REAL-01 · PILOTE ÉDITORIAL</p>
       <h1>Paris #5 — Opera Back Streets</h1>
       <p>65 minutes visées · Quatre arrêts · Texte historique issu du Master et de Supabase.</p>
-      <p style={{ padding: 12, background: "#fff4d6", color: "#513900", borderRadius: 8 }}><strong>Prototype non certifié :</strong> ne pas suivre comme guidage sur le terrain. Accès des quatre arrêts à confirmer ; coordonnées des arrêts 3 et 4 en révision. Les médias historiques, les audios définitifs, le GPS et le téléchargement hors connexion ne sont pas encore intégrés à cette page.</p>
+      <p style={{ padding: 12, background: "#fff4d6", color: "#513900", borderRadius: 8 }}><strong>Prototype non certifié :</strong> ne pas suivre comme guidage sur le terrain. Accès des quatre arrêts à confirmer ; coordonnées des arrêts 3 et 4 en révision. Le visuel reconstitué du stop 2 est intégré à cette page ; les autres médias historiques, les audios définitifs, le GPS et le téléchargement hors connexion ne sont pas encore intégrés.</p>
+      <section aria-label="Visuel historique Malmaison" style={{ margin: "1.5rem 0" }}>
+        <h2>Stop 2 · Malmaison, 1819</h2>
+        <figure style={{ margin: 0, maxWidth: 360 }}>
+          <img src="/pilots/paris-05/malmaison-1819-reconstruction.svg" alt="Restitution typographique contemporaine de la vente Malmaison, 24 mars 1819 ; ce n'est pas un fac-similé du catalogue" style={{ width: "100%", height: "auto" }} />
+          <figcaption style={{ fontSize: 13 }}>Restitution typographique contemporaine inspirée du catalogue de 1819, non reproduction de l'original. Aucun imprimeur attribué.</figcaption>
+        </figure>
+      </section>
       <NowRouteNavigator city="paris" routeId="VP-PAR-NOW-05-real-01" routeTitle="Les rues derrière l’Opéra" stops={stops} />
       <p style={{ marginTop: 30, fontSize: 13 }}>La progression est enregistrée localement sur cet appareil. Les textes sont des extraits de test, non les narrations audiovisuelles finales. Source : Master assemblé du 23 septembre 2026, état Supabase du 15 octobre 2026.</p>
     </main>
