@@ -26,7 +26,7 @@ jobs:
       - name: Generate 8 WAV narrations
         run: |
           python scripts/audio/render_kokoro.py \
-            docs/pilots/paris-05-audio-input.json \
+            docs/pilots/paris-05-audio-recording-master-v1.json \
             generated-audio/paris-05
       - name: Check all eight files
         run: |
