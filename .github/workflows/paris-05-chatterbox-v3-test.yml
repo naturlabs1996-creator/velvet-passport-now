@@ -35,7 +35,8 @@ jobs:
             --exaggeration 0.72 \
             --cfg-weight 0.30 \
             --temperature 0.80 \
-            --pause-ms 420
+            --pause-ms 420 \
+            --tempo 0.96
 
       - name: Validate the two QA WAV files
         run: |
