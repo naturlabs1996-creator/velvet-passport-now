@@ -1,5 +1,6 @@
 name: Paris 05 - Chatterbox V3 full FR parallel
 
+# Parallel production render trigger
 on:
   workflow_dispatch:
   push:
