@@ -3,7 +3,8 @@
 
 This is deliberately a QA-only renderer: one stop, French + English.
 It uses Chatterbox Multilingual V3 on CPU, generates sentence by sentence,
-and inserts explicit pauses so narration does not become one flat read-through.
+inserts explicit pauses, and can apply a very small pitch-preserving tempo
+adjustment for a calmer documentary delivery.
 """
 import argparse
 import json
@@ -33,8 +34,15 @@ def main():
     parser.add_argument("--cfg-weight", type=float, default=0.30)
     parser.add_argument("--temperature", type=float, default=0.80)
     parser.add_argument("--pause-ms", type=int, default=420)
+    parser.add_argument("--tempo", type=float, default=0.96,
+                        help="Pitch-preserving tempo multiplier; 0.96 is about 4% slower")
     args = parser.parse_args()
 
+    if not 0.85 <= args.tempo <= 1.10:
+        raise ValueError("tempo must be between 0.85 and 1.10")
+
+    import librosa
+    import numpy as np
     import torch
     import torchaudio
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
@@ -55,8 +63,9 @@ def main():
         if not text:
             raise ValueError(f"Missing {lang} text")
 
+        sentences = sentence_chunks(text)
         parts = []
-        for i, sentence in enumerate(sentence_chunks(text)):
+        for i, sentence in enumerate(sentences):
             wav = model.generate(
                 sentence,
                 language_id=lang,
@@ -64,14 +73,21 @@ def main():
                 cfg_weight=args.cfg_weight,
                 temperature=args.temperature,
             ).squeeze(0).cpu()
+
+            if args.tempo != 1.0:
+                stretched = librosa.effects.time_stretch(
+                    np.asarray(wav, dtype=np.float32), rate=args.tempo
+                )
+                wav = torch.from_numpy(np.asarray(stretched, dtype=np.float32))
+
             parts.append(wav)
-            if i < len(sentence_chunks(text)) - 1:
+            if i < len(sentences) - 1:
                 parts.append(silence)
 
         final = torch.cat(parts).unsqueeze(0)
         out = args.output / f"{stop_id}-{lang}-chatterbox-v3.wav"
         torchaudio.save(str(out), final, model.sr)
-        print(f"Generated {out} at {model.sr} Hz")
+        print(f"Generated {out} at {model.sr} Hz, tempo={args.tempo:.2f}")
 
     print("QA ONLY: listen for human pacing, emotion, pauses, names and accent before wider generation.")
 
