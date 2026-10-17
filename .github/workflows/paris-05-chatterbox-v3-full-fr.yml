@@ -1,0 +1,68 @@
+name: Paris 05 - Chatterbox V3 full FR render
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris-05-chatterbox-v3-full-fr.yml'
+      - 'scripts/audio/render_chatterbox_v3_route_fr.py'
+      - 'docs/pilots/paris-05-recording-master-fr-final-v1.json'
+
+jobs:
+  render-full-fr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install CPU PyTorch and Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile librosa
+
+      - name: Render complete French route
+        run: |
+          python scripts/audio/render_chatterbox_v3_route_fr.py \
+            docs/pilots/paris-05-recording-master-fr-final-v1.json \
+            generated-audio/paris-05-full-fr-v1 \
+            --exaggeration 0.72 \
+            --cfg-weight 0.30 \
+            --temperature 0.80 \
+            --pause-ms 420 \
+            --segment-pause-ms 1200 \
+            --tempo 0.96
+
+      - name: Validate output package
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import soundfile as sf
+
+          root = Path('generated-audio/paris-05-full-fr-v1')
+          wavs = sorted(root.glob('*.wav'))
+          assert len(wavs) == 10, f'Expected 10 WAV files, got {len(wavs)}'
+          full = root / 'VP-PAR-NOW-05-fr-chatterbox-v3-tempo-096x-FULL.wav'
+          assert full.exists()
+          info = sf.info(str(full))
+          assert info.duration > 60
+          report = json.loads((root / 'VP-PAR-NOW-05-fr-render-report.json').read_text(encoding='utf-8'))
+          assert len(report['segments']) == 9
+          print(f'Full route duration: {info.duration/60:.2f} min')
+          for item in report['segments']:
+              print(f"{item['index']:02d} {item['id']}: {item['duration_seconds']:.1f}s")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris-05-chatterbox-v3-full-fr-v1
+          path: generated-audio/paris-05-full-fr-v1/*
+          retention-days: 7
