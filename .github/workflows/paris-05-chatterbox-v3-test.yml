@@ -2,6 +2,10 @@ name: Paris 05 - Chatterbox V3 expressive QA
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris-05-chatterbox-v3-test.yml'
 
 jobs:
   render-sample:
