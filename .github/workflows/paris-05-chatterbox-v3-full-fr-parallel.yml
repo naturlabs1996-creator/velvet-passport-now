@@ -1,0 +1,103 @@
+name: Paris 05 - Chatterbox V3 full FR parallel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris-05-chatterbox-v3-full-fr-parallel.yml'
+      - 'scripts/audio/render_chatterbox_v3_segment_fr.py'
+      - 'docs/pilots/paris-05-recording-master-fr-final-v1.json'
+
+jobs:
+  render-segment:
+    strategy:
+      fail-fast: false
+      matrix:
+        segment:
+          - INTRO
+          - STOP-01
+          - TRANSITION-01-02
+          - STOP-02
+          - TRANSITION-02-03
+          - STOP-03
+          - TRANSITION-03-04
+          - STOP-04
+          - OUTRO
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU PyTorch and Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile librosa
+      - name: Render segment
+        run: |
+          python scripts/audio/render_chatterbox_v3_segment_fr.py \
+            docs/pilots/paris-05-recording-master-fr-final-v1.json \
+            generated-audio/${{ matrix.segment }} \
+            --segment-id '${{ matrix.segment }}' \
+            --exaggeration 0.72 \
+            --cfg-weight 0.30 \
+            --temperature 0.80 \
+            --pause-ms 420 \
+            --tempo 0.96
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris-05-fr-${{ matrix.segment }}
+          path: generated-audio/${{ matrix.segment }}/*
+          retention-days: 7
+
+  assemble:
+    needs: render-segment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: paris-05-fr-*
+          path: collected
+          merge-multiple: true
+      - name: Assemble full route and report
+        run: |
+          python -m pip install soundfile numpy
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import soundfile as sf
+
+          order=['INTRO','STOP-01','TRANSITION-01-02','STOP-02','TRANSITION-02-03','STOP-03','TRANSITION-03-04','STOP-04','OUTRO']
+          root=Path('collected')
+          out=Path('assembled'); out.mkdir()
+          pieces=[]; report=[]; sr=None
+          for i,sid in enumerate(order,1):
+              meta=json.loads((root/f'{sid}.json').read_text(encoding='utf-8'))
+              audio,this_sr=sf.read(root/meta['file'], dtype='float32')
+              if audio.ndim>1: audio=audio[:,0]
+              if sr is None: sr=this_sr
+              assert this_sr==sr
+              pieces.append(audio)
+              report.append(meta)
+              if i < len(order): pieces.append(np.zeros(int(sr*1.2),dtype=np.float32))
+          full=np.concatenate(pieces)
+          full_path=out/'VP-PAR-NOW-05-fr-chatterbox-v3-tempo-096x-FULL.wav'
+          sf.write(full_path, full, sr)
+          summary={'route_id':'VP-PAR-NOW-05','tempo':0.96,'sample_rate':sr,'total_duration_seconds':len(full)/sr,'segments':report}
+          (out/'VP-PAR-NOW-05-fr-render-report.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(f"FULL ROUTE: {len(full)/sr/60:.2f} min")
+          for m in report: print(f"{m['id']}: {m['duration_seconds']:.1f}s")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris-05-chatterbox-v3-full-fr-v1-parallel
+          path: assembled/*
+          retention-days: 7
