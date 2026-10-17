@@ -1,0 +1,53 @@
+name: Paris 05 - Chatterbox V3 expressive QA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  render-sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install CPU PyTorch and Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install chatterbox-tts==0.1.7 soundfile
+
+      - name: Generate French and English expressive samples
+        run: |
+          python scripts/audio/render_chatterbox_v3_test.py \
+            docs/pilots/paris-05-audio-recording-master-v1.json \
+            generated-audio/paris-05-chatterbox-test \
+            --stop-id VP-PAR-NOW-05-ST-05-01 \
+            --exaggeration 0.72 \
+            --cfg-weight 0.30 \
+            --temperature 0.80 \
+            --pause-ms 420
+
+      - name: Validate the two QA WAV files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import soundfile as sf
+          files = sorted(Path('generated-audio/paris-05-chatterbox-test').glob('*.wav'))
+          assert len(files) == 2, f'Expected 2 WAV files, got {len(files)}'
+          for f in files:
+              info = sf.info(str(f))
+              assert info.frames > info.samplerate * 20, (f, info)
+              print(f'{f.name}: {info.samplerate} Hz, {info.duration:.1f}s')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris-05-chatterbox-v3-expressive-test
+          path: generated-audio/paris-05-chatterbox-test/*.wav
+          retention-days: 7
