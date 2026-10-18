@@ -1,0 +1,90 @@
+name: Paris 05 - FR V3 Sebai incremental
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris-05-fr-v3-sebai-incremental.yml'
+jobs:
+  render-modified:
+    strategy:
+      fail-fast: false
+      matrix:
+        segment: [INTRO, STOP-01, TRANSITION-01-SEBAI, STOP-SEBAI-1977, TRANSITION-01-02, OUTRO]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU PyTorch and Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile librosa
+      - name: Render modified segment
+        run: |
+          python scripts/audio/render_chatterbox_v3_segment_fr.py \
+            docs/pilots/paris-05-recording-master-fr-v3-sebai-integrated.json \
+            generated-audio/${{ matrix.segment }} \
+            --segment-id '${{ matrix.segment }}' \
+            --exaggeration 0.72 --cfg-weight 0.30 --temperature 0.80 --pause-ms 420 --tempo 0.96
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris-05-v3-fr-${{ matrix.segment }}
+          path: generated-audio/${{ matrix.segment }}/*
+          retention-days: 7
+  assemble:
+    needs: render-modified
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: paris-05-v3-fr-*
+          path: collected
+          merge-multiple: true
+      - name: Recover original unchanged segments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for sid in STOP-02 TRANSITION-02-03 STOP-03 TRANSITION-03-04 STOP-04; do
+            gh run download 39054264154 --repo "${{ github.repository }}" --name "paris-05-fr-${sid}" --dir collected
+          done
+      - name: Assemble 11 segments and durations
+        run: |
+          python -m pip install soundfile numpy
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import soundfile as sf
+          order=['INTRO','STOP-01','TRANSITION-01-SEBAI','STOP-SEBAI-1977','TRANSITION-01-02','STOP-02','TRANSITION-02-03','STOP-03','TRANSITION-03-04','STOP-04','OUTRO']
+          root=Path('collected'); out=Path('assembled'); out.mkdir()
+          pieces=[]; report=[]; sr=None
+          for i,sid in enumerate(order):
+              meta=json.loads((root/f'{sid}.json').read_text(encoding='utf-8'))
+              audio,this_sr=sf.read(root/meta['file'],dtype='float32')
+              if audio.ndim>1: audio=audio[:,0]
+              if sr is None: sr=this_sr
+              assert this_sr==sr
+              pieces.append(audio);report.append(meta)
+              if i<len(order)-1: pieces.append(np.zeros(int(sr*1.2),dtype=np.float32))
+          full=np.concatenate(pieces)
+          fn=out/'VP-PAR-NOW-05-fr-chatterbox-v3-tempo-096x-SEBAI-V3.wav'
+          sf.write(fn, full, sr)
+          summary={'route_id':'VP-PAR-NOW-05','version':'fr-v3-sebai','sample_rate':sr,'tempo':0.96,'total_duration_seconds':len(full)/sr,'segments':report,'historical_caveat':'23 bis in 1977 press, 23 modern photo'}
+          (out/'VP-PAR-NOW-05-fr-v3-report.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf-8')
+          print('DURATION_MIN',round(len(full)/sr/60,2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris-05-fr-v3-sebai-master
+          path: assembled/*
+          retention-days: 7
