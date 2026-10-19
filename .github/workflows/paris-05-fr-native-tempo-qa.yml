@@ -1,0 +1,46 @@
+name: Paris 05 - native tempo 1.00 diagnostic
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris-05-fr-native-tempo-qa.yml'
+  workflow_dispatch:
+jobs:
+  native-synthesis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox V3 CPU
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Synthesize locked sample at native speed (no time stretch)
+        run: |
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          import torch,torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          manifest=json.loads(Path('docs/pilots/paris-05-fr-v4-tts-and-cues.json').read_text(encoding='utf-8'))
+          segment=next(x for x in manifest['segments'] if x['id']=='STOP-01')
+          sentences=[s.strip() for s in re.split(r'(?<=[.!?])\s+', segment['text'].strip()) if s.strip()]
+          sample=' '.join(sentences[:2])
+          model=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          audio=model.generate(sample,language_id='fr',exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+          Path('qa-native-tempo').mkdir(exist_ok=True)
+          torchaudio.save('qa-native-tempo/PARIS05-STOP01-FR-V3-NATIVE-TEMPO-100.wav',audio.unsqueeze(0),model.sr)
+          Path('qa-native-tempo/metadata.json').write_text(json.dumps({'source':'locked STOP-01 first two sentences','tempo':1.0,'digital_time_stretch':False,'sampling_rate':model.sr,'duration_seconds':len(audio)/model.sr,'same_text_as_v4':True,'reference_voice':'default Chatterbox no custom prompt'},ensure_ascii=False,indent=2))
+          print('NATIVE_TEMPO_SAMPLE_SECONDS',len(audio)/model.sr)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-fr-v3-native-tempo-100-qa
+          path: qa-native-tempo/*
+          retention-days: 14
