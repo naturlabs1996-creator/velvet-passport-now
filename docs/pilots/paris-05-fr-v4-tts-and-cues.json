@@ -1,0 +1,792 @@
+{
+  "route_id": "VP-PAR-NOW-05",
+  "language": "fr",
+  "source_master": "docs/pilots/paris-05-recording-master-fr-v4-editorial-assembly.json",
+  "source_sha": "164fb1b6276f99aea1eea72a8ee9d6c727cf03f6",
+  "version": "fr-v4-audio-clean-v1",
+  "status": "READY_FOR_TTS_PENDING_RENDER",
+  "tts": {
+    "engine": "ChatterboxMultilingualTTS",
+    "t3_model": "v3",
+    "language_id": "fr",
+    "tempo": 0.96,
+    "exaggeration": 0.72,
+    "cfg_weight": 0.3,
+    "temperature": 0.8
+  },
+  "constraints": {
+    "no_paraphrase": true,
+    "no_deleted_spoken_content": true,
+    "minimum_measured_seconds_per_stop": 300,
+    "never_voice_cues": true
+  },
+  "segments": [
+    {
+      "id": "INTRO",
+      "title": "Opéra Back Streets",
+      "text": "Bienvenue dans les coulisses de l’Opéra. Ici, le Paris monumental est tout près. Pourtant, pendant ce parcours, nous allons surtout regarder ce qui se cache derrière lui. Des rues secondaires. Des immeubles que l’on traverse du regard sans vraiment les voir. Des adresses où se sont succédé photographes, collectionneurs, soldats et aristocrates. Avant même de commencer, regardez autour de vous. La rue Louis-le-Grand que nous allons emprunter porte un nom très monarchique. Mais elle ne s’est pas toujours appelée ainsi. Pendant la Révolution française, elle devient la rue des Piques. Quelques années plus tard, elle change encore de nom et devient rue de la Place-Vendôme, avant de retrouver finalement son nom actuel. Même une simple plaque de rue peut donc cacher plusieurs Paris. Et c’est exactement ce que nous allons faire pendant cette promenade. Enlever les couches, une à une. Nous commencerons avec un photographe dont les images vont finir par mêler portrait, justice, politique et manipulation visuelle. Tout près de là, une autre adresse nous mènera jusqu’à un assassinat politique en décembre 1977. Puis nous entrerons dans l’univers des souvenirs de Joséphine et de Malmaison. Puis le quartier changera brutalement de siècle. Nous retrouverons Paris pendant les journées de la Libération, en août 1944. Et finalement, nous remonterons encore plus loin, jusqu’à un duel aristocratique qui se termine par la mort de l’un de ses participants. Cinq grandes histoires. Mais entre elles, ne vous attendez pas simplement à marcher jusqu’au point suivant. Regardez les façades. Les angles de rue. Les étages. Les changements d’échelle. Les morceaux de ville qui semblent ordinaires. Parce qu’ici, les petites choses comptent autant que les grandes. Dirigez-vous maintenant vers le 21 rue Louis-le-Grand. Notre première histoire commence avec un homme qui comprend très tôt qu’une photographie peut faire beaucoup plus que simplement montrer un visage.",
+      "spoken_word_count": 301,
+      "cues": []
+    },
+    {
+      "id": "STOP-01",
+      "title": "Ernest Appert — 21 rue Louis-le-Grand",
+      "text": "Arrêtez-vous devant le numéro 21.\n\nRegardez cette adresse.\n\nAujourd'hui, rien ne vous indique qu'ici s'est jouée une partie étonnante de l'histoire de la photographie française.\n\nPourtant, dans la seconde moitié du XIXe siècle, cette adresse est associée à deux frères qui vont pousser la photographie bien au-delà du simple portrait.\n\nEt dont certaines images vont soulever une question que nous nous posons encore aujourd'hui.\n\nPeut-on croire ce que l'on voit sur une photographie ?\n\nPour comprendre leur histoire, revenons aux années 1860.\n\nÀ cette époque, Paris découvre les possibilités commerciales de la photographie.\n\nLes portraits deviennent à la mode. On les conserve dans des albums, on les échange, on les offre à la famille.\n\nMais faire photographier son visage demeure une opération beaucoup plus compliquée que de sortir son téléphone de sa poche.\n\nIl faut entrer dans un atelier.\n\nLa lumière doit être contrôlée.\n\nLe photographe prépare sa plaque, ses produits chimiques, son décor.\n\nLe client doit rester suffisamment immobile pour obtenir un portrait net.\n\nEt chaque image demande un véritable savoir-faire.\n\nDeux frères travaillent dans cet univers : Eugène et Ernest-Charles Appert.\n\nIls sont originaires de Châteauroux.\n\nÀ Paris, ils développent leur activité au sein du milieu des photographes professionnels, notamment autour de cette adresse du 21 rue Louis-le-Grand.\n\nLeur spécialité ?\n\nLes personnages importants.\n\nHommes politiques, militaires, magistrats, membres de l'aristocratie et personnalités de la vie publique.\n\nIls évoluent dans un monde où posséder le portrait d'un personnage célèbre devient une manière de collectionner l'actualité.\n\nMais leur activité va progressivement se rapprocher d'un univers très différent : celui de la justice et des grandes crises politiques.\n\nAvant d'en arriver là, regardons un détail matériel absolument remarquable.\n\nUne carte photographique conservée au Rijksmuseum, à Amsterdam, nous livre une sorte de publicité imprimée au verso.\n\nOn y trouve les titres professionnels du photographe.\n\nLes distinctions qu'il revendique.\n\nSes relations avec des personnalités prestigieuses.\n\nEt son adresse :\n\n24 rue Taitbout.\n\nPuis une précision :\n\n« Ci-devant, 21 rue Louis-le-Grand. »\n\nCi-devant.\n\nAutrement dit : anciennement.\n\nMême après avoir déménagé, l'atelier conserve cette ancienne adresse sur ses cartes.\n\nEt vous êtes précisément devant elle.\n\nIl y a quelque chose d'assez extraordinaire dans cette continuité.\n\nUne petite inscription imprimée au dos d'une photographie nous permet, plus de cent cinquante ans après, de retrouver un lieu que presque personne ne remarquerait en passant.\n\nMais le plus étonnant commence maintenant.\n\nLes frères Appert ne se contentent pas de photographier des gens assis devant un décor.\n\nIls vont utiliser un procédé qui nous semble extrêmement moderne : le photomontage.\n\nAujourd'hui, nous connaissons les logiciels qui permettent de supprimer une personne, de modifier un arrière-plan ou de fabriquer une image entièrement fictive.\n\nÀ la fin des années 1860, ces possibilités existent déjà sous une forme artisanale.\n\nIl faut assembler des portraits.\n\nDécouper ou combiner des épreuves.\n\nParfois intervenir sur l'image par le dessin ou la peinture.\n\nPuis photographier ou reproduire le résultat.\n\nRegardez maintenant cette photographie.\n\nPlusieurs hommes semblent réunis autour d'une table.\n\nL'image possède l'apparence d'une scène prise sur le vif.\n\nPourtant, il s'agit d'un photomontage.\n\nC'est ici que le procédé devient fascinant.\n\nLe photographe peut fabriquer une réunion qui n'a pas été photographiée comme telle.\n\nIl peut réunir des personnages dans une seule composition.\n\nEt surtout, il peut donner à cette scène fabriquée la crédibilité d'une photographie.\n\nCar le public du XIXe siècle ne possède pas nécessairement les réflexes de méfiance que nous avons développés face aux images manipulées.\n\nPuis arrive 1870.\n\nLa France entre en guerre contre la Prusse.\n\nLe Second Empire s'effondre.\n\nEt Paris s'apprête à connaître l'une des périodes les plus violentes de son histoire.\n\nEn 1871, la Commune de Paris éclate.\n\nLa ville est divisée par une guerre civile.\n\nLes affrontements sont meurtriers.\n\nDes otages sont exécutés.\n\nLa répression de la Commune fera, elle aussi, de très nombreuses victimes.\n\nLes Appert photographient des personnages liés à ces événements.\n\nMais ils produisent également des scènes reconstituées.\n\nUne série porte un titre particulièrement frappant :\n\nLes Crimes de la Commune.\n\nCes images montrent notamment des épisodes d'exécution.\n\nEt c'est là qu'il faut absolument comprendre la différence entre deux choses.\n\nUn événement historique peut avoir réellement eu lieu.\n\nMais la photographie censée le représenter peut être une reconstitution réalisée après les faits.\n\nL'appareil n'était pas nécessairement présent au moment de l'événement.\n\nLes personnages peuvent avoir été photographiés séparément.\n\nLe décor peut avoir été recomposé.\n\nEt pourtant, l'image finale donne l'impression de saisir l'instant même de l'action.\n\nPrenons l'exemple de l'exécution des otages à la prison de la Roquette, en mai 1871.\n\nL'événement appartient bien à l'histoire de la Commune.\n\nMais l'image réalisée par Appert ne constitue pas un reportage photographique pris pendant l'exécution.\n\nC'est une représentation reconstruite.\n\nEt cette distinction change absolument tout.\n\nDemandez-vous maintenant ce que pouvait penser un spectateur découvrant cette photographie quelques semaines après les événements.\n\nIl voit une scène dramatique.\n\nDes victimes.\n\nDes hommes armés.\n\nUn décor qui semble vraisemblable.\n\nIl peut croire qu'il regarde une preuve directe.\n\nAlors qu'il regarde une image composée par un photographe.\n\nNous sommes ici face à l'une des grandes questions de l'histoire des médias :\n\nune photographie peut être matériellement authentique, tout en représentant une scène qui n'a jamais été photographiée telle quelle.\n\nMais il y a une autre dimension.\n\nCes images circulent dans une France politiquement profondément divisée.\n\nElles ne sont pas seulement des curiosités techniques.\n\nElles peuvent influencer la manière dont les événements sont compris et mémorisés.\n\nElles participent à la construction d'un récit.\n\nLa photographie devient alors non seulement un moyen de conserver l'histoire, mais aussi un moyen de l'interpréter.\n\nEt parfois, de l'orienter.\n\nRevenons maintenant au bâtiment devant vous.\n\nOn pourrait croire que nous venons simplement de visiter, par l'imagination, un ancien atelier photographique parisien.\n\nMais cette histoire va beaucoup plus loin.\n\nElle nous montre qu'au moment même où la photographie devient un symbole de vérité, certains de ses professionnels découvrent déjà comment produire une image convaincante d'une scène reconstruite.\n\nEt voici un dernier détail intéressant.\n\nLes deux frères ont souvent travaillé sous une signature commerciale très proche.\n\nLes archives et les catalogues attribuent parfois leurs images différemment.\n\nIl faut donc être prudent lorsqu'on cherche à distinguer précisément ce qui revient à Eugène ou à Ernest-Charles.\n\nCe qui est certain, en revanche, c'est que leur activité commune appartient aux débuts de cette histoire fascinante de la photographie fabriquée.\n\nRegardez une dernière fois le 21 rue Louis-le-Grand.\n\nUne petite adresse parisienne.\n\nEt derrière elle, une question immense :\n\nQuand nous regardons une image du passé, regardons-nous l'histoire… ou la manière dont quelqu'un a choisi de nous la montrer ?\n\nGardez cette question en tête.\n\nCar notre prochain arrêt, situé tout près d'ici, va nous conduire vers un événement beaucoup plus récent.\n\nEt, cette fois, ce n'est plus une photographie qui nous donnera le fil de l'enquête.\n\nC'est une arme à feu.",
+      "spoken_word_count": 1141,
+      "cues": [
+        {
+          "cue": "AMBIENCE",
+          "detail": "Paris contemporain, très discret",
+          "offset_in_source": 0,
+          "spoken_char_index": 0
+        },
+        {
+          "cue": "LOOK",
+          "detail": "façade du 21 rue Louis-le-Grand",
+          "offset_in_source": 46,
+          "spoken_char_index": 1
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 574,
+          "spoken_char_index": 489
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "cartes de visite photographiques du XIXe siècle",
+          "offset_in_source": 1224,
+          "spoken_char_index": 1132
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 1968,
+          "spoken_char_index": 1818
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "verso de carte photographique Appert, collection du Rijksmuseum",
+          "offset_in_source": 2054,
+          "spoken_char_index": 1897
+        },
+        {
+          "cue": "LOOK",
+          "detail": "adresse actuelle",
+          "offset_in_source": 2489,
+          "spoken_char_index": 2258
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 2928,
+          "spoken_char_index": 2672
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "photomontage Appert, groupe de neuf personnalités politiques, Rijksmuseum",
+          "offset_in_source": 3581,
+          "spoken_char_index": 3318
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 4278,
+          "spoken_char_index": 3931
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "série Les Crimes de la Commune, image correctement légendée",
+          "offset_in_source": 4813,
+          "spoken_char_index": 4459
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 5513,
+          "spoken_char_index": 5089
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "détail du montage, puis retour à l'image complète",
+          "offset_in_source": 5856,
+          "spoken_char_index": 5425
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 6474,
+          "spoken_char_index": 5983
+        },
+        {
+          "cue": "LOOK",
+          "detail": "façade du 21",
+          "offset_in_source": 6925,
+          "spoken_char_index": 6427
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7821,
+          "spoken_char_index": 7302
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "transition douce vers l'ambiance contemporaine",
+          "offset_in_source": 8334,
+          "spoken_char_index": 7808
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-01-SEBAI",
+      "title": "Du 21 rue Louis-le-Grand à l’adresse Sebaï",
+      "text": "Quittez maintenant le numéro 21 et poursuivez tranquillement dans la rue.\n\nNous allons parcourir une distance très courte.\n\nPourtant, à mesure que nous avançons, près d’un siècle d’histoire va se déplacer avec nous.\n\nLaissez derrière vous les ateliers photographiques du XIXe siècle.\n\nNous entrons maintenant dans le Paris des années 1970.\n\nLes grandes façades anciennes sont toujours là.\n\nMais derrière elles, la vie est complètement différente.\n\nLes étages abritent des bureaux.\n\nDes associations occupent des locaux.\n\nDes employés arrivent le matin et repartent le soir.\n\nEt certaines entrées continuent de dissimuler des cours et des halls que les passants ne voient jamais.\n\nRegardez maintenant cette grande porte cochère grise, au numéro 23.\n\nSes deux vantaux, son décor sculpté, son encadrement en pierre.\n\nDes travaux sont documentés dans cet ensemble immobilier au cours des années 1883 et 1884.\n\nNous ne savons pas encore de quand datent précisément les vantaux que vous voyez.\n\nMais cette porte constitue un remarquable repère dans le quartier.\n\nEn décembre 1977, la presse désigne les locaux de l’Amicale des Algériens en Europe sous le numéro 23 bis.\n\nNous ne pouvons pas encore affirmer à quelle entrée exacte correspondait cette désignation.\n\nCette incertitude demeure, tandis que les faits, eux, se rapprochent.\n\nCar le matin du vendredi 2 décembre 1977, derrière l’une de ces portes, un homme termine son service de gardien de nuit.\n\nIl est encore dans l’immeuble.\n\nLa rue commence à s’animer.\n\nDans quelques instants, il doit partir.\n\nMais il ne rentrera pas chez lui.\n\nSon nom n’apparaît qu’au terme de cette courte marche.\n\nIl s’appelle Laïd Sebaï.\n\nVoici son histoire.",
+      "spoken_word_count": 264,
+      "cues": [
+        {
+          "cue": "WALK",
+          "detail": "Départ du 21 rue Louis-le-Grand",
+          "offset_in_source": 0,
+          "spoken_char_index": 0
+        },
+        {
+          "cue": "LOOK",
+          "detail": "Porte cochère grise du numéro 23",
+          "offset_in_source": 722,
+          "spoken_char_index": 682
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 1755,
+          "spoken_char_index": 1674
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Diminution progressive du bruit de rue",
+          "offset_in_source": 1764,
+          "spoken_char_index": 1676
+        }
+      ]
+    },
+    {
+      "id": "STOP-SEBAI-1977",
+      "title": "Laïd Sebaï — assassinat du 2 décembre 1977, rue Louis-le-Grand (23 bis cité par la presse; entrée à confirmer)",
+      "text": "Regardez cette porte.\n\nNotre histoire commence ici, en juillet 1975.\n\nDans la nuit du 26 au 27 juillet 1975.\n\nIl est entre deux heures et deux heures trente du matin.\n\nParis dort en grande partie.\n\nSoudain, une explosion retentit devant les locaux de l'Amicale des Algériens en Europe, rue Louis-le-Grand.\n\nUne bombe vient d'exploser devant l'immeuble.\n\nLes dégâts matériels sont relativement limités.\n\nAucune victime n'est signalée.\n\nMais ce qui vient de se produire ici n'est pas un incident isolé.\n\nÀ peu près au même moment, deux autres engins explosifs frappent des locaux de la même organisation.\n\nL'un à Lyon.\n\nL'autre à Roubaix.\n\nTrois villes.\n\nTrois bâtiments appartenant à la même organisation.\n\nEt trois explosions presque simultanées.\n\nÀ Lyon, la déflagration est si puissante qu'elle brise des vitres jusqu'à quatre-vingts mètres de distance.\n\nÀ Roubaix aussi, les dommages sont importants.\n\nÀ Paris, l'immeuble du 23 rue Louis-le-Grand est moins gravement touché.\n\nMais le message est clair.\n\nL'Amicale des Algériens en Europe est visée par une série d'attentats coordonnés.\n\nDans son communiqué, l'organisation dénonce une nouvelle attaque venant s'ajouter à une longue série d'actes de violence.\n\nQui a posé ces bombes ?\n\nPourquoi frapper simultanément trois villes françaises ?\n\nEt qui cherche à atteindre les dirigeants de cette organisation ?\n\nÀ ce moment-là, les auteurs ne sont pas clairement identifiés dans les premières informations publiées.\n\nMais retenez surtout cette adresse.\n\n23 rue Louis-le-Grand.\n\nCar un peu plus de deux ans plus tard, un nouveau drame va se jouer dans le hall de cet immeuble.\n\nCette fois, il n'y aura pas de simple dégradation matérielle.\n\nLes mois passent.\n\nMais les attaques contre les intérêts algériens en France ne cessent pas.\n\nÀ l'automne 1977, la tension remonte brutalement.\n\nLe 4 novembre, une explosion frappe des locaux liés aux intérêts algériens près de l'avenue de l'Opéra.\n\nQuelques jours plus tard, une autre nouvelle inquiète la communauté algérienne.\n\nLe 15 novembre, Le Monde publie un article au titre préoccupant : deux Algériens auraient été enlevés à Paris.\n\nL'information concerne une opération attribuée à un groupe se réclamant de Charles-Martel, dans un climat déjà marqué par les tensions autour des Français retenus par le Front Polisario.\n\nL'enlèvement est rapporté par la presse. Sa date exacte et ses circonstances ne sont pas entièrement établies.\n\nMais il ne s'agit plus seulement de dégâts matériels.\n\nDes hommes sont désormais présentés comme les victimes d'une prise d'otages.\n\nPuis arrive le 29 novembre.\n\nUne nouvelle explosion vise des intérêts algériens dans le quartier de l'Opéra.\n\nCette fois, nous ne sommes plus qu'à trois jours du meurtre de Laïd Sebaï.\n\nRegardez cette porte.\n\nDeux ans plus tôt, une bombe avait déjà explosé devant ces locaux.\n\nÀ présent, des attentats se produisent de nouveau dans le voisinage.\n\nLes menaces et les violences se multiplient.\n\nIl n'est pas établi qu'un même groupe soit responsable de toutes ces affaires.\n\nMais une chose est certaine : lorsque nous arrivons au matin du 2 décembre 1977, le meurtre ne surgit plus dans un contexte paisible.\n\nIl survient après une succession d'attaques et d'alertes.\n\nCe vendredi matin, Laïd Sebaï termine son service.\n\nIl ignore encore qu'il ne rentrera pas chez lui.\n\nNous sommes le vendredi 2 décembre 1977.\n\nIl est environ neuf heures trente du matin.\n\nDans les locaux de l'Amicale, un gardien de nuit termine son service.\n\nIl s'appelle Laïd Sebaï.\n\nIl a quarante-six ans.\n\nIl est père de sept enfants.\n\nIl s'apprête à rentrer chez lui.\n\nMais, dans l'immeuble, des hommes armés attendent.\n\nEt ce matin-là, l'histoire du 23 rue Louis-le-Grand va prendre une dimension autrement tragique.\n\nCar non seulement Laïd Sebaï va être assassiné…\n\nmais il est possible que les tueurs aient commis une erreur sur la personne.\n\nPour comprendre pourquoi, il faut rencontrer celui qu'ils cherchaient peut-être réellement à éliminer.\n\nAbdelkrim Ghraieb.\n\nGhraieb est alors président de l'Amicale des Algériens en Europe.\n\nEt ce titre ne raconte qu'une partie de son histoire.\n\nPendant la guerre d'Algérie, il a exercé des responsabilités au sein de la Fédération de France du Front de libération nationale.\n\nAprès 1962, l'Amicale occupe une place importante dans les relations entre les autorités algériennes et leur communauté expatriée en France.\n\nGhraieb dispose d'un réseau et d'une influence qui dépassent largement les murs de cette rue.\n\nSelon plusieurs récits historiques, le président de l'Amicale et le gardien présentaient une certaine ressemblance physique, notamment une corpulence comparable.\n\nEt cette ressemblance pourrait avoir coûté la vie à Sebaï.\n\nRevenons à la scène du crime, en prenant soin de ne pas confondre deux comptes rendus.\n\nLe journal Rouge, publié dès le lendemain, situe l'assassinat dans le hall.\n\nSebaï est atteint de plusieurs balles. Il meurt dans l'immeuble.\n\nLe journal indique qu'après sa chute deux employés de l'Amicale, qui viennent d'entrer dans l'ascenseur pour gagner leurs bureaux, essuient eux aussi des tirs.\n\nLes balles les manquent.\n\nUn récit historique ultérieur décrit un autre ordre des déplacements : Sebaï aurait descendu les étages avec deux personnes, lesquelles se seraient réfugiées dans l'ascenseur.\n\nLes sources ne s'accordent donc pas entièrement.\n\nAucune identification sûre de ces deux survivants n'a été retrouvée.\n\nEt nous n'avons pas la preuve que Ghraieb se trouvait parmi eux.\n\nLaïd Sebaï était-il vraiment la cible ?\n\nL'hypothèse d'une confusion avec Abdelkrim Ghraieb apparaît très tôt dans la presse.\n\nSi elle est juste, les assaillants auraient tué le gardien alors qu'ils cherchaient un responsable influent de l'organisation.\n\nMais nous ne devons pas transformer cette hypothèse en verdict judiciaire.\n\nNous savons que des hommes armés ont tiré et que Sebaï est mort.\n\nNous savons aussi que d'autres employés ont été visés, selon le témoignage journalistique contemporain.\n\nNous ne savons pas avec certitude ce qui était dans l'esprit des tireurs.\n\nTrès vite, un correspondant anonyme revendique le meurtre au nom de Delta.\n\nCe nom renvoie aux commandos associés à l'OAS pendant la guerre d'Algérie.\n\nQuinze ans après l'indépendance algérienne, le choix du nom est lourd de sens.\n\nMais une revendication n'est pas une signature vérifiée.\n\nCeux qui téléphonent disent agir en représailles à la captivité de Français détenus par le Front Polisario en Mauritanie.\n\nIls menacent de nouvelles violences contre les Algériens de France.\n\nL'ambassadeur d'Algérie, Mohammed Bedjaoui, dénonce ces menaces.\n\nDes syndicats, des associations et des organisations politiques protestent.\n\nLaïd Sebaï est rapatrié en Algérie et inhumé au carré des martyrs d'El Alia.\n\nPour sa famille, la question dépasse toutes les revendications : sept enfants ont perdu leur père.\n\nMais l'affaire ne s'arrête pas là.\n\nLe 4 mai 1978, dans le cinquième arrondissement, au 4 rue Rollin, un autre homme est assassiné près de l'ascenseur de son immeuble.\n\nIl s'appelle Henri Curiel.\n\nIl allait à son cours de yoga.\n\nCuriel est né en Égypte. Militant communiste puis internationaliste, il a aidé les réseaux de soutien au FLN durant la guerre d'Algérie et s'est ensuite engagé auprès de plusieurs mouvements anticolonialistes.\n\nIl a également cherché à faciliter des contacts entre Israéliens et Palestiniens.\n\nSes activités lui valent hostilité et surveillance.\n\nDeux hommes armés l'attendent, selon plusieurs sources contemporaines.\n\nCuriel est tué.\n\nLe nom Delta apparaît à nouveau dans une revendication.\n\nLes ressemblances intriguent : deux assassinats à Paris, deux hommes liés d'une manière ou d'une autre à l'histoire de l'indépendance algérienne, des attaques près d'ascenseurs et un même nom revendiqué.\n\nMais les ressemblances ne sont pas des preuves.\n\nIl faut attendre l'expertise balistique.\n\nLe 12 mai 1978, Le Monde rapporte que l'un des pistolets employés contre Sebaï, une arme de calibre 11,43 millimètres, a également servi contre Curiel.\n\nLa même arme.\n\nCinq mois d'intervalle.\n\nCette fois, le rapprochement est matériel.\n\nLa correspondance balistique ne révèle pourtant ni le nom du tireur, ni celui du commanditaire.\n\nLa justice cherche à comprendre quelles organisations et quels réseaux ont pu intervenir.\n\nLa question des anciens militants de l'OAS, d'éventuels réseaux politiques clandestins et de liens avec des services de renseignement traverse les enquêtes.\n\nLe juge Guy Joly rencontre des difficultés pour accéder à certains documents et obtenir des auditions.\n\nLe dossier continue de susciter des questions pendant des décennies.\n\nL'ancien commissaire Lucien Aimé-Blanc met en cause Jean-Pierre Maïone-Libaude dans son propre récit des événements.\n\nPlus tard, René Resciniti de Says affirme dans un témoignage rendu public après sa mort avoir participé à l'assassinat de Curiel. Il désigne Pierre Debizet, dirigeant du Service d'action civique, comme commanditaire allégué.\n\nIl ne s'agit pas de condamnations judiciaires.\n\nL'affirmation de Resciniti, notamment au sujet de la provenance supposée d'une arme, demande à être vérifiée indépendamment.\n\nEn octobre 2020, un ancien inspecteur de la DST, Marc Ducarre, est placé en garde à vue dans l'enquête puis remis en liberté sans poursuite à l'issue de cette mesure.\n\nLes noms qui surgissent ne suffisent pas à résoudre l'assassinat.\n\nMais le dossier reste vivant.\n\nEn 2025, la magistrate Emmanuelle Ducos, au pôle national des crimes sériels ou non élucidés de Nanterre, sollicite des déclassifications de documents concernant l'affaire Curiel.\n\nLe Journal officiel publie en février 2026 un nouvel avis favorable portant sur une série de notes et de fiches.\n\nCe n'est pas un verdict.\n\nCe n'est pas non plus la preuve que les archives contiennent la solution.\n\nC'est le signe que la justice cherche encore à confronter des informations longtemps protégées aux autres éléments de l'enquête.\n\nRevenons à l'homme dont le nom a ouvert ce récit.\n\nRegardez cette porte.\n\nEn juillet 1975, une bombe avait déjà explosé devant les locaux de l'Amicale.\n\nEn novembre 1977, des violences nouvelles visaient des intérêts algériens à Paris.\n\nPuis Laïd Sebaï a été assassiné au terme de son service.\n\nIl est possible qu'il ait été pris pour le président de l'Amicale, Abdelkrim Ghraieb.\n\nGhraieb a survécu. Il a poursuivi sa carrière et est devenu ambassadeur d'Algérie en Iran, participant à la diplomatie autour de la libération des otages américains en janvier 1981.\n\nCe contraste est saisissant : l'homme qui aurait peut-être été visé a poursuivi une carrière internationale, tandis que celui qui est mort a laissé sept enfants.\n\nPuis une même arme a relié matériellement la mort de Sebaï à celle d'Henri Curiel.\n\nPrès d'un demi-siècle plus tard, des documents secrets continuent de faire l'objet de démarches judiciaires.\n\nNous ne savons pas si les auteurs des bombes de 1975, des attaques de novembre 1977 et des assassinats appartenaient aux mêmes réseaux.\n\nNous savons que les faits se sont succédé.\n\nNous savons qu'une arme a servi dans deux meurtres.\n\nNous savons aussi que l'hypothèse de l'erreur sur la personne existe depuis les premiers temps de l'enquête.\n\nPourquoi Laïd Sebaï est-il mort ce matin-là ?\n\nNous pouvons raconter ce que les archives établissent.\n\nNous ne pouvons pas encore clore le dossier à la place des enquêteurs.\n\nNous quittons maintenant les années 1970. Quelques pas plus loin, une autre histoire nous attend, cette fois parmi les extraordinaires collections de Joséphine de Beauharnais.",
+      "spoken_word_count": 1785,
+      "cues": [
+        {
+          "cue": "LOOK",
+          "detail": "Grande porte cochère du 23 rue Louis-le-Grand",
+          "offset_in_source": 0,
+          "spoken_char_index": 0
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Paris contemporain. Puis diminution progressive.",
+          "offset_in_source": 55,
+          "spoken_char_index": 1
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Une détonation sourde et brève, suivie d'un retour au silence",
+          "offset_in_source": 425,
+          "spoken_char_index": 310
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 696,
+          "spoken_char_index": 507
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Article du Monde, 29 juillet 1975",
+          "offset_in_source": 951,
+          "spoken_char_index": 755
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 1462,
+          "spoken_char_index": 1222
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 1949,
+          "spoken_char_index": 1702
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Retour discret de la circulation parisienne",
+          "offset_in_source": 1958,
+          "spoken_char_index": 1704
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 2892,
+          "spoken_char_index": 2582
+        },
+        {
+          "cue": "LOOK",
+          "detail": "Porte cochère du numéro 23",
+          "offset_in_source": 3087,
+          "spoken_char_index": 2770
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 3605,
+          "spoken_char_index": 3253
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 3723,
+          "spoken_char_index": 3357
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 4281,
+          "spoken_char_index": 3908
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Portrait ou document historique concernant Ghraieb",
+          "offset_in_source": 4421,
+          "spoken_char_index": 4034
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 5197,
+          "spoken_char_index": 4749
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 5987,
+          "spoken_char_index": 5532
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 6580,
+          "spoken_char_index": 6111
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7392,
+          "spoken_char_index": 6916
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 8123,
+          "spoken_char_index": 7640
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 8672,
+          "spoken_char_index": 8175
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 9201,
+          "spoken_char_index": 8697
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 9963,
+          "spoken_char_index": 9452
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 10529,
+          "spoken_char_index": 10011
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 11811,
+          "spoken_char_index": 11279
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Retour progressif du bruit de la rue",
+          "offset_in_source": 12002,
+          "spoken_char_index": 11456
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-01-02",
+      "title": "De Sebaï à Joséphine",
+      "text": "Nous allons maintenant gagner le 16 rue Louis-le-Grand. En quelques pas, nous quittons les violences politiques du vingtième siècle pour revenir aux souvenirs de Joséphine et à la dispersion des collections de Malmaison. Pendant que vous marchez, rappelez-vous qu’à Paris une adresse survit parfois à ses occupants, à ses usages, et même à son bâtiment. En 1819, c’est précisément le numéro 16 qui accueillera une vente extraordinaire. Arrêtez-vous de manière à bien voir le numéro.",
+      "spoken_word_count": 75,
+      "cues": []
+    },
+    {
+      "id": "STOP-02",
+      "title": "La dispersion de Malmaison — 16 rue Louis-le-Grand",
+      "text": "Arrêtez-vous devant le numéro 16.\n\nAujourd'hui, les passants n'y voient qu'une adresse de plus dans le quartier de l'Opéra.\n\nMais au mois de mars 1819, cet endroit devient le point de rencontre de plusieurs mondes : celui de l'Empire disparu, celui de la science, celui des voyages lointains et celui des collectionneurs parisiens.\n\nNous sommes à une vente aux enchères.\n\nEt les objets qu'on y expose viennent de la Malmaison.\n\nPour comprendre ce qu'ils font ici, il faut évoquer la femme qui les avait réunis.\n\nJoséphine de Beauharnais.\n\nElle avait partagé l'ascension de Napoléon Bonaparte, était devenue impératrice des Français, puis avait été répudiée lorsque l'empereur avait voulu assurer sa succession.\n\nMais le château de Malmaison, près de Paris, demeurait son univers.\n\nCe n'était pas simplement une résidence élégante.\n\nAu fil des années, elle l'avait transformé en un lieu où se rencontraient jardins, objets d'art, curiosités, plantes et animaux rares.\n\nJoséphine avait un goût prononcé pour la botanique.\n\nElle soutenait des projets horticoles et réunissait des plantes venues de contrées lointaines.\n\nDans la France des grandes expéditions scientifiques, posséder une plante inconnue ou un objet rapporté d'un voyage pouvait témoigner tout à la fois de la curiosité d'un collectionneur, des ambitions de l'État et des relations de pouvoir qui permettaient d'obtenir ces raretés.\n\nMais Joséphine meurt le 29 mai 1814, peu après la première abdication de Napoléon.\n\nElle ne verra ni son bref retour au pouvoir en 1815 ni la seconde chute de l'Empire.\n\nLa France change de régime.\n\nLes propriétaires changent.\n\nLes fortunes et les dettes ne disparaissent pas pour autant.\n\nSon fils, Eugène de Beauharnais, hérite d'une part importante des biens de sa mère.\n\nIl doit régler des obligations financières liées à la succession.\n\nEt une partie des collections est mise en vente.\n\nC'est ici que notre petite rue parisienne entre dans l'histoire.\n\nLe catalogue annonce une vente qui devait initialement commencer le 15 mars 1819.\n\nElle est reportée au 24 mars.\n\nAvant que le marteau des enchères ne commence à tomber, on prévoit des journées d'exposition.\n\nImaginez la scène, sans avoir besoin d'inventer les gestes d'un acheteur particulier.\n\nDes visiteurs entrent pour examiner les lots.\n\nCertains connaissent les noms des artistes.\n\nD'autres évaluent un matériau, la rareté d'un objet ou sa provenance.\n\nUn marchand s'intéressera peut-être à sa revente.\n\nUn amateur de curiosités à son caractère insolite.\n\nEt un collectionneur au souvenir de Malmaison.\n\nLe même objet peut avoir des valeurs très différentes selon celui qui le regarde.\n\nPrenons le catalogue.\n\nCe n'est pas le programme d'une vente de meubles ordinaires.\n\nOn y trouve des sculptures et des statues.\n\nDes vases.\n\nDes tables.\n\nDes marbres.\n\nDes pierres gravées.\n\nDes mosaïques.\n\nDes éléments décoratifs.\n\nEt puis, progressivement, la liste prend une tournure presque inattendue.\n\nDes minéraux.\n\nDes coquillages.\n\nDes oiseaux naturalisés.\n\nDes armes et des vêtements provenant de régions éloignées de l'Europe.\n\nEt même des pièces présentées sous le nom de momies.\n\nDes momies.\n\nDans une vente aux enchères de la rue Louis-le-Grand, au printemps 1819.\n\nLe mot nous arrête aujourd'hui.\n\nIl désigne des restes humains dans les classifications anciennes et soulève immédiatement des questions de provenance et de traitement des personnes défuntes.\n\nMais les catalogues du XIXe siècle n'expliquent pas toujours ce que nous voudrions savoir.\n\nD'où ces objets venaient-ils exactement ?\n\nQui les avait recueillis ?\n\nDans quelles circonstances ?\n\nPar quels intermédiaires avaient-ils atteint la collection ?\n\nLe catalogue décrit ce qui se vend; il ne reconstitue pas nécessairement l'histoire complète de chaque objet.\n\nC'est une distinction capitale.\n\nUne partie de ces curiosités renvoie au grand mouvement des explorations européennes du début du XIXe siècle.\n\nLe catalogue associe notamment certaines pièces à l'expédition du navigateur Nicolas Baudin, partie vers les terres australes au début des années 1800.\n\nCette entreprise scientifique a notamment exploré les côtes de l'Australie et rapporté en Europe des observations et des collections nombreuses.\n\nPour Joséphine, les liens entre les grandes expéditions, les savants et les collections de Malmaison avaient une importance particulière.\n\nMais nous ne pouvons pas attribuer arbitrairement chaque pièce du catalogue à un navire, à un collecteur ou à une escale précise.\n\nL'histoire des objets demande des preuves de provenance.\n\nPensez pourtant à la trajectoire possible de certaines de ces pièces.\n\nD'un littoral à l'autre bout du monde.\n\nD'un navire à un port français.\n\nD'une collection scientifique aux espaces de Malmaison.\n\nPuis, plusieurs années plus tard, au numéro 16 rue Louis-le-Grand.\n\nL'objet qui avait peut-être représenté une découverte exceptionnelle devient un lot numéroté.\n\nOn l'observe.\n\nOn l'estime.\n\nOn l'adjuge.\n\nEt il repart vers une autre collection.\n\nLa vente mêle d'ailleurs plusieurs époques historiques.\n\nElle comprend aussi des objets et sculptures dont l'histoire renvoie à la cour de Louis XVI.\n\nCertains sont associés à la Laiterie de la reine, à Rambouillet, un ensemble décoratif conçu dans l'univers de Marie-Antoinette.\n\nVoilà une rencontre saisissante de destins.\n\nLes objets d'une cour royale bouleversée par la Révolution.\n\nLa collection de Joséphine, ancienne impératrice.\n\nPuis la vente de 1819, sous la monarchie restaurée.\n\nEn quelques décennies, le pouvoir a changé plusieurs fois de mains.\n\nLes objets, eux, peuvent survivre aux régimes.\n\nC'est sans doute ce qui rend cette histoire si particulière.\n\nÀ la Malmaison, les collections formaient un ensemble.\n\nUne bibliothèque, un jardin, un cabinet de curiosités, des pièces d'apparat, des souvenirs personnels.\n\nElles contribuaient à représenter le goût d'une femme, sa place dans le monde et son époque.\n\nMais lors d'une vente, cette unité se défait.\n\nCe qui avait été réuni pendant des années peut être dispersé en quelques séances.\n\nUne sculpture ira dans une maison.\n\nUn vase sera acquis par un amateur.\n\nUn objet scientifique passera à un collectionneur.\n\nCertains parcours d'objets peuvent être retrouvés grâce aux inventaires, aux catalogues annotés et aux archives de musées.\n\nD'autres deviennent difficiles à suivre.\n\nLe catalogue de 1819 est alors comme la photographie d'un monde au moment précis où il se sépare.\n\nRegardez le numéro 16.\n\nLa façade actuelle est postérieure à la vente; il serait faux de prétendre reconnaître aujourd'hui la salle exacte de 1819.\n\nMais l'adresse nous permet de replacer cet épisode dans son espace urbain.\n\nC'est là que les collections de Malmaison rencontrent, pendant quelques jours, les marchands et les amateurs de Paris.\n\nOn pourrait raconter l'histoire de Joséphine uniquement à travers les palais, les portraits et les grandes cérémonies de l'Empire.\n\nMais ici, nous la rencontrons autrement.\n\nPar ce qui demeure après la mort.\n\nPar les objets dont ses héritiers doivent se séparer.\n\nPar les traces que nous offrent les vieux catalogues.\n\nD'un côté, une femme qui avait voulu réunir les beautés et les curiosités du monde.\n\nDe l'autre, une salle de vente où l'on transforme une collection en une succession de lots.\n\nEt entre les deux, cinq années seulement depuis sa disparition.\n\nUne vie ne s'arrête pas entièrement au moment de la mort.\n\nSes livres, ses meubles, ses objets continuent à circuler.\n\nMais ils ne racontent plus la même histoire lorsqu'ils sont séparés.\n\nQuittons maintenant cette adresse.\n\nNotre prochaine étape nous conduira à une façade tout aussi célèbre que Malmaison, mais que nous verrons dans des circonstances radicalement différentes.\n\nLe Palais Garnier.\n\nEt Paris, en août 1944.",
+      "spoken_word_count": 1187,
+      "cues": [
+        {
+          "cue": "LOOK",
+          "detail": "Le numéro 16 rue Louis-le-Grand",
+          "offset_in_source": 0,
+          "spoken_char_index": 0
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Paris contemporain, léger",
+          "offset_in_source": 41,
+          "spoken_char_index": 1
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 509,
+          "spoken_char_index": 431
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Portrait authentifié de Joséphine, vues anciennes de Malmaison",
+          "offset_in_source": 1486,
+          "spoken_char_index": 1401
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 2053,
+          "spoken_char_index": 1895
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Page de titre et feuillets du catalogue de vente de 1819",
+          "offset_in_source": 2821,
+          "spoken_char_index": 2656
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 3382,
+          "spoken_char_index": 3150
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 4070,
+          "spoken_char_index": 3831
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Carte historique de l'expédition Baudin et gravures de collections naturalistes",
+          "offset_in_source": 4817,
+          "spoken_char_index": 4571
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 5357,
+          "spoken_char_index": 5021
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 5974,
+          "spoken_char_index": 5631
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 6819,
+          "spoken_char_index": 6469
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7492,
+          "spoken_char_index": 7135
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Reprise très douce de la rue",
+          "offset_in_source": 7933,
+          "spoken_char_index": 7569
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-02-03",
+      "title": "Vers l’Opéra",
+      "text": "Quittez maintenant le 16 rue Louis-le-Grand et poursuivez en direction de l’Opéra. Cette fois, prenez votre temps. À mesure que la rue s’ouvre, le quartier commence à changer d’échelle. Les perspectives s’allongent. Les immeubles deviennent plus monumentaux. Et bientôt, le Palais Garnier commence à dominer le paysage. Mais voici quelque chose qu’il est facile d’oublier : cette grande perspective n’a pas toujours existé. Au milieu du XIXe siècle, le Paris que vous traversez est encore beaucoup plus serré. Le nouvel Opéra est construit, mais l’avenue monumentale qui doit le relier au centre de Paris reste à ouvrir complètement. Des blocs entiers doivent disparaître. Des rues sont coupées. Des maisons sont démolies. Dans les années 1870, le photographe Charles Marville documente précisément cette transformation. Il photographie notamment le percement de l’avenue entre la rue Louis-le-Grand et la rue d’Antin. Autrement dit, pratiquement là où vous marchez maintenant. Essayez un instant de retirer mentalement l’avenue du paysage. À sa place, imaginez un tissu de rues beaucoup plus dense. Des chantiers. Des façades coupées. Des terrains en démolition. Le grand axe que nous considérons aujourd’hui comme évident a dû être fabriqué. Continuez à avancer. Et maintenant, changeons encore une fois d’époque. Nous sommes en août 1944. Paris est en insurrection. Des barricades apparaissent. Des policiers et des résistants passent à l’action. Dans une ville désormais en insurrection, les positions allemandes sont sous tension. L’une de ces positions se trouve précisément vers l’endroit où vous vous dirigez. La Platzkommandantur de l’Opéra. Continuez vers le secteur de la place de l’Opéra et de la rue du Quatre-Septembre. Lorsque vous approchez, cherchez un endroit sûr où vous arrêter sans gêner le passage. Puis regardez vers l’Opéra. Nous sommes arrivés.",
+      "spoken_word_count": 283,
+      "cues": []
+    },
+    {
+      "id": "STOP-03",
+      "title": "La Kommandantur de l’Opéra — 19, 20 et 25 août 1944",
+      "text": "Regardez le Palais Garnier.\n\nPrenez le temps d'observer sa façade.\n\nL'escalier monumental.\n\nLes statues.\n\nLes colonnes.\n\nLes grandes perspectives.\n\nCet édifice a été conçu pour impressionner.\n\nIl évoque les soirées d'opéra, les lumières, les décors et la vie mondaine.\n\nMais en août 1944, la place que vous regardez n'a rien d'une scène de gala.\n\nDes soldats allemands occupent encore des positions dans la capitale.\n\nParis est en insurrection.\n\nEt une Kommandantur, installée dans le secteur de l'Opéra, devient l'un des points de tension de ces journées.\n\nRevenons au 19 août 1944.\n\nAprès quatre années d'occupation, la situation se précipite.\n\nDes policiers, des résistants et des groupes armés cherchent à reprendre le contrôle de différents quartiers.\n\nMais les forces allemandes restent présentes.\n\nLa ville n'est pas encore libérée.\n\nLes communications sont difficiles.\n\nLe danger varie d'une rue à l'autre.\n\nDes photographies prises dans le secteur montrent encore les soldats allemands, leurs véhicules et leur dispositif.\n\nCe sont des images précieuses.\n\nElles ne nous obligent pas à imaginer un Paris disparu de toutes pièces.\n\nElles montrent des silhouettes en uniforme devant des bâtiments que nous pouvons encore reconnaître.\n\nComparez une fenêtre.\n\nUn angle de façade.\n\nLa perspective d'une avenue.\n\nC'est exactement le même quartier.\n\nMais ce n'est plus le même monde.\n\nLe lendemain, le 20 août, la tension se traduit par une mort.\n\nDeux policiers français se trouvent dans le secteur.\n\nIls s'appellent Michel Guillois et Pierre Gormond.\n\nGuillois participe à la diffusion d'un ordre ou d'un message concernant un cessez-le-feu.\n\nLe contexte est confus.\n\nDans Paris insurgé, plusieurs tentatives de trêve ou d'arrangement cherchent à éviter des combats supplémentaires, mais elles ne rendent pas toutes les positions sûres.\n\nAu voisinage de la Kommandantur, des coups de feu éclatent.\n\nSelon un témoignage familial transmis sur cet épisode, un officier allemand aurait ordonné à une sentinelle située à un balcon de tirer vers le véhicule des policiers.\n\nCette précision sur l'ordre et son auteur relève de ce témoignage; nous ne la transformerons pas en constatation indépendante.\n\nMichel Guillois est atteint.\n\nIl meurt.\n\nPierre Gormond est blessé à la jambe par deux balles, selon le récit conservé.\n\nCela se passe cinq jours avant la Libération de Paris.\n\nRegardez les fenêtres autour de vous.\n\nPour les policiers qui circulaient ici, cette architecture monumentale n'offrait aucune protection particulière.\n\nUne position allemande pouvait encore ouvrir le feu.\n\nUn trajet dans une rue connue pouvait devenir mortel.\n\nCes événements expliquent pourquoi il serait trompeur de raconter uniquement la prise de la Kommandantur du 25 août.\n\nLe combat final a été précédé de journées d'affrontements, d'incertitudes et de victimes.\n\nLe Palais Garnier n'a pas attendu l'arrivée des blindés français pour se retrouver au cœur de la guerre.\n\nNous avançons maintenant de quelques jours.\n\nLe 24 août au soir, des éléments avancés de la 2e Division blindée, commandée par le Général Philippe Leclerc, entrent dans Paris.\n\nLe 25 août, d'autres unités progressent dans la capitale.\n\nLes résistants, les policiers insurgés et les soldats français reprennent différentes positions.\n\nMais la présence de forces allemandes n'a pas disparu d'un coup.\n\nChaque point de résistance peut nécessiter une intervention.\n\nLe secteur de l'Opéra en fait partie.\n\nNous sommes le 25 août.\n\nAu milieu de l'après-midi, des éléments français passent à l'attaque contre la Kommandantur.\n\nParmi les unités engagées se trouve la 11e compagnie du troisième bataillon du Régiment de marche du Tchad.\n\nCe nom peut sembler technique.\n\nMais le Régiment de marche du Tchad fait partie des formations qui accompagnent la 2e Division blindée dans sa progression.\n\nLes soldats qui arrivent ici ont traversé de longues campagnes avant de parvenir au cœur de la capitale.\n\nEt nous possédons un document photographique extraordinaire de leur action.\n\nSur cette image, on voit un half-track français.\n\nUn véhicule semi-chenillé.\n\nIl tracte un canon antichar de 57 millimètres.\n\nSur son flanc figure un nom particulièrement frappant :\n\nLa Revanche 39-40.\n\nLa Revanche 39-40.\n\nUn nom peint sur un blindé.\n\nMais aussi un résumé saisissant du chemin parcouru depuis la défaite de 1940.\n\nQuatre années plus tôt, l'armée française s'était effondrée face à l'offensive allemande.\n\nMaintenant, des soldats français participent à la libération de la capitale.\n\nCe nom ne nous dit pas à lui seul ce que pensait chacun des hommes du véhicule.\n\nMais il dit clairement comment le véhicule avait été nommé.\n\nEt cette inscription est bien visible sur le document.\n\nRegardez de nouveau l'avenue actuelle.\n\nSur la photographie de 1944, une fumée sombre obscurcit une partie du champ de vision.\n\nDes commerces et des façades ordinaires apparaissent derrière les véhicules.\n\nCe sont des détails fondamentaux.\n\nLe combat se déroule dans un quartier vivant.\n\nPas sur un champ de bataille isolé.\n\nUne boutique.\n\nUne fenêtre d'appartement.\n\nUne porte cochère.\n\nDes éléments tout à fait quotidiens, soudain pris dans une opération militaire.\n\nNous ne pouvons pas faire parler les personnages d'une photographie.\n\nNous ne savons pas exactement ce que chaque soldat apercevait hors champ.\n\nMais nous pouvons identifier les véhicules, leurs marques, les bâtiments et la succession documentée des événements.\n\nC'est déjà beaucoup.\n\nEt c'est ainsi que l'image devient utile pour comprendre l'histoire sans l'inventer.\n\nLes forces françaises progressent vers la position.\n\nLa situation évolue.\n\nPuis vient la reddition.\n\nSur une autre photographie, des militaires allemands sortent tandis qu'un drapeau blanc est visible.\n\nAutour d'eux se mêlent soldats français, résistants et civils.\n\nQuelques instants ou quelques heures plus tôt, les hommes de cette position représentaient une force d'occupation encore armée.\n\nIls deviennent désormais des prisonniers.\n\nMais gardons la mesure de ce que montrent les images.\n\nUne photographie permet de constater une sortie, des uniformes, un drapeau blanc et des personnes présentes.\n\nElle ne suffit pas à reconstruire toute la négociation de reddition ni l'ensemble des mouvements tactiques qui l'ont précédée.\n\nLe 25 août 1944 est resté dans la mémoire collective comme le jour de la Libération de Paris.\n\nCette formule est juste pour l'événement historique général.\n\nMais elle peut faire oublier les heures qui précèdent.\n\nLa mort d'un policier le 20 août.\n\nLa blessure d'un autre.\n\nLes dernières positions à réduire.\n\nLes hommes qui avancent encore dans les rues, sans savoir ce qui les attend à chaque angle.\n\nLa Libération ne fut pas un seul instant.\n\nCe fut une succession de combats, d'ordres, de redditions et de risques, vécus par des personnes différentes.\n\nPrenez quelques secondes pour regarder l'Opéra.\n\nSon architecture semble faite pour durer.\n\nElle avait survécu à la chute du Second Empire, sous lequel le chantier avait été lancé.\n\nElle avait vu défiler les transformations du quartier.\n\nPuis l'Occupation.\n\nEt enfin ces journées d'août 1944.\n\nIl y a une dernière chose à faire ici.\n\nRegardez la photographie ancienne affichée à l'écran et essayez de replacer son appareil dans l'espace réel.\n\nCherchez une ligne de corniche.\n\nLa position d'une statue.\n\nUn angle de rue.\n\nLa silhouette de Garnier.\n\nVous ne voyez pas l'histoire rejouée par des figurants.\n\nVous voyez une archive authentique, replacée à l'endroit où elle prend son sens.\n\nEt soudain, l'intervalle entre 1944 et aujourd'hui paraît plus court.\n\nNous allons maintenant accomplir un saut beaucoup plus lointain.\n\nL'Opéra va disparaître de notre paysage mental.\n\nLes grandes avenues aussi.\n\nCar notre dernier arrêt se déroule en 1652, lorsque Paris est déchiré par la Fronde.\n\nEt lorsque deux beaux-frères décident de régler une querelle par les armes.",
+      "spoken_word_count": 1210,
+      "cues": [
+        {
+          "cue": "LOOK",
+          "detail": "Le Palais Garnier et les immeubles faisant face à la place",
+          "offset_in_source": 0,
+          "spoken_char_index": 0
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Paris contemporain très discret",
+          "offset_in_source": 68,
+          "spoken_char_index": 1
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 672,
+          "spoken_char_index": 561
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Photographie d'époque du secteur Opéra, 19 août 1944, attribution vérifiée",
+          "offset_in_source": 1156,
+          "spoken_char_index": 1038
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 1596,
+          "spoken_char_index": 1393
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 2418,
+          "spoken_char_index": 2208
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Silence",
+          "offset_in_source": 2548,
+          "spoken_char_index": 2331
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 2888,
+          "spoken_char_index": 2651
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Chronologie photographique 19–25 août 1944",
+          "offset_in_source": 3212,
+          "spoken_char_index": 2968
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 3768,
+          "spoken_char_index": 3471
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Photo LAPI n° 28401, attaque de la Kommandantur",
+          "offset_in_source": 4345,
+          "spoken_char_index": 4041
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 4608,
+          "spoken_char_index": 4246
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 5112,
+          "spoken_char_index": 4743
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Vue comparative historique et actuelle depuis angle validé",
+          "offset_in_source": 5590,
+          "spoken_char_index": 5214
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 6032,
+          "spoken_char_index": 5587
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Photo historique de la reddition et drapeau blanc, légende authentifiée",
+          "offset_in_source": 6308,
+          "spoken_char_index": 5856
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 6857,
+          "spoken_char_index": 6323
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7422,
+          "spoken_char_index": 6881
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7725,
+          "spoken_char_index": 7177
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Retour doux de Paris contemporain",
+          "offset_in_source": 8199,
+          "spoken_char_index": 7644
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-03-04",
+      "title": "Faire disparaître l’Opéra",
+      "text": "Commencez maintenant à marcher vers notre dernier arrêt. Pendant quelques minutes, essayez d’oublier tout ce que vous voyez. L’Opéra Garnier disparaît. L’avenue de l’Opéra disparaît. Les grands immeubles du XIXe siècle disparaissent. Même plusieurs rues cessent d’exister sous leur forme actuelle. Nous remontons jusqu’en 1652. Et Paris n’est pas seulement différent architecturalement. Le royaume lui-même est en crise. Louis XIV n’a que treize ans. La Fronde déchire le pays. Princes. Grandes familles. Parlement. Armées. Factions. Les alliances changent. On négocie. On trahit. On se réconcilie. Puis parfois, on sort les armes. Pendant que vous avancez, observez les bâtiments les plus anciens qui survivent encore dans ce secteur. Certains sont déjà anciens pour nous. Et pourtant, même eux sont postérieurs au monde vers lequel nous allons. À proximité se trouvait autrefois le grand Hôtel de Vendôme. Et derrière cet hôtel s’étendait un espace beaucoup plus ouvert qu’aujourd’hui : un marché aux chevaux. Essayez de remplacer les façades par un terrain irrégulier. Des chevaux. Des marchands. De la poussière. Des cris pendant les heures d’activité. Le soir du 30 juillet 1652, cet endroit devient le lieu d’une rencontre armée. Pas pour acheter un cheval. Pour se battre. Deux hommes arrivent ici. François de Vendôme, duc de Beaufort. Et son beau-frère, Charles-Amédée de Savoie, duc de Nemours. Ils appartiennent au même camp politique. Ils appartiennent à la même famille. Et pourtant, quelques minutes plus tard, l’un des deux sera mort.",
+      "spoken_word_count": 237,
+      "cues": []
+    },
+    {
+      "id": "STOP-04",
+      "title": "Beaufort contre Nemours — 30 juillet 1652",
+      "text": "Regardez autour de vous.\n\nDes immeubles, des commerces, des rues où circulent aujourd'hui voitures et piétons.\n\nDifficile d'imaginer qu'à cet endroit, au milieu du XVIIe siècle, se trouvait un marché aux chevaux.\n\nUn espace ouvert, derrière les murs du vaste hôtel de Vendôme.\n\nDes hommes y conduisaient des bêtes, négociaient des prix et traversaient un quartier encore très différent de celui que vous connaissez.\n\nMais le 30 juillet 1652, ce marché devient le théâtre d'un événement dont Paris parlera longtemps.\n\nDix hommes vont s'y affronter.\n\nDeux d'entre eux sont des princes.\n\nIls appartiennent au même camp politique.\n\nIls sont même beaux-frères.\n\nEt l'un ne quittera pas cet endroit vivant.\n\nPour comprendre comment une querelle familiale a pu se transformer en affrontement mortel, il faut revenir à un Paris profondément divisé.\n\nNous sommes en 1652.\n\nLouis XIV n'a que treize ans.\n\nIl est roi depuis l'âge de quatre ans, mais la France traverse une crise politique et militaire d'une violence considérable.\n\nCette période porte un nom : la Fronde.\n\nDepuis plusieurs années, de grands seigneurs, des magistrats et différents groupes d'opposants contestent le pouvoir royal, notamment l'influence du cardinal Mazarin.\n\nLes alliances changent.\n\nLes armées se déplacent.\n\nDes princes qui se disent fidèles au roi combattent pourtant les forces qui défendent son gouvernement.\n\nAu cours de l'été 1652, Paris devient l'un des principaux enjeux du conflit.\n\nEt même à l'intérieur du camp opposé à Mazarin, les rivalités sont féroces.\n\nC'est dans ce climat qu'évoluent les deux hommes de notre histoire.\n\nLe premier s'appelle François de Vendôme, duc de Beaufort.\n\nIl est le petit-fils d'Henri IV.\n\nIl appartient donc à une branche prestigieuse de la famille royale.\n\nÀ Paris, Beaufort possède une popularité considérable auprès d'une partie de la population.\n\nOn lui a même donné un surnom révélateur : le Roi des Halles.\n\nCe n'est pas une dignité officielle.\n\nC'est l'expression de son image de prince capable de gagner le soutien populaire, notamment dans les quartiers commerçants de la capitale.\n\nBeaufort peut commander des hommes.\n\nIl peut intervenir dans la politique parisienne.\n\nEt sa présence compte dans les rapports de force entre les différentes factions de la Fronde.\n\nMais il n'est pas seul à exercer une autorité militaire.\n\nLe second personnage est Charles-Amédée de Savoie, duc de Nemours.\n\nIl est plus jeune que Beaufort.\n\nPrince issu de la maison de Savoie, il est également engagé dans les opérations militaires de la Fronde.\n\nLes deux hommes se connaissent intimement.\n\nEt pour cause.\n\nNemours a épousé Élisabeth de Vendôme, la sœur de Beaufort.\n\nIls sont beaux-frères.\n\nImaginez maintenant leur situation.\n\nDeux grands seigneurs.\n\nDeux commandants militaires.\n\nDeux hommes appartenant au même cercle familial.\n\nEt pourtant, entre eux, les relations se dégradent dangereusement.\n\nIl ne s'agit pas simplement d'une dispute autour d'un héritage ou d'une affaire privée.\n\nLeurs ambitions, leur position dans le commandement et les questions de préséance provoquent des tensions.\n\nDans le monde aristocratique du XVIIe siècle, la préséance n'est pas qu'une question d'étiquette.\n\nSavoir qui passe avant qui, qui commande et à qui l'on doit céder le pas touche directement à l'honneur et au pouvoir.\n\nEt lorsque deux hommes disposent chacun de partisans armés, une querelle de rang peut rapidement devenir beaucoup plus grave.\n\nPour suivre les dernières journées avant le duel, nous possédons un témoignage extraordinaire.\n\nCelui d'Anne-Marie-Louise d'Orléans, duchesse de Montpensier, que l'histoire appelle la Grande Mademoiselle.\n\nCousine de Louis XIV, elle se trouve au cœur des événements de la Fronde.\n\nElle connaît les protagonistes.\n\nElle fréquente leurs proches.\n\nEt elle tente personnellement d'empêcher que leur dispute ne débouche sur une catastrophe.\n\nSes mémoires ne constituent pas le procès-verbal d'un témoin présent au duel.\n\nMais elles permettent de retrouver les avertissements, les conversations et les démarches entreprises juste avant la rencontre.\n\nAu début du mois de juillet 1652, Beaufort et Nemours ont pourtant semblé se rapprocher.\n\nIls viennent de traverser les combats autour du faubourg Saint-Antoine.\n\nLe 2 juillet, les forces du prince de Condé et les troupes royales se sont affrontées aux portes de Paris.\n\nNemours y a été blessé.\n\nMalgré leurs désaccords, les deux beaux-frères ont alors manifesté des signes d'amitié.\n\nPour Élisabeth de Vendôme, épouse de l'un et sœur de l'autre, ce rapprochement est un soulagement.\n\nMais il ne dure pas.\n\nUne nouvelle querelle éclate au sujet du rang.\n\nLa Grande Mademoiselle rapporte que Beaufort se montre relativement conciliant, tandis que Nemours réagit avec beaucoup plus d'irritation.\n\nLes tensions deviennent si sérieuses que les principaux chefs du parti tentent d'intervenir.\n\nLe duc d'Orléans et le prince de Condé obtiennent de Nemours une promesse.\n\nPendant vingt-quatre heures, il ne provoquera pas Beaufort.\n\nOn croit avoir gagné du temps.\n\nOn pense pouvoir éviter le pire.\n\nMais bientôt, des avertissements commencent à circuler.\n\nLa Grande Mademoiselle apprend que Beaufort se promène dans le jardin des Tuileries.\n\nIl n'est pas seul.\n\nPlusieurs gentilshommes l'accompagnent.\n\nElle fait envoyer des personnes pour savoir ce qui se prépare.\n\nLa duchesse de Nemours, elle aussi inquiète, cherche à alerter leur entourage.\n\nPuis un message arrive.\n\nLes deux princes seraient sur le point de se battre.\n\nLa Grande Mademoiselle se précipite pour avertir le duc d'Orléans.\n\nCette fois, on comprend que le danger est réel.\n\nDes hommes sont envoyés pour empêcher la rencontre.\n\nMais ils arrivent trop tard.\n\nPendant ce temps, Nemours a décidé de poursuivre sa querelle.\n\nSelon le récit conservé par la Grande Mademoiselle, Beaufort tente d'éviter l'affrontement.\n\nIl invoque notamment la présence des gentilshommes qui l'accompagnent.\n\nIl faudrait remettre la rencontre à plus tard.\n\nMais Nemours ne se laisse pas détourner.\n\nPuisque Beaufort est entouré de plusieurs hommes, Nemours va en chercher autant.\n\nLa discussion cesse progressivement d'être une affaire entre deux personnes.\n\nElle devient un duel collectif.\n\nCinq hommes contre cinq.\n\nEt c'est ici que nous retrouvons notre adresse.\n\nLe marché aux chevaux, derrière l'hôtel de Vendôme.\n\nEn fin d'après-midi, ce 30 juillet 1652, les deux groupes se font face.\n\nLes sources historiques situent généralement la rencontre vers sept heures du soir.\n\nAutour de Beaufort se trouvent quatre gentilshommes.\n\nLe comte de Bury.\n\nLe comte de Ris.\n\nBrillet.\n\nEt Héricourt.\n\nFace à eux, Nemours est accompagné du marquis de Villars, du chevalier de La Chaire, de Campan et d'Uzerche, dont les noms apparaissent parfois sous des graphies différentes dans les récits anciens.\n\nDix hommes.\n\nTous armés.\n\nMais ce que raconte la Grande Mademoiselle à propos des armes mérite une attention particulière.\n\nLes pistolets et les épées auraient été apportés par Nemours.\n\nEt les pistolets auraient été chargés chez lui.\n\nCe détail compte, parce qu'il montre à quel point la rencontre a été préparée.\n\nNous sommes loin d'une altercation improvisée entre deux passants.\n\nLes hommes sont venus armés.\n\nIls ont choisi un lieu.\n\nIls se présentent accompagnés.\n\nEt ils savent qu'ils peuvent mourir.\n\nPuis survient un moment étonnant.\n\nSelon le récit de la Grande Mademoiselle, Beaufort tente encore une réconciliation.\n\nIl s'adresse à Nemours comme à un frère.\n\nIl lui propose d'oublier leur querelle.\n\nDe redevenir amis.\n\nC'est peut-être le dernier instant où la catastrophe aurait pu être évitée.\n\nMais Nemours refuse.\n\nDans la version rapportée par la mémorialiste, il exige que l'un des deux tue l'autre.\n\nNemours tire le premier.\n\nLe coup manque Beaufort.\n\nUn silence.\n\nPuis Nemours avance, l'épée à la main.\n\nBeaufort riposte avec son pistolet. Selon le témoignage rapporté par la Grande Mademoiselle, l'arme avait été chargée de trois balles.\n\nUne détonation.\n\nLe tir atteint Nemours.\n\nIl vacille, puis s'effondre.\n\nIl meurt presque immédiatement.\n\nAutour d'eux, pourtant, le combat continue.\n\nLes compagnons s'affrontent à leur tour.\n\nLe comte de Bury est grièvement blessé.\n\nHéricourt tombe sous les coups du marquis de Villars, selon le récit de Voltaire.\n\nEt le comte de Ris succombe, lui aussi, à ses blessures.\n\nEn vingt-quatre heures, une querelle entre beaux-frères aura coûté la vie à trois hommes.\n\nTrois morts.\n\nDont le duc de Nemours.\n\nEt, pour une fois, les conséquences ne sont pas seulement politiques.\n\nElles sont familiales.\n\nTerriblement familiales.\n\nCar l'épouse de Nemours n'est autre que la sœur de celui qui vient de le tuer.\n\nÉlisabeth de Vendôme va apprendre que son mari est mort de la main de son propre frère.\n\nNous devons ici rappeler une nuance historique.\n\nLes récits anciens ne s'accordent pas nécessairement sur chaque mouvement ni sur la répartition exacte des tirs.\n\nNous connaissons l'issue.\n\nNous connaissons les principaux participants.\n\nNous connaissons le lieu.\n\nMais la précision avec laquelle les mémorialistes rapportent les paroles et les gestes ne signifie pas qu'ils aient tous assisté personnellement au combat.\n\nPour les dernières secondes de Nemours, la Grande Mademoiselle transmet elle-même ce qu'on lui a raconté.\n\nDes personnes accourent depuis le jardin de l'hôtel de Vendôme.\n\nParmi elles, une abbesse.\n\nLe récit rapporte qu'elle invoque Jésus et Marie.\n\nNemours lui aurait serré la main.\n\nÉtait-ce un dernier signe conscient ?\n\nLes médecins et chirurgiens présents n'en sont pas convaincus.\n\nIls estiment que ce mouvement pouvait être une convulsion provoquée par les blessures.\n\nVoilà le genre de détail que l'histoire a conservé.\n\nNon pas seulement la mort d'un prince, mais l'incertitude autour de son dernier geste.\n\nÀ quelques rues de là, les nouvelles commencent à circuler.\n\nEt leur vitesse est remarquable.\n\nLa Grande Mademoiselle se trouve encore avec les proches du duc d'Orléans lorsqu'un domestique de l'hôtel de Vendôme arrive.\n\nLe message est terrible.\n\nNemours est mort.\n\nBeaufort l'a tué.\n\nLa duchesse de Nemours apprend presque aussitôt la mort de son mari.\n\nSelon les mémoires, elle entend des cris dans la cour.\n\nElle s'évanouit.\n\nEssayez de mesurer ce que signifie cette nouvelle pour elle.\n\nSon mari vient d'être tué.\n\nEt celui qui lui a donné la mort est son propre frère.\n\nÉlisabeth de Vendôme se retrouve au milieu d'une tragédie familiale dont elle connaissait les tensions et qu'elle avait redoutée.\n\nLa mort de Nemours provoque encore une autre controverse.\n\nCelle de ses funérailles.\n\nÀ cette époque, le duel n'est pas une pratique simplement admise par l'Église.\n\nMourir dans un combat de cette nature soulève des difficultés religieuses sérieuses.\n\nLa Grande Mademoiselle rapporte que l'archevêque de Paris refuse que des prières publiques soient célébrées pour Nemours dans sa paroisse.\n\nPour sa veuve, cette décision ajoute une nouvelle douleur.\n\nAprès avoir perdu son mari, elle se heurte aux conséquences spirituelles et sociales de sa mort.\n\nEt que devient Beaufort ?\n\nIl survit à la rencontre.\n\nIl demeure un personnage important des dernières années de la Fronde.\n\nMais la mort de son beau-frère ne peut plus être effacée.\n\nMême parmi ceux qui connaissent les événements, on discute de sa responsabilité.\n\nAurait-il pu éviter le combat ?\n\nA-t-il réellement tenté jusqu'au bout de se réconcilier ?\n\nÉtait-il acculé à se défendre ?\n\nLa Grande Mademoiselle présente une version relativement favorable à Beaufort.\n\nElle souligne ses efforts pour éviter le duel et l'agressivité de Nemours.\n\nMais il faut se souvenir qu'elle écrit depuis l'intérieur de leur univers familial et politique.\n\nSon récit est précieux.\n\nIl n'est pas parfaitement impartial.\n\nEt c'est justement ce qui rend cette affaire si passionnante pour l'historien.\n\nNous possédons des noms.\n\nDes dates.\n\nUn lieu.\n\nDes conséquences humaines.\n\nUn récit détaillé des préparatifs.\n\nMais nous possédons également le regard d'une femme engagée dans les événements, qui connaissait les acteurs et qui avait tenté d'empêcher l'affrontement.\n\nCe n'est pas une caméra.\n\nC'est une mémoire.\n\nUne mémoire proche des faits, mais traversée par les émotions et les fidélités de son époque.\n\nRevenons maintenant à notre Paris.\n\nLe marché aux chevaux a disparu depuis longtemps.\n\nL'hôtel de Vendôme et ses jardins ne structurent plus ce quartier comme ils le faisaient en 1652.\n\nLa ville a été profondément transformée.\n\nNous pouvons localiser le secteur du duel grâce aux descriptions anciennes, mais il serait imprudent de prétendre identifier, sur le trottoir actuel, le point exact où Nemours est tombé.\n\nPourtant, nous savons ce qui s'est passé dans ce voisinage.\n\nDeux commandants du même camp se sont affrontés.\n\nIls étaient beaux-frères.\n\nDes proches avaient tenté de les réconcilier.\n\nLes avertissements avaient circulé.\n\nDes hommes avaient été envoyés pour les arrêter.\n\nEt ils étaient arrivés trop tard.\n\nLe 30 juillet 1652, Paris n'a pas seulement vu mourir un prince.\n\nIl a vu les divisions de la Fronde pénétrer jusqu'au cœur d'une même famille.\n\nUn homme est mort sous les coups de son beau-frère.\n\nD'autres gentilshommes sont morts ou ont été grièvement blessés.\n\nUne épouse a perdu son mari des mains de son propre frère.\n\nEt tout cela dans une ville déjà marquée par la guerre civile.\n\nRegardez une dernière fois ces rues.\n\nIl n'y a plus de chevaux rassemblés ici pour un marché.\n\nPlus de murs de jardin délimitant l'ancienne propriété de Vendôme.\n\nPlus de gentilshommes armés attendant leurs adversaires.\n\nIl reste seulement la ville.\n\nEt cette histoire.\n\nCelle d'une rencontre que plusieurs personnes avaient tenté d'empêcher.\n\nD'un dernier appel à la réconciliation.\n\nEt de quelques minutes pendant lesquelles l'honneur aristocratique a eu un prix terrible.\n\nVoici la fin de notre dernier arrêt.\n\nMais avant de quitter le quartier de l'Opéra, souvenez-vous des histoires que nous venons de traverser.\n\nCelles que les façades ne racontent plus.\n\nEt que les archives permettent encore de retrouver.",
+      "spoken_word_count": 2173,
+      "cues": [
+        {
+          "cue": "LOOK",
+          "detail": "Secteur de l'ancienne rue Neuve-des-Petits-Champs et de la rue d'Antin",
+          "offset_in_source": 0,
+          "spoken_char_index": 0
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Paris contemporain, puis diminution progressive",
+          "offset_in_source": 80,
+          "spoken_char_index": 1
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 844,
+          "spoken_char_index": 705
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Plan historique de Paris au milieu du XVIIe siècle",
+          "offset_in_source": 1213,
+          "spoken_char_index": 1067
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 1824,
+          "spoken_char_index": 1617
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Portrait historique identifié du duc de Beaufort",
+          "offset_in_source": 1893,
+          "spoken_char_index": 1679
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Portrait historique identifié de Charles-Amédée de Savoie, duc de Nemours",
+          "offset_in_source": 2631,
+          "spoken_char_index": 2358
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 3069,
+          "spoken_char_index": 2712
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 3830,
+          "spoken_char_index": 3466
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Portrait de la Grande Mademoiselle",
+          "offset_in_source": 4045,
+          "spoken_char_index": 3674
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 4531,
+          "spoken_char_index": 4115
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 5047,
+          "spoken_char_index": 4624
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Silence discret",
+          "offset_in_source": 5598,
+          "spoken_char_index": 5168
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 5998,
+          "spoken_char_index": 5540
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 6207,
+          "spoken_char_index": 5742
+        },
+        {
+          "cue": "VISUAL",
+          "detail": "Plan ancien localisant le marché aux chevaux",
+          "offset_in_source": 6760,
+          "spoken_char_index": 6281
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7077,
+          "spoken_char_index": 6543
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7638,
+          "spoken_char_index": 7097
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 7920,
+          "spoken_char_index": 7372
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 8339,
+          "spoken_char_index": 7784
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Silence presque complet",
+          "offset_in_source": 8355,
+          "spoken_char_index": 7786
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 8739,
+          "spoken_char_index": 8134
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 9444,
+          "spoken_char_index": 8825
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 9981,
+          "spoken_char_index": 9355
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 10500,
+          "spoken_char_index": 9867
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 10801,
+          "spoken_char_index": 10154
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 11231,
+          "spoken_char_index": 10577
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 11790,
+          "spoken_char_index": 11129
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 12507,
+          "spoken_char_index": 11839
+        },
+        {
+          "cue": "LOOK",
+          "detail": "Rue d'Antin et environnement actuel",
+          "offset_in_source": 13005,
+          "spoken_char_index": 12330
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 13467,
+          "spoken_char_index": 12748
+        },
+        {
+          "cue": "PAUSE LONGUE",
+          "detail": "",
+          "offset_in_source": 13783,
+          "spoken_char_index": 13057
+        },
+        {
+          "cue": "PAUSE",
+          "detail": "",
+          "offset_in_source": 14187,
+          "spoken_char_index": 13447
+        },
+        {
+          "cue": "AMBIENCE",
+          "detail": "Retour très progressif de Paris contemporain",
+          "offset_in_source": 14672,
+          "spoken_char_index": 13925
+        }
+      ]
+    },
+    {
+      "id": "OUTRO",
+      "title": "Paris superposé",
+      "text": "Avant de repartir, prenez encore quelques secondes pour regarder autour de vous. Vous venez de traverser plusieurs siècles sans quitter quelques rues. Un photographe qui comprend très tôt qu’une image peut tromper. Un gardien de nuit assassiné en 1977, dans une rue qui a presque tout oublié de lui. Les collections de Joséphine dispersées morceau par morceau. Une Kommandantur allemande attaquée au cœur de Paris après plusieurs jours de tension. Puis un duel mortel dans un marché aux chevaux aujourd’hui disparu. À première vue, ces histoires n’ont presque rien en commun. Et pourtant, elles occupent toutes le même morceau de ville. C’est peut-être cela, le plus fascinant à Paris. Les époques ne disparaissent jamais complètement. Elles restent enfouies sous les façades. Sous les changements de noms. Sous les percements de rues. Sous les reconstructions. Sous les habitudes du présent. Il suffit parfois d’une adresse. D’une photographie. D’un vieux plan. Ou d’une histoire oubliée, pour les faire réapparaître. Et maintenant que vous connaissez celles-ci, vous ne regarderez probablement plus tout à fait ces rues de la même façon. C’est exactement le but de Velvet Passport. Ne pas seulement vous montrer Paris. Mais vous apprendre à le lire. Fin du parcours.",
+      "spoken_word_count": 199,
+      "cues": []
+    }
+  ]
+}
