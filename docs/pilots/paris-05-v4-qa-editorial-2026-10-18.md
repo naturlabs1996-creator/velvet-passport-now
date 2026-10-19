@@ -1,6 +1,6 @@
 # VP-PAR-NOW-05 — Rapport de validation éditoriale du Master V4
 Date : 2026-10-18
-Statut global : **HOLD — pas de génération audio**
+Statut global : **REVIEW ÉDITORIAL — pas de génération audio**
 Master audité : docs/pilots/paris-05-recording-master-fr-v4-editorial-assembly.json
 
 ## Contrôle structurel
@@ -16,12 +16,11 @@ Master audité : docs/pilots/paris-05-recording-master-fr-v4-editorial-assembly.
 - STOP-04 Beaufort/Nemours : LOCK utilisateur; scène du duel conservée mot pour mot selon modification éditoriale (Nemours tire, Beaufort pistolet trois balles, Villars/Héricourt, Ris, Élisabeth).
 - Sources primaires confirmant le duel : mémoires Grande Mademoiselle https://penelope.uchicago.edu/mlle/chapitre14/chap14.html ; Voltaire https://fr.wikisource.org/wiki/Le_Si%C3%A8cle_de_Louis_XIV/5 .
 
-## Anomalie bloquante H1 : Joséphine, localisation de la vente
-- STOP-02 attribue au 16 rue Louis-le-Grand **la vente du 24 mars 1819** des collections de Malmaison.
-- Source biographique repérée : https://penelope.uchicago.edu/Thayer/E/Gazetteer/People/Josephine/KNAEJO/19%2A.html indique explicitement une **vente à Malmaison** le 24 mars 1819.
-- Aucune source indépendante consultée lors de cette passe ne confirme l'association de la vente du 24 mars 1819 au **16 rue Louis-le-Grand**.
-- Il se peut qu'il existe plusieurs ventes ou une confusion de date/lieu : **ne pas trancher sans le catalogue original, page de titre et conditions de vente.**
-- **Verdict : HOLD STOP-02**, tant que l'acte/catalogue n'établit pas la vente à cette adresse; si erreur, nécessité de changer le micro-récit, pas de présenter le lieu comme attesté.
+## Joséphine — adresse corroborée le 18 octobre 2026
+- **Confirmation secondaire précise** : Yves Stavridès, « Les mystères de la Laiterie de la reine », *L'Express*, 21 août 2003, https://www.lexpress.fr/culture/art/les-mysteres-de-la-laiterie-de-la-reine_495564.html . L'article désigne explicitement **Paris, 16 rue Louis-le-Grand**, pour la vente commencée **le 24 mars 1819 et jours suivants** de bas-reliefs de la Laiterie de la reine issus des collections de Joséphine.
+- L'ouvrage biographique anglais précédemment cité situe la vente « at Malmaison », mais ne concorde pas sur le lieu; il peut y avoir imprécision ou conflation entre provenance des objets et lieu d'adjudication.
+- **Décision : blocage H1 d'adresse levé sous réserve de consultation du catalogue primaire**; le stop est **REVIEW**, non LOCK (le nouveau texte n'est pas approuvé et tous ses détails ne sont pas vérifiés).
+- Priorité archives : retrouver la page de titre et les conditions de vente du catalogue de mars 1819 afin de consolider la preuve primaire.
 
 ## STOP-03 Opéra
 - Date et nom de Michel Guillois, blessure de Pierre Gormond, éléments du contexte confirmés par Musée de la Résistance en ligne : https://www.museedelaresistanceenligne.org/media.php?expo=&media=5192
@@ -43,7 +42,7 @@ Master audité : docs/pilots/paris-05-recording-master-fr-v4-editorial-assembly.
 - LOCK confirmé : 3 segments (STOP-01, TRANSITION-01-SEBAI, STOP-04), sous réserve de fidélité aux derniers blocs approuvés.
 - REVIEW/HOLD : 8 segments.
 - Pas de WAV généré; QA 300 sec/stop non mesurable à cette étape.
-- Avant audio : résoudre STOP-02; faire approuver nouveaux passages; valider assets et micro-locs; rendre Chatterbox; mesurer WAV>=300 sec/stop; QA FR puis EN.
+- Avant audio : consulter si possible le catalogue primaire STOP-02; faire approuver nouveaux passages; valider assets et micro-locs; rendre Chatterbox; mesurer WAV>=300 sec/stop; QA FR puis EN.
 
 ## Décision
-NE PAS déclarer « master final validé ». Ceci est un assemblage complet de travail avec un blocage historique prioritaire et des validations éditoriales encore requises.
+NE PAS déclarer « master final validé ». Ceci est un assemblage complet de travail dont l'adresse Joséphine est désormais corroborée par *L'Express*, avec des validations éditoriales encore requises.
