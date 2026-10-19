@@ -1,0 +1,53 @@
+name: Velvet Passport - British English voice audition (2 voices)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/velvet-english-voices-audition.yml'
+  workflow_dispatch:
+jobs:
+  british-voices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox CPU
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch genuine British English recordings from VCTK
+        run: |
+          mkdir -p auditions
+          curl --fail --location --retry 3 -o auditions/EN-F-REFERENCE-p225.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p225_023_enhanced.wav?download=true"
+          curl --fail --location --retry 3 -o auditions/EN-M-REFERENCE-p226.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p226_023_enhanced.wav?download=true"
+      - name: Synthesize identical test in both English voices at natural tempo
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import torch, torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          text="Behind the grand facades of Paris, every street holds a secret. Listen closely, and the past begins to speak."
+          model=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          records=[]
+          for gender,speaker in [('F','p225'),('M','p226')]:
+              ref=f'auditions/EN-{gender}-REFERENCE-{speaker}.wav'
+              out=f'auditions/VP-EN-{gender}-{speaker}-NATIVE-100.wav'
+              wave=model.generate(text,language_id='en',audio_prompt_path=ref,exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+              torchaudio.save(out,wave.unsqueeze(0),model.sr)
+              records.append({'speaker_id':speaker,'voice_role':gender,'file':out,'duration_sec':round(len(wave)/model.sr,2),'reference':ref,'accent':'British English VCTK metadata','license':'VCTK CC BY 4.0; voice-cloning commercial permission review pending'})
+          Path('auditions/manifest.json').write_text(json.dumps({'status':'ARTISTIC_AUDITION_ONLY','text':'non-production test phrase, not a LOCK script','tempo':1.0,'digital_time_stretch':False,'master_unchanged':True,'voices':records},indent=2))
+          print('BRITISH_VOICE_AUDITION',records)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velvet-british-en-male-female-voice-audition
+          path: auditions/*
+          retention-days: 14
