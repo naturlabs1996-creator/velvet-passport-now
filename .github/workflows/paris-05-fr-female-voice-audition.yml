@@ -1,0 +1,58 @@
+name: Paris 05 - female voice auditions FR V3 native
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris-05-fr-female-voice-audition.yml'
+  workflow_dispatch:
+jobs:
+  auditions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox and audio tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch two candidate French reference clips
+        run: |
+          mkdir -p voice-audition
+          curl --fail --location --retry 3 -o voice-audition/candidate-01.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/cml-tts/fr/10087_11650_000028-0002_enhanced.wav?download=true"
+          curl --fail --location --retry 3 -o voice-audition/candidate-02.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/cml-tts/fr/10177_10625_000134-0003_enhanced.wav?download=true"
+      - name: Render audition from LOCKED Josephine script without time stretching
+        run: |
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          import torch,torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          manifest=json.loads(Path('docs/pilots/paris-05-fr-v4-tts-and-cues.json').read_text(encoding='utf-8'))
+          seg=next(x for x in manifest['segments'] if x['id']=='STOP-02')
+          sentences=[x.strip() for x in re.split(r'(?<=[.!?])\s+',seg['text'].strip()) if x.strip()]
+          sample=' '.join(sentences[:2])
+          if not sample:raise RuntimeError('No LOCKED text found')
+          model=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          results=[]
+          for idx in (1,2):
+              label=f'candidate-{idx:02d}'
+              ref=f'voice-audition/{label}.wav'
+              out=f'voice-audition/PARIS05-JOSEPHINE-{label}-tempo100.wav'
+              wave=model.generate(sample,language_id='fr',audio_prompt_path=ref,exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+              torchaudio.save(out,wave.unsqueeze(0),model.sr)
+              results.append({'candidate':label,'file':out,'duration_seconds':round(len(wave)/model.sr,2),'sample_rate':model.sr,'status':'AUDITION_ONLY_not_voice_gender_or_rights_verified'})
+          Path('voice-audition/QA.json').write_text(json.dumps({'route':'VP-PAR-NOW-05','segment':'STOP-02','text':'first two sentences from locked V4','tempo':1.0,'digital_time_stretch':False,'reference_source':'kyutai/tts-voices cml-tts/fr CC BY 4.0','original_master_unchanged':True,'results':results},ensure_ascii=False,indent=2))
+          print('AUDITION_RENDERED',results)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paris05-fr-female-voice-candidates-audition
+          path: voice-audition/*
+          retention-days: 14
