@@ -1,0 +1,48 @@
+name: Velvet Passport - English female voice audition p230
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/velvet-english-female-p230-qa.yml'
+  workflow_dispatch:
+jobs:
+  audition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Chatterbox pinned CPU
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Download female VCTK p230 reference
+        run: |
+          mkdir -p audition
+          curl --fail --location --retry 3 -o audition/p230-reference.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p230_023_enhanced.wav?download=true"
+      - name: Render English female alternative at native tempo
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import torch,torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          sample="Behind the grand facades of Paris, every street holds a secret. Listen closely, and the past begins to speak."
+          m=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          y=m.generate(sample,language_id='en',audio_prompt_path='audition/p230-reference.wav',exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+          f='audition/VP-EN-F-p230-NATIVE-100.wav'
+          torchaudio.save(f,y.unsqueeze(0),m.sr)
+          Path('audition/QA.json').write_text(json.dumps({'candidate':'p230','status':'audition_pending_director_and_commercial_rights','tempo':1.0,'master_unchanged':True,'duration_seconds':len(y)/m.sr},indent=2))
+          print('AUDIO_READY',f)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velvet-english-female-p230-audition
+          path: audition/*
+          retention-days: 14
