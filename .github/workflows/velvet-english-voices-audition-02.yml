@@ -1,0 +1,53 @@
+name: Velvet Passport - British EN alternate voice audition
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/velvet-english-voices-audition-02.yml'
+  workflow_dispatch:
+jobs:
+  audition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox CPU
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch alternate British reference clips
+        run: |
+          mkdir -p auditions
+          curl --fail --location --retry 3 -o auditions/EN-F-REFERENCE-p229.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p229_023_enhanced.wav?download=true"
+          curl --fail --location --retry 3 -o auditions/EN-M-REFERENCE-p232.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true"
+      - name: Render native-tempo alternatives
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import torch,torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          phrase="Behind the grand facades of Paris, every street holds a secret. Listen closely, and the past begins to speak."
+          model=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          records=[]
+          for role,speaker in [('F','p229'),('M','p232')]:
+              reference=f'auditions/EN-{role}-REFERENCE-{speaker}.wav'
+              output=f'auditions/VP-EN-{role}-{speaker}-NATIVE-100.wav'
+              audio=model.generate(phrase,language_id='en',audio_prompt_path=reference,exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+              torchaudio.save(output,audio.unsqueeze(0),model.sr)
+              records.append({'role':role,'speaker':speaker,'file':output,'duration_seconds':round(len(audio)/model.sr,2),'tempo':1.0,'reference':reference})
+          Path('auditions/QA.json').write_text(json.dumps({'purpose':'artistic audition','prior_rejected':['p225','p226'],'rights':'commercial voice synthesis usage not yet cleared','results':records},indent=2))
+          print('AUDITIONS_COMPLETE',records)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velvet-british-en-alternative-p229-p232
+          path: auditions/*
+          retention-days: 14
