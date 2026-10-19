@@ -1,0 +1,57 @@
+name: Velvet Passport - six British female auditions batch 03
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/velvet-en-female-batch-03.yml'
+  workflow_dispatch:
+jobs:
+  voice:
+    strategy:
+      fail-fast: false
+      matrix:
+        speaker: [p231, p233, p239, p240, p250, p257]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned CPU Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch confirmed British female VCTK reference
+        env:
+          SPEAKER: ${{ matrix.speaker }}
+        run: |
+          mkdir -p output
+          curl --fail --location --retry 3 -o "output/${SPEAKER}-reference.wav" "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/${SPEAKER}_023_enhanced.wav?download=true"
+      - name: Synthesize common audition text at native tempo
+        env:
+          SPEAKER: ${{ matrix.speaker }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          import torch,torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          sid=os.environ['SPEAKER']
+          phrase="Behind the grand facades of Paris, every street holds a secret. Listen closely, and the past begins to speak."
+          m=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          y=m.generate(phrase,language_id='en',audio_prompt_path=f'output/{sid}-reference.wav',exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+          out=f'output/VELVET-EN-F-{sid}-NATIVE-100.wav'
+          torchaudio.save(out,y.unsqueeze(0),m.sr)
+          Path('output/QA.json').write_text(json.dumps({'voice':sid,'gender_metadata':'female VCTK','tempo':1.0,'digital_time_stretch':False,'artistic_status':'pending','commercial_synthetic_voice_rights':'pending','prior_rejected':['p225','p229','p230'],'narrative_masters_modified':False,'duration_sec':round(len(y)/m.sr,2)},indent=2))
+          print('VOICE_AUDITION_READY',sid,out)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velvet-en-female-${{ matrix.speaker }}-batch03
+          path: output/*
+          retention-days: 14
