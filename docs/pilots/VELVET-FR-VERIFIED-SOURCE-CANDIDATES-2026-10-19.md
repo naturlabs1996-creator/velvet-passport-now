@@ -30,3 +30,11 @@ Kyutai Pocket-TTS ships a French default named `estelle`, documented here: https
 
 ## Selection steps
 Acquire lawful reference files, validate precise terms & listening of French metropolitan accent, verify voice type from audio, then create targeted native-tempo 1.00 Chatterbox audition. LOCK editorial scripts untouched.
+
+## Director audition verdict — 2026-10-20
+- **FR masculine: developer-1 — ARTISTIC LOCK**, preferred clearly over FabienG after Chatterbox V3 native-tempo audition. Tested in workflow #39431705952.
+- Source recording: `https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developer-1.mp3?download=true`.
+- FabienG: not chosen for FR male role.
+- **FR feminine: developpeuse-3 is promising but NOT artistic LOCK** until explicitly approved.
+- EN masculine 8935 and EN feminine 3973 remain artistic LOCK.
+- Separate rights clearance for commercial synthesized use remains required. Do not modify editorial LOCK scripts. Native tempo 1.00, no time stretch.
