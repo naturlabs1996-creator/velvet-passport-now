@@ -59,8 +59,8 @@
 ### STOP-04 — Beaufort contre Nemours — 30 juillet 1652
 - **STOP-04-CUE-01** [LOOK] Secteur de l'ancienne rue Neuve-des-Petits-Champs et de la rue d'Antin — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
 - **STOP-04-CUE-02** [VISUAL] Plan historique de Paris au milieu du XVIIe siècle — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
-- **STOP-04-CUE-03** [VISUAL] Portrait historique identifié du duc de Beaufort — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
-- **STOP-04-CUE-04** [VISUAL] Portrait historique identifié de Charles-Amédée de Savoie, duc de Nemours — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
+- **STOP-04-CUE-03** [VISUAL] Portrait de François de Vendôme, duc de Beaufort, estampe ancienne BnF / Gallica **btv1b8405032k** ; https://commons.wikimedia.org/wiki/File:Portrait_de_Fran%C3%A7ois_de_Vend%C3%B4me,_duc_de_Beaufort,_en_buste,_de_3-4_dirig%C3%A9_%C3%A0_gauche_dans_une_bordure_ovale_-_estampe_-_btv1b8405032k.jpg — **DOMAINE PUBLIC déclaré sur notice Commons (PD France), identification et provenance BnF documentées ; image originale 3936×4888 disponible, fichier pas encore intégré à montage**. Crédit BnF/Gallica, référence estampe Hennin 4499.
+- **STOP-04-CUE-04** [VISUAL] Estampe de Charles-Amédée de Savoie, duc de Nemours, datée **1652**, référencée **Royal Collection RCIN 615675**, portrait publié par Daret à Paris ; https://commons.wikimedia.org/wiki/File:Charles_Am%C3%A9d%C3%A9e_of_Savoy,_Duke_of_Nemours_in_1652.jpg — **DOMAINE PUBLIC déclaré sur Commons (PD-old/PD-Art) ; fichier original 850×1250 disponible, pas encore intégré à montage**. Crédit original Royal Collection / Wikimedia Commons selon notice.
 - **STOP-04-CUE-05** [VISUAL] Portrait de la Grande Mademoiselle — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
 - **STOP-04-CUE-06** [VISUAL] Plan ancien localisant le marché aux chevaux — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
 - **STOP-04-CUE-07** [LOOK] Rue d'Antin et environnement actuel — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
@@ -125,3 +125,9 @@
 - Rijksmuseum object https://id.rijksmuseum.nl/200332472 : photomontage of removal of six executed hostages at La Roquette, Ernest Eugène Appert, 1871. Rights field **Public domain**; does not constitute an on-scene reportage of execution and must retain exact descriptive caption.
 - Rijksmuseum policy https://data.rijksmuseum.nl/about/ says public-domain/CC0 collection images may be reused for commercial purposes; credit Rijksmuseum and cite exact object record as good practice. Object-level rights indication, not a blanket license for every museum item.
 - **Status:** 2 historically relevant authentic objects **DOCUMENTARY & RIGHTS VERIFIED**; actual high-resolution asset bytes, format, crop suitability and technical approval **STILL PENDING**. No claim that media files are already on disk. No outreach.
+
+
+## SOURCES DOCUMENTEES — STOP-04 — 2026-10-20
+- Beaufort portrait: Gallica/BnF `btv1b8405032k`, print bibliographic Hennin 4499, original image Wikimedia Commons 3936×4888, rights marked public domain France. Cue STOP-04-CUE-03. Source reference https://commons.wikimedia.org/wiki/File:Portrait_de_Fran%C3%A7ois_de_Vend%C3%B4me,_duc_de_Beaufort,_en_buste,_de_3-4_dirig%C3%A9_%C3%A0_gauche_dans_une_bordure_ovale_-_estampe_-_btv1b8405032k.jpg
+- Nemours portrait: engraving published Paris 1652, linked to Royal Collection RCIN 615675, Wikimedia Commons original 850×1250, marked Public Domain (PD-old/PD-Art). Cue STOP-04-CUE-04. Source https://commons.wikimedia.org/wiki/File:Charles_Am%C3%A9d%C3%A9e_of_Savoy,_Duke_of_Nemours_in_1652.jpg
+- Historical and rights source pages verified; actual media bytes and image-technical QA not completed; no generated historical imagery and no rights-holder outreach. Other STOP-04 cues remain pending.
