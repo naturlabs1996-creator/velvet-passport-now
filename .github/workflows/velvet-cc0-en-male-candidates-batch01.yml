@@ -1,0 +1,50 @@
+name: Velvet Passport CC0 English male-candidate audition batch 01
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/velvet-cc0-en-male-candidates-batch01.yml']
+  workflow_dispatch:
+jobs:
+  audition:
+    strategy:
+      fail-fast: false
+      matrix:
+        speaker: [5c21, 60a5, 637a, 687c, 6ca1, 703b]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox V3
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Download donated voice reference
+        env:
+          SID: ${{ matrix.speaker }}
+        run: |
+          mkdir -p output
+          curl --fail --location --retry 3 -o "output/${SID}-reference.wav" "https://huggingface.co/kyutai/tts-voices/resolve/main/voice-donations/${SID}_enhanced.wav?download=true"
+      - name: Synthesize English test at native tempo 1.00
+        env:
+          SID: ${{ matrix.speaker }}
+        run: |
+          python - <<'PY'
+          import os,json,torchaudio
+          from pathlib import Path
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          sid=os.environ['SID']
+          text="Behind the grand facades of Paris, every street holds a secret. Listen closely, and the past begins to speak."
+          m=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          y=m.generate(text,language_id='en',audio_prompt_path=f'output/{sid}-reference.wav',exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+          torchaudio.save(f'output/VP-CC0-EN-{sid}-NATIVE-100.wav',y.unsqueeze(0),m.sr)
+          Path('output/QA.json').write_text(json.dumps({'reference':sid,'native_language':'unverified','gender':'unverified','target_role':'English male candidate','tempo':1.0,'digital_time_stretch':False,'commercial_rights':'CC0 donation subject to consent/terms review','artistic_status':'PENDING'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velvet-cc0-en-${{ matrix.speaker }}-male-candidates-batch01
+          path: output/*
+          retention-days: 14
