@@ -1,0 +1,55 @@
+name: Velvet Passport CC0 donated French audition batch 02
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/velvet-cc0-fr-batch02.yml']
+  workflow_dispatch:
+jobs:
+  voice:
+    strategy:
+      fail-fast: false
+      matrix:
+        speaker:
+          - "4189"
+          - "468c"
+          - "4b13"
+          - "4b70"
+          - "5b55"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch donor reference
+        env:
+          SID: ${{ matrix.speaker }}
+        run: |
+          mkdir -p output
+          curl -fL --retry 3 -o "output/${SID}-source.wav" "https://huggingface.co/kyutai/tts-voices/resolve/main/voice-donations/${SID}_enhanced.wav?download=true"
+      - name: French audition native 1.00
+        env:
+          SID: ${{ matrix.speaker }}
+        run: |
+          python - <<'PY'
+          import os,json,torchaudio
+          from pathlib import Path
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          s=os.environ['SID']
+          t="Sous les façades de Paris, certaines histoires attendent depuis des siècles. Écoutez. Un secret va bientôt se dévoiler."
+          model=ChatterboxMultilingualTTS.from_pretrained(device="cpu",t3_model="v3")
+          y=model.generate(t,language_id="fr",audio_prompt_path=f"output/{s}-source.wav",exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+          torchaudio.save(f"output/VELVET-CC0-FR-{s}-NATIVE-100.wav",y.unsqueeze(0),model.sr)
+          Path("output/QA.json").write_text(json.dumps({"speaker":s,"source":"Kyutai voice-donations CC0","role":"FR audition only; native language, gender, and accent unverified","tempo":1.0,"artistic_status":"PENDING","duration_sec":len(y)/model.sr,"editorial_lock_untouched":True},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velvet-cc0-fr-${{ matrix.speaker }}-batch02
+          path: output/*
+          retention-days: 14
