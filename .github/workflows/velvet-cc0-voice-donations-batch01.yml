@@ -1,0 +1,66 @@
+name: Velvet Passport - CC0 donated voice auditions batch 01
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/velvet-cc0-voice-donations-batch01.yml'
+  workflow_dispatch:
+jobs:
+  voice:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { speaker: "0a67", language: "fr" }
+          - { speaker: "1410", language: "en" }
+          - { speaker: "1dd0", language: "fr" }
+          - { speaker: "2181", language: "en" }
+          - { speaker: "245e", language: "fr" }
+          - { speaker: "29da", language: "en" }
+          - { speaker: "30c5", language: "fr" }
+          - { speaker: "3973", language: "en" }
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned CPU Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Download Kyutai donated reference
+        env:
+          SPEAKER: ${{ matrix.speaker }}
+        run: |
+          mkdir -p output
+          curl --fail --location --retry 3 -o "output/${SPEAKER}-donation-reference.wav" "https://huggingface.co/kyutai/tts-voices/resolve/main/voice-donations/${SPEAKER}_enhanced.wav?download=true"
+      - name: Synthesize original audition at native tempo 1.00
+        env:
+          SPEAKER: ${{ matrix.speaker }}
+          LANGUAGE: ${{ matrix.language }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          import torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          sid=os.environ['SPEAKER']; lang=os.environ['LANGUAGE']
+          texts={'fr':"Derrière les façades de Paris, chaque rue cache une histoire. Écoutez bien. Le passé commence à parler.",'en':"Behind the grand facades of Paris, every street holds a secret. Listen closely, and the past begins to speak."}
+          m=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          y=m.generate(texts[lang],language_id=lang,audio_prompt_path=f'output/{sid}-donation-reference.wav',exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+          out=f'output/VELVET-CC0-{sid}-{lang.upper()}-NATIVE-100.wav'
+          torchaudio.save(out,y.unsqueeze(0),m.sr)
+          Path('output/QA.json').write_text(json.dumps({'voice_reference':sid,'source':'kyutai/tts-voices/voice-donations','tested_language':lang,'native_tempo':1.0,'digital_time_stretch':False,'speaker_gender_unverified':True,'speaker_native_language_unverified':True,'artistic_status':'PENDING AUDITION','legal_status':'REVIEW DONATION CONSENT','duration_sec':round(len(y)/m.sr,2),'editorial_masters_modified':False},indent=2))
+          print('CC0_AUDITION_READY',sid,lang,out)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: velvet-cc0-${{ matrix.speaker }}-${{ matrix.language }}-batch01
+          path: output/*
+          retention-days: 14
