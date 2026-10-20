@@ -93,3 +93,12 @@
 - Do not conclude any of these is identical to originally requested **Doisneau** photo until exact Paris Musées inventory link/cote is matched; 'anonymous' is catalog attribution, not public-domain finding.
 - Applicable French CPI article L123-3: anonymous/pseudonymous/collective works 70 years after publication, but if author disclosed protection may revert to author life +70; publication history and other rights require factual check. https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006278941
 - Each alternative: SOURCE VERIFIED / IMAGE REUSE RIGHTS **HOLD** until evidence of public domain or free permission for commercial app/web use. Historical narrative and audiovisual cue remain unchanged.
+
+## Attribution audit: Atelier Doisneau vs Paris Musées — 2026-10-20
+- Official Atelier Robert Doisneau portfolio **Paris: Occupation, Libération** lists known wartime images but no Kommandantur-titled photograph; portfolio is not exhaustive: https://www.robert-doisneau.com/en/robert-doisneau/portfolios/509,paris-occupation-liberation.htm
+- Paris Musées PH11026 is attributed **Anonyme (photographe), Agence LAPI (agency/printer)**, not Doisneau: https://parismuseescollections.paris.fr/en/node/130481
+- Paris Musées PH10999 is **Anonyme / LAPI**; archive describes stamped 'L.A.P.I. / Droits Réservés' and negative 28397: https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-apres-la-capitulation-de-la-kommandantur
+- Paris Musées PH35284 (attack) is credited **Agence LAPI** with verso LAPI rights-reserved stamp: https://parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-attaque-de-la-kommandantur-angle-de-la-rue
+- BnF does catalogue distinct authentic Robert Doisneau Liberation photographs, including German signs being removed, but no established link of those to exact Kommandantur photographs: https://catalogue.bnf.fr/ark:/12148/cb40504389q
+- **FINDING:** No documentary evidence of Doisneau attribution to the three above Kommandantur images. However exact object/inventory of Paris Musées' image behind Gamma-Rapho response is still unknown: DO NOT declare a misattribution as established or publish unlicensed images.
+- Ask Paris Musées for **exact inventory number, original author field, attribution provenance, Gamma-Rapho rights claim**, and compare against PH11026/PH10999/PH35284. Zero cost policy remains binding. If unrelated file was requested, analysis must be updated to match that exact object.
