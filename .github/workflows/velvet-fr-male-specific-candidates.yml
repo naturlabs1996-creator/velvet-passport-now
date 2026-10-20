@@ -1,0 +1,56 @@
+name: Velvet Passport FR male candidate targeted audition
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/velvet-fr-male-specific-candidates.yml'
+  workflow_dispatch:
+jobs:
+  audition:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: fabieng-enhanced-v2, file: fabieng-enhanced-v2.wav }
+          - { id: developer-1, file: developer-1.mp3 }
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned CPU Chatterbox V3
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch known Kyutai original source
+        env:
+          FILENAME: ${{ matrix.file }}
+        run: |
+          mkdir -p output
+          curl -fL --retry 3 -o "output/reference.${FILENAME##*.}" "https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/${FILENAME}?download=true"
+      - name: Synthesize natural French audition
+        env:
+          REF: ${{ matrix.file }}
+          ID: ${{ matrix.id }}
+        run: |
+          python - <<'PY'
+          import json,os,torchaudio
+          from pathlib import Path
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          sid=os.environ['ID']; ext=os.environ['REF'].split('.')[-1]
+          m=ChatterboxMultilingualTTS.from_pretrained(device='cpu',t3_model='v3')
+          txt="Derrière les façades de Paris, chaque rue cache une histoire. Écoutez bien. Le passé commence à parler."
+          y=m.generate(txt,language_id='fr',audio_prompt_path=f'output/reference.{ext}',exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+          filename=f'output/VP-FR-{sid}-NATIVE-100.wav'
+          torchaudio.save(filename,y.unsqueeze(0),m.sr)
+          Path('output/QA.json').write_text(json.dumps({'id':sid,'language':'fr','tempo':1.00,'digital_time_stretch':False,'artistic_approval':'PENDING','speaker_gender_or_accent':'VERIFY AT LISTENING','rights':'Kyutai says own unmute recordings CC0; verify individual file belongs to own recordings','source_file':os.environ['REF'],'duration_sec':round(len(y)/m.sr,2)},indent=2))
+          print(filename)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vp-fr-targeted-${{ matrix.id }}
+          path: output/*
+          retention-days: 14
