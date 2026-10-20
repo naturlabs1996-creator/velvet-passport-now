@@ -38,3 +38,10 @@ Acquire lawful reference files, validate precise terms & listening of French met
 - **FR feminine: developpeuse-3 is promising but NOT artistic LOCK** until explicitly approved.
 - EN masculine 8935 and EN feminine 3973 remain artistic LOCK.
 - Separate rights clearance for commercial synthesized use remains required. Do not modify editorial LOCK scripts. Native tempo 1.00, no time stretch.
+
+## Director approval — FR female developpeuse-3 — 2026-10-20
+- **FR feminine developpeuse-3: ARTISTIC LOCK**, explicitly approved by director. Supersedes prior candidacy-only status.
+- Source: `https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developpeuse-3.wav?download=true`.
+- French male **developer-1** remains ARTISTIC LOCK; English male **8935** and English female **3973** remain ARTISTIC LOCK.
+- All four roles now artistically selected. Commercial synthetic-voice usage rights/individual source consent not thereby cleared: preserve independent legal release gate.
+- Preserve locked editorial scripts and Chatterbox V3 native tempo 1.00.
