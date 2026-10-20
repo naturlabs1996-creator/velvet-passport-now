@@ -69,9 +69,9 @@
 - Pas de cue VISUAL/LOOK/WALK explicite dans ce segment.
 
 ## Critères de livraison
-- [ ] Les 11 WAV français sont disponibles
-- [ ] Chaque stop >= 300 secondes réelles (QA WAV)
-- [ ] Continuité transitions et intelligibilité voix vérifiées
+- [x] Les 11 WAV français sont disponibles — GitHub Actions #39488651589, 2026-10-20, 11 fichiers individuels + master PCM24 + rapport QA (13 fichiers) ; artifact 12294273686
+- [x] Chaque stop >= 300 secondes réelles (QA WAV) ; durée totale assemblée 3679,80 s / 61 min 19,8 s
+- [ ] Continuité des transitions et intelligibilité à valider par écoute humaine ; contrôle numérique et plafonnement des pics effectués ; STOP-04 gain linéaire 0,9396281, pic résultant 0,95
 - [ ] Chaque image d'archive possède une source et une autorisation/licence vérifiée
 - [ ] Sous-titres/transcriptions synchronisés
 - [ ] Version EN adaptée et contrôlée seulement après approbation FR
@@ -80,9 +80,9 @@
 - Paris Musées has explicitly confirmed (user-supplied rights-holder reply): it does **not** hold out-of-portal reproduction rights in Robert Doisneau's work. They can supply the file only after presentation of Gamma-Rapho's written authorization.
 - **STATUS: RIGHTS HOLD — DO NOT PUBLISH, EXPORT IN COMMERCIAL MONTAGE, OR CONSTRUE PARIS MUSÉES ACCESS AS PERMISSION.**
 - Authorized licensing contact per official Atelier Robert Doisneau FAQ for advertising/audiovisual: Laetitia Payen, laetitia.payen@gamma-rapho.fr (https://www.robert-doisneau.com/fr/questions-reponses/).
-- Request formal quotation/permission for this specific image in Velvet Passport NOW Paris 05: paid mobile/web historical audiovisual route, worldwide audiences, bilingual FR/EN, multi-year/ongoing term, display within tour, downloaded/cached app asset where necessary, subtitles, cropping and screen resize, with exact mandatory credit and restrictions.
+- HISTORICAL NOTE ONLY: a request for gratuitous permission was previously sent. Current director decision: **no further outreach, no fees, no calls or emails for photo rights**; if use rights cannot be documented from publicly accessible evidence, substitute a different authentic rights-clear asset. No source asset may enter commercial export on an unsupported attribution.
 - Require exact Paris Musées inventory URL/identifier and image title for unequivocal identification. No rights clearance until licensor responds in writing.
-- Upon written permission, forward evidence to Paris Musées to obtain requested HD file; archive provenance, license, authorized terms, asset reference and costs. If fee or terms incompatible: choose another authentic properly licensed Kommandantur image; narrative remains LOCK.
+- Do not send further permission correspondence. Rights verification is documentary-only. If a clearly reusable HD asset cannot be located, replace image without changing the locked narration.
 
 ## Follow-up research: archival attribution conflict and substitutes — 2026-10-20
 **Zero-cost licensing policy: HARD GATE.** Director authorized no payment for images. If fee, replace with another authenticated asset.
@@ -101,7 +101,7 @@
 - Paris Musées PH35284 (attack) is credited **Agence LAPI** with verso LAPI rights-reserved stamp: https://parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-attaque-de-la-kommandantur-angle-de-la-rue
 - BnF does catalogue distinct authentic Robert Doisneau Liberation photographs, including German signs being removed, but no established link of those to exact Kommandantur photographs: https://catalogue.bnf.fr/ark:/12148/cb40504389q
 - **FINDING:** No documentary evidence of Doisneau attribution to the three above Kommandantur images. However exact object/inventory of Paris Musées' image behind Gamma-Rapho response is still unknown: DO NOT declare a misattribution as established or publish unlicensed images.
-- Ask Paris Musées for **exact inventory number, original author field, attribution provenance, Gamma-Rapho rights claim**, and compare against PH11026/PH10999/PH35284. Zero cost policy remains binding. If unrelated file was requested, analysis must be updated to match that exact object.
+- Archival discrepancy already identified in exact item **PH10999**; perform only autonomous documentary verification via online catalogues and open archives. **Do not send any new outreach**. Zero cost and no unsupported reuse remain binding.
 
 ## RESOLVED EXACT IMAGE ID — PH10999 — 2026-10-20
 - Original outgoing email from velvetpassport26@gmail.com to photo.parismusees@paris.fr, 2026-10-16, subject **Demande d'autorisation de reproduction — photographie PH10999 (Kommandantur, 25 août 1944) — Velvet Passport NOW**, Gmail message `1a141afd7268210a`.
@@ -109,3 +109,12 @@
 - **Exact museum catalogue item PH10999**: https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-apres-la-capitulation-de-la-kommandantur . The institution attributes it to **Agence LAPI** and, in the details, **Anonyme (photographe)**. Recto inscription `LAPI 5`, verso `Ph. LAPI / Double Topo`. **No Robert Doisneau attribution**.
 - **Confirmed documentary inconsistency in museum correspondence:** for exact PH10999, Paris Musées' own catalogue does not support the representative's Doisneau claim. Avoid declaring image public-domain or identifying anonymous photographer on present evidence.
 - Gamma-Rapho was separately contacted before exact email subject was retrieved; museum correction should cite exact PH10999, original email date, and literal museum attribution. **NO PAYMENT**. Rights status HOLD pending LAPI clearance/public-domain proof or alternate open image.
+
+
+## CHECKPOINT PRODUCTION — 2026-10-20 — POST CLEAN ASSEMBLY
+- **French audio machine QA PASS:** run https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/39488651589 ; artifact https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/39488651589/artifacts/12294273686 (expires 2026-11-03). 13 uploaded files = 11 clean WAV + complete PCM24 master + JSON technical report, 410,367,898 bytes ZIP.
+- All 11 segments preserved at native speed, original editorial text untouched, peak ceiling max 0.95 in resulting PCM; STOP-04 had 3 original samples exceeding full scale, gain adjusted without waveform reconstruction (past distortion cannot be assumed repaired).
+- **Human listening QA outstanding:** check audible joins, pronunciation, any artifacts/clipped original audio; do not equate passing numerical QA with subjective audio approval.
+- **Image acquisition:** all above cues without a specifically validated reusable file are HOLD for commercial audiovisual export. Prioritize public-domain or explicitly freely commercially licensed archival assets by matching object identifier, source page, commercial reuse terms, usable resolution and credit. Do not infer public domain from the word “Anonyme” alone.
+- **Commercial voice usage:** CC0 claim for selected Kyutai recordings requires retaining evidence tied to exact source files and consent conditions; independent Chatterbox engine license/disclosure checks remain open. Artistically locked voices must not be represented as fully legally cleared until proof documented.
+- **No additional rights-holder outreach authorized.** Preserve source narratives and cues, substitute only visual assets failing rights gates.
