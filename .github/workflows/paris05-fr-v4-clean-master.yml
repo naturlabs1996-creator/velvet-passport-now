@@ -1,0 +1,65 @@
+name: Paris 05 FR V4 clean master audio assembly
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-fr-v4-clean-master.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Get all 11 approved-source render artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p original
+          gh run download 39438033625 --dir original
+          test "$(find original -name '*-FR-NATIVE-100.wav' | wc -l)" -eq 11
+      - name: Install audio utilities
+        run: python -m pip install numpy soundfile
+      - name: Validate and assemble; safe corrective gain only if required
+        run: |
+          python - <<'PY'
+          import numpy as np, soundfile as sf, json, hashlib
+          from pathlib import Path
+          order=['INTRO','STOP-01','TRANSITION-01-SEBAI','STOP-SEBAI-1977','TRANSITION-01-02','STOP-02','TRANSITION-02-03','STOP-03','TRANSITION-03-04','STOP-04','OUTRO']
+          paths=list(Path('original').rglob('*-FR-NATIVE-100.wav'))
+          assert len(paths)==11, f'Expected 11 WAV, got {len(paths)}'
+          dest=Path('clean');dest.mkdir(exist_ok=True)
+          report=[];all_audio=[]
+          sr0=None
+          for seg in order:
+              candidates=[p for p in paths if p.name==f'{seg}-FR-NATIVE-100.wav']
+              assert len(candidates)==1, (seg,candidates)
+              y,sr=sf.read(str(candidates[0]),dtype='float32',always_2d=False)
+              assert y.ndim==1 and np.isfinite(y).all() and sr==24000, seg
+              peak=float(np.max(np.abs(y)));gain=1.
+              if peak>.95:
+                  gain=.95/peak
+                  y=y*gain
+              after=float(np.max(np.abs(y)))
+              assert after<=.951, (seg,after)
+              sf.write(str(dest/f'{seg}-FR-CLEAN-100.wav'),y,sr,subtype='PCM_24')
+              report.append({'segment':seg,'source_peak':round(peak,6),'linear_gain':round(gain,7),'output_peak':round(after,6),'seconds':round(len(y)/sr,3),'sample_rate':sr,'unchanged_tempo':True,'text_changed':False,'over_1_original_samples':int(np.count_nonzero(np.abs(sf.read(str(candidates[0]),dtype='float32')[0])>1.0))})
+              all_audio.append(y)
+          joined=np.concatenate(all_audio)
+          assert len(joined)==sum(len(x) for x in all_audio)
+          sf.write(str(dest/'PARIS05-FR-V4-NATIVE100-CLEAN-ASSEMBLY.wav'),joined,24000,subtype='PCM_24')
+          report_total={'source_workflow_run':39438033625,'status':'TECHNICAL ASSEMBLY QA ONLY','segment_count':len(order),'duration_sec':round(len(joined)/24000,3),'master_peak':round(float(np.max(np.abs(joined))),6),'original_texts_modified':False,'time_stretch':False,'additional_pause_or_music':False,'human_listening':'PENDING','visual_rights':'PENDING','commercial_voice_rights':'PENDING','segments':report}
+          (dest/'QA-CLEAN-ASSEMBLY.json').write_text(json.dumps(report_total,indent=2,ensure_ascii=False))
+          print(json.dumps(report_total,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-fr-v4-clean-master-and-11-segments
+          path: clean/*
+          retention-days: 14
