@@ -18,8 +18,8 @@
 - **STOP-01-CUE-02** [VISUAL] cartes de visite photographiques du XIXe siècle — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
 - **STOP-01-CUE-03** [VISUAL] verso de carte photographique Appert, collection du Rijksmuseum — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
 - **STOP-01-CUE-04** [LOOK] adresse actuelle — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
-- **STOP-01-CUE-05** [VISUAL] photomontage Appert, groupe de neuf personnalités politiques, Rijksmuseum — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
-- **STOP-01-CUE-06** [VISUAL] série Les Crimes de la Commune, image correctement légendée — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
+- **STOP-01-CUE-05** [VISUAL] photomontage Appert, neuf hommes politiques, Rijksmuseum **RP-F-2007-161**, https://id.rijksmuseum.nl/200489498 — **SOURCE ET DROITS : VÉRIFIÉS, PUBLIC DOMAIN selon fiche objet ; image numérique HD : À EXTRAIRE / QA avant montage**. La notice comporte l'inscription ancienne adresse « ci-devant, 21 rue Louis-le-Grand ». Crédit conseillé : Rijksmuseum, RP-F-2007-161.
+- **STOP-01-CUE-06** [VISUAL] source candidate précisément identifiée : photomontage Appert « enlèvement des cadavres de six otages exécutés à la prison de la Roquette », Rijksmuseum https://id.rijksmuseum.nl/200332472 — **DROITS : PUBLIC DOMAIN selon notice ; source et période (1871) vérifiées ; image HD : À EXTRAIRE / QA ; ne PAS légender comme capture directe de l'exécution ni présumer qu'elle illustre exactement toute autre scène narrée**.
 - **STOP-01-CUE-07** [VISUAL] détail du montage, puis retour à l'image complète — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
 - **STOP-01-CUE-08** [LOOK] façade du 21 — **SOURCE : à associer ; DROITS : non validés ; ASSET : non fourni**
 
@@ -118,3 +118,10 @@
 - **Image acquisition:** all above cues without a specifically validated reusable file are HOLD for commercial audiovisual export. Prioritize public-domain or explicitly freely commercially licensed archival assets by matching object identifier, source page, commercial reuse terms, usable resolution and credit. Do not infer public domain from the word “Anonyme” alone.
 - **Commercial voice usage:** CC0 claim for selected Kyutai recordings requires retaining evidence tied to exact source files and consent conditions; independent Chatterbox engine license/disclosure checks remain open. Artistically locked voices must not be represented as fully legally cleared until proof documented.
 - **No additional rights-holder outreach authorized.** Preserve source narratives and cues, substitute only visual assets failing rights gates.
+
+
+## VERIFICATION DOCUMENTAIRE — STOP-01 — 2026-10-20
+- Rijksmuseum object **RP-F-2007-161** (persistent https://id.rijksmuseum.nl/200489498) : *Fotomontage van negen mannen (politici) rondom een tafel*, Ernest Eugène Appert, ca. 1867–1871. Rights field **Public domain**. Inscription mentions **24 rue Taitbout** and former **21 rue Louis-le-Grand**. Use for STOP-01-CUE-05 and close-up at CUE-07, **only once downloaded exact object image and checked resolution**.
+- Rijksmuseum object https://id.rijksmuseum.nl/200332472 : photomontage of removal of six executed hostages at La Roquette, Ernest Eugène Appert, 1871. Rights field **Public domain**; does not constitute an on-scene reportage of execution and must retain exact descriptive caption.
+- Rijksmuseum policy https://data.rijksmuseum.nl/about/ says public-domain/CC0 collection images may be reused for commercial purposes; credit Rijksmuseum and cite exact object record as good practice. Object-level rights indication, not a blanket license for every museum item.
+- **Status:** 2 historically relevant authentic objects **DOCUMENTARY & RIGHTS VERIFIED**; actual high-resolution asset bytes, format, crop suitability and technical approval **STILL PENDING**. No claim that media files are already on disk. No outreach.
