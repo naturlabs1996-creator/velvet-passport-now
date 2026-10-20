@@ -75,3 +75,11 @@
 - [ ] Chaque image d'archive possède une source et une autorisation/licence vérifiée
 - [ ] Sous-titres/transcriptions synchronisés
 - [ ] Version EN adaptée et contrôlée seulement après approbation FR
+
+## RIGHTS UPDATE — STOP-04 Kommandantur / Robert Doisneau — 2026-10-20
+- Paris Musées has explicitly confirmed (user-supplied rights-holder reply): it does **not** hold out-of-portal reproduction rights in Robert Doisneau's work. They can supply the file only after presentation of Gamma-Rapho's written authorization.
+- **STATUS: RIGHTS HOLD — DO NOT PUBLISH, EXPORT IN COMMERCIAL MONTAGE, OR CONSTRUE PARIS MUSÉES ACCESS AS PERMISSION.**
+- Authorized licensing contact per official Atelier Robert Doisneau FAQ for advertising/audiovisual: Laetitia Payen, laetitia.payen@gamma-rapho.fr (https://www.robert-doisneau.com/fr/questions-reponses/).
+- Request formal quotation/permission for this specific image in Velvet Passport NOW Paris 05: paid mobile/web historical audiovisual route, worldwide audiences, bilingual FR/EN, multi-year/ongoing term, display within tour, downloaded/cached app asset where necessary, subtitles, cropping and screen resize, with exact mandatory credit and restrictions.
+- Require exact Paris Musées inventory URL/identifier and image title for unequivocal identification. No rights clearance until licensor responds in writing.
+- Upon written permission, forward evidence to Paris Musées to obtain requested HD file; archive provenance, license, authorized terms, asset reference and costs. If fee or terms incompatible: choose another authentic properly licensed Kommandantur image; narrative remains LOCK.
