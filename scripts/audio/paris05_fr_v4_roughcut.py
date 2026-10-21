@@ -7,7 +7,7 @@ OUT=ROOT/"roughcut"; OUT.mkdir(exist_ok=True)
 AUDIO=ROOT/"clean"
 EDL=json.loads((ROOT/"docs/pilots/paris-05-fr-v4-edit-decision-list-provisional.json").read_text())
 font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-F=ImageFont.truetype(font,30); S=ImageFont.truetype/dejavu/DejaVuSans.ttf
+F=ImageFont.truetype(font,30); S=font
 small=ImageFont.truetype(S,18)
 def call(cmd): subprocess.run(cmd,check=True)
 def slate(seg):
