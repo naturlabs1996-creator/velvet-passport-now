@@ -1,0 +1,37 @@
+name: Paris05 final corrected French audio 11 segment master
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-fr-final-audio.yml'
+  workflow_dispatch:
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Get eleven six-fix WAVs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39605629084 -n paris05-fr-six-pronunciation-splices-REVIEW-only -D corrected
+      - name: Get approved duel transition excerpt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39612853502 -n paris05-duel-transition-corrected-listening -D duel-approved
+      - name: Install speech alignment
+        run: python -m pip install faster-whisper==1.2.1 scipy==1.15.3 numpy==2.2.6
+      - name: Build joined 11 segment French master with guarded insertion
+        run: python scripts/audio/paris05_fr_final_assemble.py
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: paris05-fr-final-11seg-audio-and-qa
+          path: final-audio/*
+          retention-days: 14
