@@ -1,0 +1,392 @@
+{
+  "route_id": "VP-PAR-NOW-05",
+  "lang": "fr",
+  "status": "PROVISIONAL_EDIT_DECISION_LIST_NOT_FINAL_VIDEO",
+  "generated_date": "2026-10-20",
+  "source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json",
+  "audio_run": "https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/39488651589",
+  "visual_rights_register": "docs/pilots/PARIS-05-V4-AUDIOVISUAL-SHOTLIST-RIGHTS.md",
+  "master_duration_seconds": 3679.8,
+  "caveats": [
+    "Times for cues are linear estimates based on spoken character positions; they are not accurate timestamps. Final positions require audio alignment and human listening.",
+    "Cue numbering is per segment based on VISUAL/LOOK/WALK cues only; must be matched against rights register before export.",
+    "No asset is declared HD-downloaded or commercial-ready by this timeline.",
+    "Historical images must be authentic, not AI generated. Reconstructed catalog graphics require clear label and factual proofreading.",
+    "PH10999 remains excluded; no further correspondence with rightsholders."
+  ],
+  "segments": [
+    {
+      "id": "INTRO",
+      "title": "Opéra Back Streets",
+      "start_sec": 0,
+      "end_sec": 120.3,
+      "duration_sec": 120.3,
+      "cues": []
+    },
+    {
+      "id": "STOP-01",
+      "title": "Ernest Appert — 21 rue Louis-le-Grand",
+      "start_sec": 120.3,
+      "end_sec": 599.62,
+      "duration_sec": 479.32,
+      "cues": [
+        {
+          "id": "STOP-01-CUE-01",
+          "type": "LOOK",
+          "detail": "façade du 21 rue Louis-le-Grand",
+          "approx_segment_offset_sec": 0.1,
+          "approx_master_time_sec": 120.4,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "STOP-01-CUE-02",
+          "type": "VISUAL",
+          "detail": "cartes de visite photographiques du XIXe siècle",
+          "approx_segment_offset_sec": 69.8,
+          "approx_master_time_sec": 190.1,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-01-CUE-03",
+          "type": "VISUAL",
+          "detail": "verso de carte photographique Appert, collection du Rijksmuseum",
+          "approx_segment_offset_sec": 116.9,
+          "approx_master_time_sec": 237.2,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-01-CUE-04",
+          "type": "LOOK",
+          "detail": "adresse actuelle",
+          "approx_segment_offset_sec": 139.2,
+          "approx_master_time_sec": 259.5,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "STOP-01-CUE-05",
+          "type": "VISUAL",
+          "detail": "photomontage Appert, groupe de neuf personnalités politiques, Rijksmuseum",
+          "approx_segment_offset_sec": 204.6,
+          "approx_master_time_sec": 324.9,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-01-CUE-06",
+          "type": "VISUAL",
+          "detail": "série Les Crimes de la Commune, image correctement légendée",
+          "approx_segment_offset_sec": 274.9,
+          "approx_master_time_sec": 395.2,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-01-CUE-07",
+          "type": "VISUAL",
+          "detail": "détail du montage, puis retour à l'image complète",
+          "approx_segment_offset_sec": 334.4,
+          "approx_master_time_sec": 454.7,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-01-CUE-08",
+          "type": "LOOK",
+          "detail": "façade du 21",
+          "approx_segment_offset_sec": 396.2,
+          "approx_master_time_sec": 516.5,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-01-SEBAI",
+      "title": "Du 21 rue Louis-le-Grand à l’adresse Sebaï",
+      "start_sec": 599.62,
+      "end_sec": 709.3,
+      "duration_sec": 109.68,
+      "cues": [
+        {
+          "id": "TRANSITION-01-SEBAI-CUE-01",
+          "type": "WALK",
+          "detail": "Départ du 21 rue Louis-le-Grand",
+          "approx_segment_offset_sec": 0,
+          "approx_master_time_sec": 599.6,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "TRANSITION-01-SEBAI-CUE-02",
+          "type": "LOOK",
+          "detail": "Porte cochère grise du numéro 23",
+          "approx_segment_offset_sec": 44.3,
+          "approx_master_time_sec": 643.9,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        }
+      ]
+    },
+    {
+      "id": "STOP-SEBAI-1977",
+      "title": "Laïd Sebaï — assassinat du 2 décembre 1977, rue Louis-le-Grand (23 bis cité par la presse; entrée à confirmer)",
+      "start_sec": 709.3,
+      "end_sec": 1443.22,
+      "duration_sec": 733.92,
+      "cues": [
+        {
+          "id": "STOP-SEBAI-1977-CUE-01",
+          "type": "LOOK",
+          "detail": "Grande porte cochère du 23 rue Louis-le-Grand",
+          "approx_segment_offset_sec": 0,
+          "approx_master_time_sec": 709.3,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "STOP-SEBAI-1977-CUE-02",
+          "type": "VISUAL",
+          "detail": "Article du Monde, 29 juillet 1975",
+          "approx_segment_offset_sec": 47.8,
+          "approx_master_time_sec": 757.1,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-SEBAI-1977-CUE-03",
+          "type": "LOOK",
+          "detail": "Porte cochère du numéro 23",
+          "approx_segment_offset_sec": 175.5,
+          "approx_master_time_sec": 884.8,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "STOP-SEBAI-1977-CUE-04",
+          "type": "VISUAL",
+          "detail": "Portrait ou document historique concernant Ghraieb",
+          "approx_segment_offset_sec": 255.6,
+          "approx_master_time_sec": 964.9,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-01-02",
+      "title": "De Sebaï à Joséphine",
+      "start_sec": 1443.22,
+      "end_sec": 1472.18,
+      "duration_sec": 28.96,
+      "cues": []
+    },
+    {
+      "id": "STOP-02",
+      "title": "La dispersion de Malmaison — 16 rue Louis-le-Grand",
+      "start_sec": 1472.18,
+      "end_sec": 1961.48,
+      "duration_sec": 489.3,
+      "cues": [
+        {
+          "id": "STOP-02-CUE-01",
+          "type": "LOOK",
+          "detail": "Le numéro 16 rue Louis-le-Grand",
+          "approx_segment_offset_sec": 0,
+          "approx_master_time_sec": 1472.2,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "STOP-02-CUE-02",
+          "type": "VISUAL",
+          "detail": "Portrait authentifié de Joséphine, vues anciennes de Malmaison",
+          "approx_segment_offset_sec": 88.1,
+          "approx_master_time_sec": 1560.3,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-02-CUE-03",
+          "type": "VISUAL",
+          "detail": "Page de titre et feuillets du catalogue de vente de 1819",
+          "approx_segment_offset_sec": 167.1,
+          "approx_master_time_sec": 1639.3,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-02-CUE-04",
+          "type": "VISUAL",
+          "detail": "Carte historique de l'expédition Baudin et gravures de collections naturalistes",
+          "approx_segment_offset_sec": 287.6,
+          "approx_master_time_sec": 1759.8,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-02-03",
+      "title": "Vers l’Opéra",
+      "start_sec": 1961.48,
+      "end_sec": 2088.26,
+      "duration_sec": 126.78,
+      "cues": []
+    },
+    {
+      "id": "STOP-03",
+      "title": "La Kommandantur de l’Opéra — 19, 20 et 25 août 1944",
+      "start_sec": 2088.26,
+      "end_sec": 2594.88,
+      "duration_sec": 506.62,
+      "cues": [
+        {
+          "id": "STOP-03-CUE-01",
+          "type": "LOOK",
+          "detail": "Le Palais Garnier et les immeubles faisant face à la place",
+          "approx_segment_offset_sec": 0,
+          "approx_master_time_sec": 2088.3,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "STOP-03-CUE-02",
+          "type": "VISUAL",
+          "detail": "Photographie d'époque du secteur Opéra, 19 août 1944, attribution vérifiée",
+          "approx_segment_offset_sec": 66.5,
+          "approx_master_time_sec": 2154.8,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-03-CUE-03",
+          "type": "VISUAL",
+          "detail": "Chronologie photographique 19–25 août 1944",
+          "approx_segment_offset_sec": 190.1,
+          "approx_master_time_sec": 2278.4,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-03-CUE-04",
+          "type": "VISUAL",
+          "detail": "Photo LAPI n° 28401, attaque de la Kommandantur",
+          "approx_segment_offset_sec": 258.8,
+          "approx_master_time_sec": 2347.1,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-03-CUE-05",
+          "type": "VISUAL",
+          "detail": "Vue comparative historique et actuelle depuis angle validé",
+          "approx_segment_offset_sec": 333.9,
+          "approx_master_time_sec": 2422.2,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-03-CUE-06",
+          "type": "VISUAL",
+          "detail": "Photo historique de la reddition et drapeau blanc, légende authentifiée",
+          "approx_segment_offset_sec": 375,
+          "approx_master_time_sec": 2463.3,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        }
+      ]
+    },
+    {
+      "id": "TRANSITION-03-04",
+      "title": "Faire disparaître l’Opéra",
+      "start_sec": 2594.88,
+      "end_sec": 2714.98,
+      "duration_sec": 120.1,
+      "cues": []
+    },
+    {
+      "id": "STOP-04",
+      "title": "Beaufort contre Nemours — 30 juillet 1652",
+      "start_sec": 2714.98,
+      "end_sec": 3598.68,
+      "duration_sec": 883.7,
+      "cues": [
+        {
+          "id": "STOP-04-CUE-01",
+          "type": "LOOK",
+          "detail": "Secteur de l'ancienne rue Neuve-des-Petits-Champs et de la rue d'Antin",
+          "approx_segment_offset_sec": 0,
+          "approx_master_time_sec": 2715,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        },
+        {
+          "id": "STOP-04-CUE-02",
+          "type": "VISUAL",
+          "detail": "Plan historique de Paris au milieu du XVIIe siècle",
+          "approx_segment_offset_sec": 66.9,
+          "approx_master_time_sec": 2781.9,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-04-CUE-03",
+          "type": "VISUAL",
+          "detail": "Portrait historique identifié du duc de Beaufort",
+          "approx_segment_offset_sec": 105.3,
+          "approx_master_time_sec": 2820.3,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-04-CUE-04",
+          "type": "VISUAL",
+          "detail": "Portrait historique identifié de Charles-Amédée de Savoie, duc de Nemours",
+          "approx_segment_offset_sec": 147.8,
+          "approx_master_time_sec": 2862.8,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-04-CUE-05",
+          "type": "VISUAL",
+          "detail": "Portrait de la Grande Mademoiselle",
+          "approx_segment_offset_sec": 230.3,
+          "approx_master_time_sec": 2945.3,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-04-CUE-06",
+          "type": "VISUAL",
+          "detail": "Plan ancien localisant le marché aux chevaux",
+          "approx_segment_offset_sec": 393.7,
+          "approx_master_time_sec": 3108.7,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "CHECK_RIGHTS_REGISTER_AND_HD_FILE"
+        },
+        {
+          "id": "STOP-04-CUE-07",
+          "type": "LOOK",
+          "detail": "Rue d'Antin et environnement actuel",
+          "approx_segment_offset_sec": 772.9,
+          "approx_master_time_sec": 3487.9,
+          "timing_status": "ESTIMATE_NOT_AUDIO_ALIGNED",
+          "asset_status": "ON_SITE_GUIDANCE_NO_ARCHIVE_FILE"
+        }
+      ]
+    },
+    {
+      "id": "OUTRO",
+      "title": "Paris superposé",
+      "start_sec": 3598.68,
+      "end_sec": 3679.8,
+      "duration_sec": 81.12,
+      "cues": []
+    }
+  ]
+}
