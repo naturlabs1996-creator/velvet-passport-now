@@ -1,4 +1,5 @@
 name: Paris 05 FR V4 technical video rough cut
+# Rerun after font loading typo fix
 on:
   push:
     branches: [main]
