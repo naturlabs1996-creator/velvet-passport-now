@@ -43,7 +43,7 @@ for seg,items in by_seg.items():
   best=candidates[0]
   alternatives=[c for c in candidates if c[1]!=best[1] and abs(c[1]-best[1])>3]
   second=alternatives[0][0] if alternatives else 0
-  if best[0]<0.89 or (second>best[0]-0.035):
+  if best[0]<0.74 or (second>best[0]-0.10):
    raise RuntimeError(f"AMBIGUOUS {item['id']}: score {best[0]:.3f}, runner-up {second:.3f}")
   start=words[best[1]].start;end=words[best[2]-1].end
   assert start is not None and end is not None and end>start+0.2
