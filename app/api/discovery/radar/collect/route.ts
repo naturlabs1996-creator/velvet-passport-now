@@ -115,7 +115,7 @@ async function runCollector() {
 export async function GET(request: Request) {
   const secret = process.env.RADAR_COLLECTOR_SECRET;
   const auth = request.headers.get("authorization");
-  if (process.env.VERCEL_ENV === "production" && secret && auth !== `Bearer ${secret}`) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  if (process.env.VERCEL_ENV === "production" && (!secret || auth !== `Bearer ${secret}`)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   try {
     return NextResponse.json(await runCollector());
   } catch (error) {
