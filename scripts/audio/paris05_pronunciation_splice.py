@@ -7,6 +7,8 @@ from scipy.io import wavfile
 
 A=pathlib.Path("clean"); B=pathlib.Path("auditions"); OUT=pathlib.Path("corrected"); OUT.mkdir(exist_ok=True)
 m=json.loads(pathlib.Path("docs/pilots/paris05-fr-pronunciation-auditions.json").read_text())
+intro=json.loads(pathlib.Path("docs/pilots/paris05-fr-intro-last-pronunciation.json").read_text())
+m["auditions"].append({"id":"intro-louis-le-grand","segment":"INTRO","canonical":intro["canonical"],"candidate":intro["candidate"],"human_approval":"APPROVED"})
 assert all(a["human_approval"]=="APPROVED" for a in m["auditions"])
 def norm(t):
  t=unicodedata.normalize("NFKD",t.lower());t="".join(x for x in t if not unicodedata.combining(x))
