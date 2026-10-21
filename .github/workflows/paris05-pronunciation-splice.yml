@@ -39,3 +39,5 @@ jobs:
           name: paris05-fr-pronunciation-splice-REVIEW-only
           path: corrected/*
           retention-days: 14
+
+# Rerun unique-candidate review alignment with conservative margin guard
