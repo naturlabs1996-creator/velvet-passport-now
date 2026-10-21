@@ -35,7 +35,7 @@ jobs:
           root=Path("en-production")
           obj=json.loads(Path("docs/pilots/paris-05-en-production-intro.json").read_text())
           text=obj["segments"][0]["text"]
-          chunks=[v.strip() for v in re.split(r'(?<=[.!?])\\s+|\\n\\s*\\n',text) if v.strip()]
+          chunks=[v.strip() for v in re.split(r'(?<=[.!?])\s+|\n\s*\n',text) if v.strip()]
           assert len(chunks)>12, len(chunks)
           model=ChatterboxMultilingualTTS.from_pretrained(device="cpu",t3_model="v3")
           silence=torch.zeros(int(model.sr*0.32),dtype=torch.float32)
