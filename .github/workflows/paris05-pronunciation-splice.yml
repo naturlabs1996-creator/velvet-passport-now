@@ -29,6 +29,12 @@ jobs:
         run: |
           gh run download 39531710824 -n paris05-fr-pronunciation-five-candidates -D auditions
           find auditions -maxdepth 1 -name '*.wav' | wc -l
+      - name: Fetch user-approved final introduction line
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 39597674565 -n paris05-fr-intro-Louis-le-Grand-LAST-CHECK -D intro-final
+          cp intro-final/INTRO-Louis-le-Grand-LAST-CHECK.wav auditions/intro-louis-le-grand.wav
       - name: Install alignment and WAV utilities
         run: python -m pip install faster-whisper==1.2.1 scipy==1.15.3 numpy==2.2.6
       - name: Align spoken text and build isolated review WAVs
@@ -36,7 +42,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: paris05-fr-pronunciation-splice-REVIEW-only
+          name: paris05-fr-six-pronunciation-splices-REVIEW-only
           path: corrected/*
           retention-days: 14
 
