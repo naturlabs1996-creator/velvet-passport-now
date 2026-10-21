@@ -1,0 +1,61 @@
+name: Paris 05 English Ernest Appert p232 full segment
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-en-stop01-production.yml'
+      - 'docs/pilots/paris-05-en-production-stop01.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-en-stop01:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile numpy
+      - name: Fetch approved English speaker
+        run: |
+          mkdir -p en-production
+          curl --fail --location --retry 3 -o en-production/p232-reference.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true"
+      - name: Generate English Ernest Appert segment at native pace
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, json, torch, torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          root=Path("en-production")
+          obj=json.loads(Path("docs/pilots/paris-05-en-production-stop01.json").read_text())
+          text=obj["segments"][0]["text"]
+          chunks=[v.strip() for v in re.split(r'(?<=[.!?])\s+|\n\s*\n',text) if v.strip()]
+          assert len(chunks)>12, len(chunks)
+          model=ChatterboxMultilingualTTS.from_pretrained(device="cpu",t3_model="v3")
+          silence=torch.zeros(int(model.sr*0.32),dtype=torch.float32)
+          parts=[]
+          for i,part in enumerate(chunks):
+              voice=model.generate(part,language_id="en",audio_prompt_path=str(root/"p232-reference.wav"),exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
+              parts.append(voice)
+              if i<len(chunks)-1:parts.append(silence)
+              print(f"EN-STOP01 chunk {i+1}/{len(chunks)} {len(voice)/model.sr:.2f}s",flush=True)
+          combined=torch.cat(parts)
+          name="PARIS05-EN-STOP01-p232-NATIVE-AUDITION.wav"
+          torchaudio.save(str(root/name),combined.unsqueeze(0),model.sr)
+          report={"route":"VP-PAR-NOW-05","segment":"STOP-01","status":"AUDIO_GENERATED_LISTENING_QA_PENDING","sample_rate":model.sr,"duration_seconds":round(len(combined)/model.sr,2),"chunk_count":len(chunks),"speaker":"p232","native_tempo":1.0,"commercial_voice_rights":"PENDING"}
+          (root/"QA-EN-STOP01.json").write_text(json.dumps(report,indent=2))
+          print("REPORT",json.dumps(report),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-en-stop01-p232-listening-qa
+          path: |
+            en-production/PARIS05-EN-STOP01-p232-NATIVE-AUDITION.wav
+            en-production/QA-EN-STOP01.json
+          retention-days: 30
