@@ -2,5 +2,11 @@
   "project": "VP-PAR-NOW-05",
   "segment": "TRANSITION-03-04",
   "candidate": "À proximité se trouvait autrefois le grand Hôtel de Vendôme. Et derrière cet hôtel s’étendait un espace beaucoup plus ouvert qu’aujourd’hui : un marché aux chevaux. Essayez de remplacer les façades par un terrain irrégulier, où se côtoient des chevaux, des marchands, de la poussière et des cris pendant les heures d’activité. Le soir du trente juillet mille six cent cinquante-deux, cet endroit devient le lieu d’une rencontre armée.",
-  "status": "LISTENING_ONLY_NOT_MASTER"
+  "status": "USER_APPROVED_FOR_AUDIO_INTEGRATION",
+  "approval": {
+    "date": "2026-10-21",
+    "verdict": "Tout est bon, on passe à la suite",
+    "source_run": 39612853502,
+    "artifact_id": 12351711868
+  }
 }
