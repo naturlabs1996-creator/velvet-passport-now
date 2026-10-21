@@ -1,0 +1,99 @@
+{
+  "project": "VP-PAR-05",
+  "version": "1.0",
+  "productionStage": "ASSET_INGEST_PENDING",
+  "audio": {
+    "runId": 39629212549,
+    "artifactId": 12359015553,
+    "artifactName": "paris05-fr-final-11seg-audio-and-qa",
+    "status": "BUILT_QA_ARTIFACT_AVAILABLE",
+    "humanEndToEndListen": "PENDING"
+  },
+  "policy": {
+    "authenticHistoricalVisualsOnly": true,
+    "noGeneratedHistoricalImages": true,
+    "noPaidLicenses": true,
+    "noRightsOutreach": true,
+    "failClosedOnUnverifiedRights": true
+  },
+  "segments": [
+    "INTRO",
+    "STOP-01",
+    "TRANSITION-01-SEBAI",
+    "STOP-SEBAI-1977",
+    "TRANSITION-01-02",
+    "STOP-02",
+    "TRANSITION-02-03",
+    "STOP-03",
+    "TRANSITION-03-04",
+    "STOP-04",
+    "OUTRO"
+  ],
+  "approvedArchivalCandidates": [
+    {
+      "segment": "STOP-01",
+      "cue": "STOP-01-CUE-05",
+      "institution": "Rijksmuseum",
+      "objectId": "RP-F-2007-161",
+      "url": "https://id.rijksmuseum.nl/200489498",
+      "rights": "PUBLIC_DOMAIN_PER_COLLECTION_RECORD",
+      "hdDownloaded": false
+    },
+    {
+      "segment": "STOP-01",
+      "cue": "STOP-01-CUE-06",
+      "institution": "Rijksmuseum",
+      "url": "https://id.rijksmuseum.nl/200332472",
+      "rights": "PUBLIC_DOMAIN_PER_COLLECTION_RECORD",
+      "hdDownloaded": false
+    },
+    {
+      "segment": "STOP-02",
+      "cue": "STOP-02-CUE-02",
+      "institution": "Rijksmuseum",
+      "objectId": "RP-P-1951-602",
+      "url": "https://id.rijksmuseum.nl/200185416",
+      "rights": "PUBLIC_DOMAIN_PER_COLLECTION_RECORD",
+      "hdDownloaded": false
+    },
+    {
+      "segment": "STOP-04",
+      "cue": "STOP-04-CUE-03",
+      "institution": "BnF Gallica",
+      "objectId": "btv1b8405032k",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_de_Fran%C3%A7ois_de_Vend%C3%B4me,_duc_de_Beaufort,_en_buste,_de_3-4_dirig%C3%A9_%C3%A0_gauche_dans_une_bordure_ovale_-_estampe_-_btv1b8405032k.jpg",
+      "rights": "PUBLIC_DOMAIN_PER_COMMONS",
+      "hdDownloaded": false
+    },
+    {
+      "segment": "STOP-04",
+      "cue": "STOP-04-CUE-04",
+      "institution": "Royal Collection / Commons",
+      "objectId": "RCIN 615675",
+      "url": "https://commons.wikimedia.org/wiki/File:Charles_Am%C3%A9d%C3%A9e_of_Savoy,_Duke_of_Nemours_in_1652.jpg",
+      "rights": "PUBLIC_DOMAIN_PER_COMMONS",
+      "hdDownloaded": false
+    }
+  ],
+  "blockedImages": [
+    {
+      "segment": "STOP-03",
+      "objectIds": [
+        "PH10999",
+        "PH11026",
+        "PH35284",
+        "PH34929"
+      ],
+      "status": "RIGHTS_HOLD",
+      "reason": "No verified commercial reuse clearance. Do not ingest."
+    }
+  ],
+  "gates": {
+    "rightsCheck": "PARTIAL",
+    "hdIngest": "NOT_STARTED",
+    "imageIntegrity": "NOT_STARTED",
+    "cueTimingToFinalAudio": "NOT_STARTED",
+    "commercialExport": "BLOCKED"
+  },
+  "nextAction": "Ingest the five approved historical image candidates from source at original resolution, inspect file quality and confirm per-object license, then generate a timed contact sheet."
+}
