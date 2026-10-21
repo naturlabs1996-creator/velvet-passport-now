@@ -1,0 +1,21 @@
+{
+  "route_id": "VP-PAR-NOW-05",
+  "language": "en",
+  "variant": "British English",
+  "status": "ORAL_EN_ADAPTATION_READY_FOR_AUDIO_QA",
+  "source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json",
+  "voice": {
+    "speaker": "p232",
+    "reference": "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true",
+    "commercialRights": "PENDING"
+  },
+  "segments": [
+    {
+      "id": "TRANSITION-01-SEBAI",
+      "title": "From Ernest Appert to Laïd Sebaï",
+      "text": "Leave number twenty-one behind now, and walk gently along the street.\n\nWe haven't far to go.\n\nBut in those few steps, we're going to move forward almost a century.\n\nLeave the nineteenth-century photography studios behind.\n\nWe're entering the Paris of the nineteen seventies.\n\nThe grand old façades are still standing.\n\nBut the life behind them has changed completely.\n\nThere are offices on the upper floors. Associations occupy other rooms. People arrive to work in the morning and leave again in the evening.\n\nAnd some entrances still conceal courtyards and hallways that passers-by never see.\n\nLook now at the large grey carriage doorway at number twenty-three.\n\nNotice its two leaves, the carved decoration and the stone surround.\n\nBuilding work here is documented in eighteen eighty-three and eighteen eighty-four.\n\nWe don't yet know exactly when the doors you can see were made.\n\nBut this entrance is an unmistakable landmark in the street.\n\nIn December nineteen seventy-seven, newspaper reports gave the address of the Amicale des Algériens en Europe as number twenty-three bis.\n\nWe cannot yet say with certainty which precise entrance that designation referred to.\n\nThe uncertainty about the doorway remains.\n\nBut the events themselves are coming into focus.\n\nOn the morning of Friday, the second of December, nineteen seventy-seven, a man was finishing his shift as a night watchman somewhere behind one of these entrances.\n\nHe was still inside the building.\n\nThe street was beginning to wake up.\n\nHe would soon be leaving.\n\nBut he would never make it home.\n\nAt the end of this short walk, we can finally give him his name.\n\nLaïd Sebaï.\n\nThis is his story.",
+      "sourceSegment": "TRANSITION-01-SEBAI",
+      "editorialStatus": "ORAL_EN_ADAPTATION_READY_FOR_AUDIO_QA"
+    }
+  ]
+}
