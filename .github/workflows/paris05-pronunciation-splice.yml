@@ -47,3 +47,5 @@ jobs:
           retention-days: 14
 
 # Rerun unique-candidate review alignment with conservative margin guard
+
+# rerun after excluding overlapping candidate windows
