@@ -95,5 +95,27 @@
     "cueTimingToFinalAudio": "NOT_STARTED",
     "commercialExport": "BLOCKED"
   },
-  "nextAction": "Ingest the five approved historical image candidates from source at original resolution, inspect file quality and confirm per-object license, then generate a timed contact sheet."
+  "nextAction": "Produce and QA Paris 05 English audio while ingesting authentic visuals for both FR and EN; assemble two synchronized language versions from a shared rights-cleared visual pool.",
+  "productionPolicy": {
+    "languages": [
+      "fr",
+      "en"
+    ],
+    "sequence": "PARALLEL_PER_ROUTE",
+    "principle": "Every route is produced and QA-reviewed in both French and natural British English within the same production cycle; neither language is postponed to a later batch.",
+    "sameEditorialHistoryAndEvidence": true,
+    "separateAudioAndSubtitlesPerLanguage": true,
+    "englishVoice": "natural British English, no caricature",
+    "publicationGate": "Both language versions must pass their own audio, audiovisual, rights, and synchronization checks before declaring the route bilingual complete."
+  },
+  "languageStatus": {
+    "fr": {
+      "audio": "ASSEMBLED_QA_ARTIFACT_AVAILABLE",
+      "audiovisual": "IN_PROGRESS"
+    },
+    "en": {
+      "audio": "TO_PRODUCE_IN_SAME_PARIS05_CYCLE",
+      "audiovisual": "IN_PROGRESS_IN_PARALLEL"
+    }
+  }
 }
