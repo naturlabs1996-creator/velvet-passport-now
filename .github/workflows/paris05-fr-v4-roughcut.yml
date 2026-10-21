@@ -1,0 +1,37 @@
+name: Paris 05 FR V4 technical video rough cut
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-fr-v4-roughcut.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  roughcut:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download locked clean French audio
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p clean
+          gh run download 39488651589 -n paris05-fr-v4-clean-master-and-11-segments -D clean
+          test "$(find clean -maxdepth 1 -name '*-FR-CLEAN-100.wav' | wc -l)" -eq 11
+      - name: Prepare FFMPEG and Pillow
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          python -m pip install pillow
+      - name: Render technical rough cut from untouched approved audio
+        run: python scripts/audio/paris05_fr_v4_roughcut.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-fr-v4-technical-roughcut-mp4
+          path: |
+            roughcut/PARIS05-FR-V4-ROUGH-CUT-NOT-FINAL.mp4
+            roughcut/QA-ROUGHCUT.json
+          retention-days: 14
