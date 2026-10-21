@@ -43,7 +43,7 @@ for seg,items in by_seg.items():
     candidates.append((score,i,i+length))
   candidates.sort(reverse=True)
   best=candidates[0]
-  alternatives=[c for c in candidates if c[1]!=best[1] and abs(c[1]-best[1])>3]
+  alternatives=[c for c in candidates if c[2]<=best[1] or c[1]>=best[2]]  # genuinely distinct spans, not overlapping word-window variants
   second=alternatives[0][0] if alternatives else 0
   if best[0]<0.74 or (second>best[0]-0.10):
    raise RuntimeError(f"AMBIGUOUS {item['id']}: score {best[0]:.3f}, runner-up {second:.3f}")
