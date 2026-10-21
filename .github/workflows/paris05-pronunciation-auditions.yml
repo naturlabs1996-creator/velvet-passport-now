@@ -1,0 +1,32 @@
+name: Paris05 French targeted pronunciation auditions
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-pronunciation-auditions.yml'
+  workflow_dispatch:
+jobs:
+  audition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox engine
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch approved speaker reference
+        run: |
+          mkdir -p references
+          curl -fL --retry 3 -o references/developer-1.mp3 "https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developer-1.mp3?download=true"
+      - name: Render five candidate lines
+        run: python scripts/audio/render_paris05_pronunciation_auditions.py docs/pilots/paris05-fr-pronunciation-auditions.json output references/developer-1.mp3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-fr-pronunciation-five-candidates
+          path: output/*
+          retention-days: 14
