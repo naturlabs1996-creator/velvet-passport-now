@@ -1,0 +1,34 @@
+name: Paris05 corrected duel transition listening excerpt
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-duel-transition-listen.yml'
+  workflow_dispatch:
+jobs:
+  listen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install approved Chatterbox renderer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch approved narrator reference
+        run: |
+          mkdir -p references
+          curl -fL --retry 3 -o references/developer-1.mp3 "https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developer-1.mp3?download=true"
+      - name: Render corrected context
+        run: python scripts/audio/paris05_intro_last_check.py docs/pilots/paris05-duel-transition-corrected-listen.json output references/developer-1.mp3
+      - name: Rename labeled preview
+        run: mv output/INTRO-Louis-le-Grand-LAST-CHECK.wav output/PARIS05-DUEL-TRANSITION-CORRIGEE-A-ECOUTER.wav
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-duel-transition-corrected-listening
+          path: output/*
+          retention-days: 14
