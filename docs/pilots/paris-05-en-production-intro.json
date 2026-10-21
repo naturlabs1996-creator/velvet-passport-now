@@ -1,0 +1,21 @@
+{
+  "route_id": "VP-PAR-NOW-05",
+  "language": "en",
+  "variant": "British English",
+  "status": "INTRO_DRAFT_FOR_ORAL_QA_NOT_FULL_ROUTE",
+  "source": "docs/pilots/paris-05-recording-master-fr-v4-editorial-assembly.json",
+  "voice": {
+    "speaker": "p232",
+    "reference": "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true",
+    "approval": "ARTISTIC_LOCK",
+    "commercialRights": "PENDING"
+  },
+  "segments": [
+    {
+      "id": "INTRO",
+      "text": "Welcome to the back streets of the Opéra. Monumental Paris is never far away here. But on this walk, we're going to look beyond the grand façades, and discover what lies behind them.\n\nSide streets. Buildings we pass without really noticing. Addresses that have belonged to photographers, collectors, soldiers and aristocrats.\n\nBefore we begin, take a moment to look around you.\n\nWe're about to follow the Rue Louis-le-Grand. It sounds like a thoroughly royal name, doesn't it? But the street hasn't always been called that. During the French Revolution, it became the Rue des Piques. A few years later, it was renamed Rue de la Place-Vendôme, before eventually recovering the name it bears today.\n\nEven a street sign can conceal several different versions of Paris. And that's what we're here to discover: layer after layer.\n\nWe'll begin with a photographer whose pictures brought portraiture, justice, politics and visual manipulation into a surprisingly tangled relationship.\n\nJust a few doors away, another address will lead us to a political assassination in December nineteen seventy-seven.\n\nThen we'll enter the world of Joséphine, the Empress, and the remarkable possessions associated with Malmaison.\n\nAfter that, the neighbourhood will change century almost without warning. We'll return to Paris during the Liberation, in August nineteen forty-four.\n\nAnd finally, we'll travel much further back, to an aristocratic duel that ended with one of the men dead.\n\nFive remarkable stories. But the walk between them matters, too.\n\nLook at the façades. The corners of the streets. The upper floors. The sudden changes in scale. The little details that appear perfectly ordinary at first glance.\n\nBecause here, the small things can reveal just as much as the grand monuments.\n\nNow make your way to number twenty-one, Rue Louis-le-Grand. Our first story begins with a man who understood, remarkably early, that a photograph could do much more than show someone's face.",
+      "editorialStatus": "EN_ADAPTATION_DRAFT",
+      "sourceSegment": "INTRO"
+    }
+  ]
+}
