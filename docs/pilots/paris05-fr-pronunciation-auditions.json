@@ -1,0 +1,42 @@
+{
+  "project": "VP-PAR-NOW-05",
+  "status": "PRONUNCIATION_AUDITIONS_NOT_MASTER_EDITS",
+  "rule": "Editorial manifest and master WAV untouched; only candidate performance text for listening",
+  "auditions": [
+    {
+      "id": "appert-taitbout",
+      "segment": "STOP-01",
+      "canonical": "24 rue Taitbout.",
+      "candidate": "vingt-quatre rue Tè-bou.",
+      "note": "phonetic approximation audition only; verify French pronunciation before selecting"
+    },
+    {
+      "id": "sebai-ghraieb",
+      "segment": "STOP-SEBAI-1977",
+      "canonical": "L'hypothèse d'une confusion avec Abdelkrim Ghraieb apparaît très tôt dans la presse.",
+      "candidate": "L'hypothèse d'une confusion avec Abdelkrim Ghraïeb apparaît très tôt dans la presse.",
+      "note": "diacritic candidate unverified; requires human approval"
+    },
+    {
+      "id": "sebai-maione",
+      "segment": "STOP-SEBAI-1977",
+      "canonical": "L'ancien commissaire Lucien Aimé-Blanc met en cause Jean-Pierre Maïone-Libaude dans son propre récit des événements.",
+      "candidate": "L'ancien commissaire Lucien Aimé-Blanc met en cause Jean-Pierre Maïonne-Libaude dans son propre récit des événements.",
+      "note": "spelling used only as acoustic experiment, not factual name change"
+    },
+    {
+      "id": "duel-1652",
+      "segment": "STOP-04",
+      "canonical": "Mais le 30 juillet 1652, ce marché devient le théâtre d'un événement dont Paris parlera longtemps.",
+      "candidate": "Mais le trente juillet mille six cent cinquante-deux, ce marché devient le théâtre d'un événement dont Paris parlera longtemps.",
+      "note": "expand number as words"
+    },
+    {
+      "id": "duel-xviie",
+      "segment": "STOP-04",
+      "canonical": "Difficile d'imaginer qu'à cet endroit, au milieu du XVIIe siècle, se trouvait un marché aux chevaux.",
+      "candidate": "Difficile d'imaginer qu'à cet endroit, au milieu du dix-septième siècle, se trouvait un marché aux chevaux.",
+      "note": "expand Roman century as words"
+    }
+  ]
+}
