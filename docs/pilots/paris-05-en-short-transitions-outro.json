@@ -1,0 +1,15 @@
+{
+  "route_id": "VP-PAR-NOW-05",
+  "language": "en",
+  "voice": "p232",
+  "segments": [
+    {
+      "id": "TRANSITION-01-02",
+      "text": "We're heading now to number sixteen, Rue Louis-le-Grand. In a few steps, we leave the political violence of the twentieth century and return to Joséphine and the dispersal of the collections at Malmaison. As you walk, remember that in Paris, an address can outlive its occupants, its purpose, and even the building that once stood there. In eighteen nineteen, number sixteen was the setting for an extraordinary sale. Stop where you can clearly see the street number."
+    },
+    {
+      "id": "OUTRO",
+      "text": "Before you leave, take a few more seconds to look around you. You've travelled through several centuries without leaving a handful of streets. A photographer who understood how images can deceive. A night watchman murdered in nineteen seventy-seven. Joséphine's collections, dispersed piece by piece. A German command post attacked in the heart of Paris. And a deadly duel at a horse market that no longer exists. These stories seem to have little in common, yet they belong to the same small part of the city. Perhaps that's the most fascinating thing about Paris. Its different eras never disappear completely. They remain behind façades, beneath changed street names, beneath new avenues and beneath the everyday habits of the present. Sometimes all it takes is an address, a photograph, an old map or a forgotten story to bring those eras back into view. Now that you know these stories, you'll probably never see these streets in quite the same way again. And that is precisely what Velvet Passport is here to do. Not simply to show you Paris, but to help you discover how to read it. This is the end of your walk."
+    }
+  ]
+}
