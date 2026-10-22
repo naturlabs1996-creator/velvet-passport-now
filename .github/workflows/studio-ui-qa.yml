@@ -1,0 +1,24 @@
+name: Velvet Production Studio UI QA
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/studio/**'
+      - 'proxy.ts'
+      - '.github/workflows/studio-ui-qa.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build Next.js production site
+        run: npm run build
