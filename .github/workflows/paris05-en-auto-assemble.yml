@@ -1,0 +1,144 @@
+name: Paris05 English 11 segment automatic audio master
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-en-auto-assemble.yml'
+      - 'scripts/audio/paris05_en_assemble.py'
+  workflow_run:
+    workflows:
+      - 'Paris 05 English Laid Sebai full narrative'
+      - 'Paris 05 English STOP-02 full narrative'
+      - 'Paris 05 English STOP-03 full narrative'
+      - 'Paris 05 English STOP-04 full narrative'
+    types: [completed]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate on every source production run succeeding
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          ids = [39682714312,39683453739,39683564134,39700209368,39698951968,39702405033,39699321349,39702579926,39702587432]
+          ready = True
+          for run_id in ids:
+              url=f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
+              req=urllib.request.Request(url,headers={"Authorization":f"Bearer {os.environ['GH_TOKEN']}","Accept":"application/vnd.github+json"})
+              with urllib.request.urlopen(req,timeout=30) as f: run=json.load(f)
+              print(f"{run_id}: {run['status']} / {run['conclusion']}")
+              if run["status"]!="completed" or run["conclusion"]!="success": ready=False
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+              f.write(f"ready={'true' if ready else 'false'}\\n")
+          PY
+      - name: Download INTRO
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39682714312
+          github-token: ${{ github.token }}
+          name: 'paris05-en-intro-p232-listening-qa'
+          path: collected/INTRO
+      - name: Download STOP-01
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39683453739
+          github-token: ${{ github.token }}
+          name: 'paris05-en-stop01-p232-listening-qa'
+          path: collected/STOP-01
+      - name: Download TRANSITION-01-SEBAI
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39683564134
+          github-token: ${{ github.token }}
+          name: 'paris05-en-transition01-sebai-p232-listening-qa'
+          path: collected/TRANSITION-01-SEBAI
+      - name: Download STOP-SEBAI-1977
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39700209368
+          github-token: ${{ github.token }}
+          name: 'paris05-en-sebai-p232-listening-qa'
+          path: collected/STOP-SEBAI-1977
+      - name: Download TRANSITION-01-02
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39698951968
+          github-token: ${{ github.token }}
+          name: 'paris05-en-TRANSITION-01-02-p232-qa'
+          path: collected/TRANSITION-01-02
+      - name: Download STOP-02
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39702405033
+          github-token: ${{ github.token }}
+          name: 'paris05-en-stop02-p232-listening-qa'
+          path: collected/STOP-02
+      - name: Download TRANSITION-02-03
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39699321349
+          github-token: ${{ github.token }}
+          name: 'paris05-en-TRANSITION-02-03-p232-qa'
+          path: collected/TRANSITION-02-03
+      - name: Download STOP-03
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39702579926
+          github-token: ${{ github.token }}
+          name: 'paris05-en-stop03-p232-listening-qa'
+          path: collected/STOP-03
+      - name: Download TRANSITION-03-04
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39699321349
+          github-token: ${{ github.token }}
+          name: 'paris05-en-TRANSITION-03-04-p232-qa'
+          path: collected/TRANSITION-03-04
+      - name: Download STOP-04
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39702587432
+          github-token: ${{ github.token }}
+          name: 'paris05-en-stop04-p232-listening-qa'
+          path: collected/STOP-04
+      - name: Download OUTRO
+        if: steps.gate.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39698951968
+          github-token: ${{ github.token }}
+          name: 'paris05-en-OUTRO-p232-qa'
+          path: collected/OUTRO
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          python-version: '3.11'
+      - name: Assemble and verify all eleven segments
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          python -m pip install numpy soundfile
+          python scripts/audio/paris05_en_assemble.py
+      - uses: actions/upload-artifact@v4
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          name: paris05-en-full-11seg-audio-qa-p232
+          path: assembled-en/*
+          retention-days: 30
