@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install test dependency
+      - name: Install FFmpeg\n        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg\n      - name: Install test dependency
         run: python -m pip install Pillow
       - name: Verify bilingual MP4 assembly and rights blocking
         run: python tests/production_engine_smoke.py
