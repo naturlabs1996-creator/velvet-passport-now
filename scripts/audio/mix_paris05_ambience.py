@@ -68,7 +68,11 @@ def main():
             bed[-ramp:] *= np.linspace(1,0,ramp,endpoint=False)
         # Reduce ambience where narration is active, using 80ms voice RMS.
         window=max(1,round(rate*.08))
-        power=np.convolve(np.square(voice[start:start+size]),np.ones(window)/window,mode="same")
+        squared=np.square(voice[start:start+size].astype(np.float64))
+        cumulative=np.concatenate(([0.0],np.cumsum(squared)))
+        left=np.maximum(0,np.arange(size)-window//2)
+        right=np.minimum(size,left+window)
+        power=(cumulative[right]-cumulative[left])/np.maximum(1,right-left)
         duck=np.where(power > 0.00008, 0.35, 1.0)
         mix[start:start+size]+=bed*duck
         checked.append({"id":event["id"],"source":event["source_url"],"start_seconds":float(event["start_seconds"])})
