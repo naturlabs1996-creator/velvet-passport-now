@@ -1,0 +1,40 @@
+name: Paris 05 — Stage verified bilingual audio
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download locked French master
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39629212549
+          github-token: ${{ github.token }}
+          name: paris05-fr-final-11seg-audio-and-qa
+          path: downloaded/fr
+      - name: Download locked British English master
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 39783346444
+          github-token: ${{ github.token }}
+          name: paris05-en-full-11seg-audio-qa-p232
+          path: downloaded/en
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Stage source masters without regenerating speech
+        run: |
+          python scripts/production/stage_paris05.py \
+            --manifest docs/production/routes/VP-PAR-05.json \
+            --fr-dir downloaded/fr --en-dir downloaded/en \
+            --out dist/paris05-staging
+      - name: Upload staged bilingual source audio and QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: paris05-bilingual-staging-audio-qa
+          path: dist/paris05-staging/
+          retention-days: 14
