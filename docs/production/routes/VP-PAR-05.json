@@ -64,16 +64,26 @@
   ],
   "languages": {
     "fr": {
-      "audio_master": "GitHub Actions run 39629212549 / artifact 12359015553",
-      "qa_report": "GitHub Actions artifact 12359015553",
+      "audio_master": "audio/PARIS05-FR-FINAL-11SEG.wav",
+      "qa_report": "qa/QA-FINAL-11SEG.json",
       "listening_qa_passed": false,
-      "subtitle_file": null
+      "subtitle_file": null,
+      "source_artifact": {
+        "run_id": 39629212549,
+        "artifact_id": 12359015553,
+        "filename": "PARIS05-FR-FINAL-11SEG.wav"
+      }
     },
     "en": {
-      "audio_master": "GitHub Actions run 39783346444 / artifact 12428370271",
-      "qa_report": "PARIS05-EN-ASSEMBLY-QA.json",
+      "audio_master": "audio/PARIS05-EN-FULL-11SEG-p232-UNREVIEWED.wav",
+      "qa_report": "qa/PARIS05-EN-ASSEMBLY-QA.json",
       "listening_qa_passed": false,
-      "subtitle_file": null
+      "subtitle_file": null,
+      "source_artifact": {
+        "run_id": 39783346444,
+        "artifact_id": 12428370271,
+        "filename": "PARIS05-EN-FULL-11SEG-p232-UNREVIEWED.wav"
+      }
     }
   },
   "assets": [
@@ -101,5 +111,10 @@
   "exports": {
     "fr": null,
     "en": null
+  },
+  "production_root": "dist/paris05-staging",
+  "timelines": {
+    "fr": [],
+    "en": []
   }
 }
