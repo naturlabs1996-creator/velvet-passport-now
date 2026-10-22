@@ -8,8 +8,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
-  render-en-stop04:
+  render-parts:
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1, 2, 3]
     runs-on: ubuntu-latest
     timeout-minutes: 110
     steps:
@@ -26,36 +31,83 @@ jobs:
         run: |
           mkdir -p en-production
           curl --fail --location --retry 3 -o en-production/p232-reference.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true"
-      - name: Generate English Ernest Appert segment at native pace
+      - name: Generate one quarter with native p232 voice
+        env:
+          PART: ${{ matrix.part }}
+        run: |
+          python - <<'PY'
+          import os, re, json
+          from pathlib import Path
+          import torch, torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          part_no=int(os.environ["PART"])
+          obj=json.loads(Path("docs/pilots/paris-05-en-production-stop04.json").read_text())
+          script=obj["segments"][0]["text"]
+          chunks=[v.strip() for v in re.split(r'(?<=[.!?])\s+|\n\s*\n',script) if v.strip()]
+          assert len(chunks)>20
+          boundaries=[round(i*len(chunks)/4) for i in range(5)]
+          mychunks=chunks[boundaries[part_no]:boundaries[part_no+1]]
+          assert mychunks
+          model=ChatterboxMultilingualTTS.from_pretrained(device="cpu",t3_model="v3")
+          silence=torch.zeros(int(model.sr*.32),dtype=torch.float32)
+          parts=[]
+          for i,phrase in enumerate(mychunks):
+              wav=model.generate(phrase,language_id="en",audio_prompt_path="en-production/p232-reference.wav",exaggeration=.72,cfg_weight=.30,temperature=.80).squeeze(0).cpu()
+              parts.append(wav)
+              if i<len(mychunks)-1:parts.append(silence)
+              print(f"STOP04 part={part_no+1} sentence={i+1}/{len(mychunks)} seconds={len(wav)/model.sr:.2f}",flush=True)
+          joined=torch.cat(parts)
+          filename=f"en-production/STOP04-PART-{part_no:02d}.wav"
+          torchaudio.save(filename,joined.unsqueeze(0),model.sr)
+          Path(f"en-production/STOP04-PART-{part_no:02d}.json").write_text(json.dumps({"part":part_no,"start_chunk":boundaries[part_no],"end_chunk":boundaries[part_no+1],"total_chunks":len(chunks),"duration":len(joined)/model.sr},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-en-stop04-part-${{ matrix.part }}
+          path: en-production/STOP04-PART-*
+          retention-days: 30
+  combine:
+    needs: render-parts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: paris05-en-stop04-part-*
+          path: parts
+          merge-multiple: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install soundfile numpy
+      - name: Stitch quarters without shortening
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re, json, torch, torchaudio
-          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-          root=Path("en-production")
-          obj=json.loads(Path("docs/pilots/paris-05-en-production-stop04.json").read_text())
-          text=obj["segments"][0]["text"]
-          chunks=[v.strip() for v in re.split(r'(?<=[.!?])\s+|\n\s*\n',text) if v.strip()]
-          assert len(chunks)>12, len(chunks)
-          model=ChatterboxMultilingualTTS.from_pretrained(device="cpu",t3_model="v3")
-          silence=torch.zeros(int(model.sr*0.32),dtype=torch.float32)
-          parts=[]
-          for i,part in enumerate(chunks):
-              voice=model.generate(part,language_id="en",audio_prompt_path=str(root/"p232-reference.wav"),exaggeration=0.72,cfg_weight=0.30,temperature=0.80).squeeze(0).cpu()
-              parts.append(voice)
-              if i<len(chunks)-1:parts.append(silence)
-              print(f"EN-STOP01 chunk {i+1}/{len(chunks)} {len(voice)/model.sr:.2f}s",flush=True)
-          combined=torch.cat(parts)
-          name="PARIS05-EN-STOP-04-p232-NATIVE-AUDITION.wav"
-          torchaudio.save(str(root/name),combined.unsqueeze(0),model.sr)
-          report={"route":"VP-PAR-NOW-05","segment":"STOP-04","status":"AUDIO_GENERATED_LISTENING_QA_PENDING","sample_rate":model.sr,"duration_seconds":round(len(combined)/model.sr,2),"chunk_count":len(chunks),"speaker":"p232","native_tempo":1.0,"commercial_voice_rights":"PENDING"}
-          (root/"QA-EN-STOP-04.json").write_text(json.dumps(report,indent=2))
-          print("REPORT",json.dumps(report),flush=True)
+          import json
+          import numpy as np
+          import soundfile as sf
+          files=[Path(f"parts/STOP04-PART-{i:02d}.wav") for i in range(4)]
+          metas=[json.loads(Path(f"parts/STOP04-PART-{i:02d}.json").read_text()) for i in range(4)]
+          assert [m["part"] for m in metas]==list(range(4))
+          assert all(metas[i]["end_chunk"]==metas[i+1]["start_chunk"] for i in range(3))
+          assert metas[0]["start_chunk"]==0 and metas[-1]["end_chunk"]==metas[-1]["total_chunks"]
+          audio=[];rate=None
+          for f in files:
+              x,sr=sf.read(f,dtype="float32")
+              assert x.ndim==1 and len(x)>sr*20 and np.isfinite(x).all()
+              if rate is None:rate=sr
+              assert sr==rate
+              audio.append(x)
+          gap=np.zeros(round(rate*.32),dtype=np.float32)
+          combined=np.concatenate([part for i,x in enumerate(audio) for part in ([x,gap] if i<3 else [x])])
+          Path("final").mkdir(exist_ok=True)
+          sf.write("final/PARIS05-EN-STOP-04-p232-NATIVE-AUDITION.wav",combined,rate,subtype="PCM_24")
+          summary={"segment":"STOP-04","status":"GENERATED_LISTENING_QA_PENDING","speaker":"p232","duration_seconds":round(len(combined)/rate,3),"chunks":metas[-1]["total_chunks"],"parts":4}
+          Path("final/QA-EN-STOP-04.json").write_text(json.dumps(summary,indent=2))
+          print(summary)
           PY
       - uses: actions/upload-artifact@v4
         with:
           name: paris05-en-stop04-p232-listening-qa
-          path: |
-            en-production/PARIS05-EN-STOP-04-p232-NATIVE-AUDITION.wav
-            en-production/QA-EN-STOP-04.json
+          path: final/*
           retention-days: 30
