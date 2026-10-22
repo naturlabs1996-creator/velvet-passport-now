@@ -1,6 +1,12 @@
 name: Paris 05 — Stage verified bilingual audio
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production/stage_paris05.py'
+      - 'docs/production/routes/VP-PAR-05.json'
+      - '.github/workflows/paris05-stage-bilingual.yml'
 permissions:
   actions: read
   contents: read
