@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "route_id": "VP-PAR-05",
+  "title": "Opéra Back Streets",
+  "release_requested": false,
+  "rights_signoff": false,
+  "visual_qa_passed": false,
+  "segments": [
+    {
+      "id": "INTRO",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "STOP-01",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "TRANSITION-01-SEBAI",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "STOP-SEBAI-1977",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "TRANSITION-01-02",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "STOP-02",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "TRANSITION-02-03",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "STOP-03",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "TRANSITION-03-04",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "STOP-04",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    },
+    {
+      "id": "OUTRO",
+      "status": "VERIFIED",
+      "editorial_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json"
+    }
+  ],
+  "languages": {
+    "fr": {
+      "audio_master": "GitHub Actions run 39629212549 / artifact 12359015553",
+      "qa_report": "GitHub Actions artifact 12359015553",
+      "listening_qa_passed": false,
+      "subtitle_file": null
+    },
+    "en": {
+      "audio_master": "GitHub Actions run 39783346444 / artifact 12428370271",
+      "qa_report": "PARIS05-EN-ASSEMBLY-QA.json",
+      "listening_qa_passed": false,
+      "subtitle_file": null
+    }
+  },
+  "assets": [
+    {
+      "id": "RP-F-2007-161",
+      "type": "historical_image",
+      "source_url": "https://id.rijksmuseum.nl/200489498",
+      "rights_status": "PUBLIC_DOMAIN_PER_COLLECTION_RECORD",
+      "credit": "Rijksmuseum",
+      "authenticity": "HISTORICAL_ORIGINAL",
+      "local_file": null,
+      "use_in_export": false
+    },
+    {
+      "id": "PH10999",
+      "type": "historical_image",
+      "source_url": "https://www.parismuseescollections.paris.fr/",
+      "rights_status": "RIGHTS_HOLD",
+      "credit": "Paris Musées",
+      "authenticity": "HISTORICAL_ORIGINAL",
+      "local_file": null,
+      "use_in_export": false
+    }
+  ],
+  "exports": {
+    "fr": null,
+    "en": null
+  }
+}
