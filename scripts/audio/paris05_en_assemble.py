@@ -39,10 +39,11 @@ for index, seg in enumerate(ORDER):
     if seconds < 8:
         raise RuntimeError(f"{seg}: suspiciously short audio ({seconds:.1f}s)")
     peak = float(np.max(np.abs(data)))
-    if peak > 1.0:
-        raise RuntimeError(f"{seg}: clipped audio")
-    pieces.append(data)
-    report.append({"id": seg, "filename": str(wav), "duration_seconds": round(seconds, 3), "peak": round(peak, 6)})
+    gain = min(1.0, 0.95 / peak) if peak > 0 else 1.0
+    # Floating-point TTS exports may exceed PCM full scale; attenuate before PCM conversion.
+    # This does not repair source clipping and requires listening QA.
+    pieces.append(data * gain)
+    report.append({"id": seg, "filename": str(wav), "duration_seconds": round(seconds, 3), "source_peak": round(peak, 6), "gain_applied": round(gain, 6), "source_peak_at_or_above_full_scale": peak >= 1.0})
     if index < len(ORDER)-1:
         pieces.append(np.zeros(round(sr * 1.2), dtype=np.float32))
 audio = np.concatenate(pieces)
