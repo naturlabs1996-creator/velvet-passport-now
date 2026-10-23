@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/paris05-appert-known-ingest.yml'
+      - 'scripts/production/paris05_ingest_known_appert.py'
   workflow_dispatch:
 permissions:
   contents: read
