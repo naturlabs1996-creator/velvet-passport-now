@@ -25,7 +25,20 @@ export async function GET() {
       return { ...item, status: "unavailable", conclusion: null, url: `https://github.com/${REPO}/actions/runs/${item.run}` };
     }
   }));
-  return NextResponse.json({ route_id: "VP-PAR-05", source: "GitHub Actions", checked_at: new Date().toISOString(), runs: data }, {
+  let renderRun: { key: string; label: string; run: number; status: string; conclusion: string | null; url: string } | null = null;
+  try {
+    const response = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/paris05-controlled-av-render.yml/runs?per_page=1`, {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "VelvetProductionStudio" },
+      cache: "no-store", signal: AbortSignal.timeout(7000),
+    });
+    if (response.ok) {
+      const payload = await response.json() as { workflow_runs?: { id: number; status: string; conclusion: string | null; html_url: string }[] };
+      const latest = payload.workflow_runs?.[0];
+      if (latest) renderRun = { key: "render", label: "Paris 05 · Latest controlled render", run: latest.id,
+        status: latest.status, conclusion: latest.conclusion, url: latest.html_url };
+    }
+  } catch { /* render status remains unavailable; no dispatch occurs */ }
+  return NextResponse.json({ route_id: "VP-PAR-05", source: "GitHub Actions", checked_at: new Date().toISOString(), runs: renderRun ? [...data, renderRun] : data }, {
     headers: { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" },
   });
 }
