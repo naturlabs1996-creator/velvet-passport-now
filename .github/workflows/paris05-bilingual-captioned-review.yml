@@ -1,0 +1,55 @@
+name: Paris05 bilingual subtitle-muxed private masters
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/paris05-bilingual-captioned-review.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  mux:
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: [fr, en]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39955173703
+          name: PARIS05-${{ matrix.lang }}-SEBAI-INTEGRATED-PRIVATE-VIDEO
+          path: review/video
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39960369921
+          name: PARIS05-${{ matrix.lang }}-SUBTITLES-SRT-VTT-REVIEW
+          path: review/subtitles
+      - name: Mux review subtitles as an optional MP4 text track
+        shell: bash
+        env:
+          LANG_CODE: ${{ matrix.lang }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/private-captioned
+          source="review/video/PARIS05-${LANG_CODE^^}-SEBAI-INTEGRATED-PRIVATE-REVIEW.mp4"
+          captions="review/subtitles/PARIS05-${LANG_CODE^^}-REVIEW.srt"
+          target="dist/private-captioned/PARIS05-${LANG_CODE^^}-SEBAI-CAPTIONED-PRIVATE-REVIEW.mp4"
+          test -s "$source"
+          test -s "$captions"
+          ffmpeg -hide_banner -loglevel error -y -i "$source" -i "$captions" -map 0:v:0 -map 0:a:0 -map 1:0 -c:v copy -c:a copy -c:s mov_text -metadata:s:s:0 language="$LANG_CODE" -disposition:s:0 default -movflags +faststart "$target"
+          test -s "$target"
+          ffprobe -v error -show_entries stream=codec_type,codec_name -of csv=p=0 "$target" | tee dist/private-captioned/streams.txt
+          test "$(ffprobe -v error -select_streams s -show_entries stream=index -of csv=p=0 "$target" | wc -l)" -eq 1
+          cp "$captions" "dist/private-captioned/PARIS05-${LANG_CODE^^}-REVIEW.srt"
+          cp "review/subtitles/PARIS05-${LANG_CODE^^}-REVIEW.vtt" dist/private-captioned/
+          printf 'PRIVATE REVIEW ONLY — NOT CLEARED FOR COMMERCIAL RELEASE. ASR captions require proofreading; image and voice rights unresolved.\n' >dist/private-captioned/RELEASE-BLOCK.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.lang }}-CAPTIONED-PRIVATE-REVIEW
+          path: dist/private-captioned/
+          retention-days: 30
