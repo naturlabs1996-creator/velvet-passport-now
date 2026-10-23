@@ -1,0 +1,146 @@
+{
+  "route_id": "VP-PAR-05",
+  "source_run": 39891567400,
+  "source_artifact": 12474388483,
+  "review_type": "EDITORIAL_IMAGE_ALIGNMENT_QA",
+  "status": "REVIEW_COMPLETE_RELEASE_BLOCKED",
+  "counts": {
+    "image_events": 42,
+    "candidates": 25,
+    "holds": 17,
+    "uncertain_audio_cues": 3
+  },
+  "audio_uncertain": [
+    {
+      "segment": "STOP-01",
+      "index": 16,
+      "type": "AMBIENCE"
+    },
+    {
+      "segment": "STOP-SEBAI-1977",
+      "index": 11,
+      "type": "PAUSE"
+    },
+    {
+      "segment": "STOP-03",
+      "index": 11,
+      "type": "PAUSE"
+    }
+  ],
+  "critical_corrective_findings": [
+    {
+      "segment": "STOP-01",
+      "seconds": 120.92,
+      "asset": "MARVILLE-LOUIS-PH460",
+      "action": "CONTEXT_ONLY_NOT_CURRENT_21_FACADE",
+      "reason": "Historic image cannot be labeled current façade; source cue explicitly asks to see modern 21 rue Louis-le-Grand"
+    },
+    {
+      "segment": "TRANSITION-01-SEBAI",
+      "seconds": 600.96,
+      "asset": "MARVILLE-LOUIS-PH460",
+      "action": "CONTEXT_ONLY_NOT_ACTUAL_WALK",
+      "reason": "Historic scene is not a view of today's walk between 21 and 23"
+    },
+    {
+      "segment": "STOP-SEBAI-1977",
+      "seconds": 710.64,
+      "asset": null,
+      "action": "HOLD",
+      "reason": "Selected contemporary doorway shot not ingested; no verified portrait of Sebaï"
+    },
+    {
+      "segment": "STOP-02",
+      "seconds": 1474.96,
+      "asset": "RP-P-1951-602",
+      "action": "CONTEXT_ONLY_NOT_FACADE",
+      "reason": "Portrait of Joséphine cannot illustrate literal opening instruction to look at no. 16"
+    },
+    {
+      "segment": "STOP-03",
+      "seconds": 2279.9,
+      "asset": "PARIS-1944",
+      "action": "GENERAL_CONTEXT_ONLY",
+      "reason": "Cannot present generic 1944 image as Opéra 19 August event"
+    },
+    {
+      "segment": "STOP-04",
+      "seconds": 2775.6,
+      "asset": "GOMBOUST-1652",
+      "action": "OVERVIEW_ONLY_NO_DUEL_PIN",
+      "reason": "Exact duel and horse-market location not established"
+    },
+    {
+      "segment": "STOP-04",
+      "seconds": 3485.26,
+      "asset": "MARVILLE-ANTIN-1866",
+      "action": "HISTORICAL_CONTEXT_ONLY",
+      "reason": "Historic rue d'Antin cannot be called a current streetscape"
+    }
+  ],
+  "hold_groups": [
+    {
+      "segment": "STOP-01",
+      "count": 3,
+      "issues": [
+        "Period carte de visite",
+        "Reverse Appert card",
+        "Exact nine-person montage"
+      ]
+    },
+    {
+      "segment": "TRANSITION-01-SEBAI",
+      "count": 1,
+      "issues": [
+        "Door 23 licensed real photo"
+      ]
+    },
+    {
+      "segment": "STOP-SEBAI-1977",
+      "count": 5,
+      "issues": [
+        "Opening establishing shot",
+        "Door shot twice",
+        "1975 Le Monde reproduction",
+        "Ghraieb image"
+      ]
+    },
+    {
+      "segment": "STOP-02",
+      "count": 3,
+      "issues": [
+        "Number 16 exterior",
+        "1819 catalogue",
+        "Baudin expedition mapped images"
+      ]
+    },
+    {
+      "segment": "STOP-03",
+      "count": 4,
+      "issues": [
+        "19 August Opera image",
+        "LAPI 28401 rights",
+        "historic/current pair",
+        "Surrender white flag"
+      ]
+    },
+    {
+      "segment": "STOP-04",
+      "count": 1,
+      "issues": [
+        "Market horses exact plan provenance"
+      ]
+    }
+  ],
+  "technical_qa": {
+    "human_listening_passed": false,
+    "commercial_release_approved": false,
+    "rights_released_for_25_candidates": false,
+    "render_generated": false
+  },
+  "next_actions": [
+    "Build revised rights-gated EDL with CONTEXT_ONLY/HOLD labels and no implicit replacements for present-day directions",
+    "Keep unmatched ambience and pause as audio QA, not image gaps",
+    "Constrain future preview to clearly marked review-only visual references and never publish without rights signoff"
+  ]
+}
