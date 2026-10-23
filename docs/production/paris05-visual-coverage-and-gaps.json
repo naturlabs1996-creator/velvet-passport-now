@@ -147,7 +147,9 @@
     {
       "id": "TRANSITION-03-04",
       "available_assets": [
-        "VENDOME-1900"
+        "VENDOME-1900",
+        "GOMBOUST-1652",
+        "MARVILLE-OPERA-ANTIN-1876"
       ],
       "valid_for": [
         "Place Vendome circa 1900",
@@ -155,8 +157,7 @@
       ],
       "missing": [
         "historically correct turning points",
-        "17th-century map neighborhood crop",
-        "Gomboust 1652 whole-plan asset (Wikimedia 429; authenticated source found, file not ingested)"
+        "17th-century map neighborhood crop"
       ],
       "status": "PARTIAL"
     },
@@ -166,7 +167,9 @@
         "BNF-BTV1B8405032K",
         "RCIN-615675",
         "GRANDE-MADEMOISELLE-P1983",
-        "GRANDE-MADEMOISELLE-P1983"
+        "GRANDE-MADEMOISELLE-P1983",
+        "GOMBOUST-1652",
+        "MARVILLE-ANTIN-1866"
       ],
       "valid_for": [
         "authentic Beaufort engraving",
@@ -177,8 +180,7 @@
       "missing": [
         "duel's micro-location on authenticated Gomboust map",
         "horse market anchoring source",
-        "current rue d'Antin legally licensed facade",
-        "Gomboust 1652 whole-plan asset (Wikimedia 429; authenticated source found, file not ingested)"
+        "current rue d'Antin legally licensed facade"
       ],
       "status": "PARTIAL"
     },
@@ -206,5 +208,18 @@
     "All listed assets are for review only until exact provenance and commercial-rights sign-off.",
     "No complete FR/EN picture-locked timeline is available; actual shot timing requires word/scene alignment."
   ],
-  "notes": "Asset availability grounded in latest 39881034897 ingest report. Coverage is editorial, not cue-exact time sync. Staging-only, not commercial rights release."
+  "notes": "18 authentic downloaded images, 2 separate retained artifacts. Editorial asset-to-segment correspondence; not time-aligned shots and not commercial rights approval. Verify city-sector of Gomboust crop against historical micro-location before adding any site pin.",
+  "evidence_batches": [
+    {
+      "run_id": 39881034897,
+      "artifact_id": 12470696663,
+      "files": 15
+    },
+    {
+      "run_id": 39881285190,
+      "artifact_id": 12470502716,
+      "files": 3
+    }
+  ],
+  "available_files_total": 18
 }
