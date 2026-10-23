@@ -1,0 +1,42 @@
+{
+  "route_id": "VP-PAR-05",
+  "stage": "VISUAL_INGEST_REVIEW_ONLY",
+  "rights_policy": "No commercial export based solely on this ingest; item-level review and signoff required",
+  "assets": [
+    {
+      "id": "RP-P-1951-602",
+      "cue": "STOP-02-CUE-02",
+      "commons_title": "File:Portret van Joséphine de Beauharnais, RP-P-1951-602.jpg",
+      "source_record": "https://id.rijksmuseum.nl/200185416",
+      "expected_rights": "CC0",
+      "credit": "Rijksmuseum, RP-P-1951-602",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "RCIN-615675",
+      "cue": "STOP-04-CUE-04",
+      "commons_title": "File:Charles Amédée of Savoy, Duke of Nemours in 1652.jpg",
+      "source_record": "https://www.rct.uk/collection/615675",
+      "expected_rights": "PUBLIC_DOMAIN_MARK",
+      "credit": "Royal Collection, RCIN 615675 / Wikimedia Commons",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "BNF-BTV1B8405032K",
+      "cue": "STOP-04-CUE-03",
+      "commons_title": "File:Portrait de François de Vendôme, duc de Beaufort, en buste, de 3-4 dirigé à gauche dans une bordure ovale - estampe - btv1b8405032k.jpg",
+      "source_record": "https://gallica.bnf.fr/ark:/12148/btv1b8405032k",
+      "expected_rights": "PUBLIC_DOMAIN",
+      "credit": "BnF/Gallica, Hennin 4499, btv1b8405032k",
+      "status": "CANDIDATE_FOR_INGEST"
+    }
+  ],
+  "blocked_asset_ids": [
+    "PH10999",
+    "PH11026",
+    "PH35284",
+    "PH34929"
+  ],
+  "no_outreach": true,
+  "no_ai_images": true
+}
