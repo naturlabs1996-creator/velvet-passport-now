@@ -1,0 +1,50 @@
+name: Velvet Paris 05 — Controlled AV render
+on:
+  workflow_dispatch:
+    inputs:
+      route_id:
+        description: Approved route ID
+        required: true
+        type: choice
+        options:
+          - VP-PAR-05
+permissions:
+  actions: read
+  contents: read
+concurrency:
+  group: velvet-paris05-render
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - name: Download existing bilingual staging
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39857004074
+          name: paris05-bilingual-staging-audio-qa
+          path: dist/paris05-staging
+      - name: Check immutable publication gates before rendering
+        run: |
+          python scripts/production/preflight_paris05.py \
+            --manifest docs/production/routes/VP-PAR-05.json \
+            --root dist/paris05-staging
+      - name: Render both approved audiovisual masters
+        run: |
+          python scripts/production/build_route.py \
+            docs/production/routes/VP-PAR-05.json \
+            --root dist/paris05-staging --out dist/rendered
+      - name: Upload rendered review-only MP4s and QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: paris05-fr-en-av-review-only
+          path: dist/rendered/
+          retention-days: 14
