@@ -11,7 +11,8 @@ def check(m,root):
  for lang in ("fr","en"):
   data=m.get("languages",{}).get(lang,{})
   if not data.get("listening_qa_passed"):errors.append(f"{lang}: listening QA pending")
-  if not data.get("subtitle_file") or not (root/data["subtitle_file"]).is_file() if data.get("subtitle_file") else True:
+  subtitle = data.get("subtitle_file")
+  if not subtitle or not (root/subtitle).is_file():
    errors.append(f"{lang}: reviewed SRT missing")
   if not (root/data.get("audio_master","__missing__")).is_file():errors.append(f"{lang}: master WAV missing")
   shots=m.get("timelines",{}).get(lang,[])
