@@ -25,8 +25,8 @@ with tempfile.TemporaryDirectory() as tmp:
  chunks,_=model.transcribe(str(clip),language=lang,word_timestamps=True,beam_size=3,vad_filter=False)
  words=[w for c in chunks for w in (c.words or [])]
 # The word boundary must belong to the FIRST sentence; no guesses.
-target="porte" if lang=="fr" else "doorway"
-matches=[w for w in words if target in w.word.lower().strip(" .,!?") and 0<=w.start<8]
+targets=("porte",) if lang=="fr" else ("doorway","door")
+matches=[w for w in words if any(t in w.word.lower().strip(" .,!?") for t in targets) and 0<=w.start<8]
 assert len(matches)==1,[(w.word,w.start,w.end) for w in words]
 at=start+round((matches[0].end+0.20)*sr)
 assert start<at<start+int(8*sr)
