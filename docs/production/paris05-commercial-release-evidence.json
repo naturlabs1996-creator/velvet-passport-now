@@ -1,0 +1,60 @@
+{
+  "route_id": "VP-PAR-05",
+  "status": "PRIVATE_TECHNICAL_ASSEMBLY_ONLY",
+  "image_research": "CLOSED",
+  "commercial_release_allowed": false,
+  "evidence": {
+    "fr_audio_listening_approved": {
+      "approved": false,
+      "reference": null
+    },
+    "en_audio_listening_approved": {
+      "approved": false,
+      "reference": null
+    },
+    "fr_subtitles_proofread": {
+      "approved": false,
+      "reference": null
+    },
+    "en_subtitles_proofread": {
+      "approved": false,
+      "reference": null
+    },
+    "fr_video_qa_approved": {
+      "approved": false,
+      "reference": null
+    },
+    "en_video_qa_approved": {
+      "approved": false,
+      "reference": null
+    },
+    "retained_visuals_identity_and_context_verified": {
+      "approved": false,
+      "reference": null
+    },
+    "retained_visuals_commercial_rights_verified": {
+      "approved": false,
+      "reference": null
+    },
+    "all_unlicensed_visuals_replaced": {
+      "approved": false,
+      "reference": null
+    },
+    "fr_voice_commercial_rights_verified": {
+      "approved": false,
+      "reference": null
+    },
+    "en_voice_commercial_rights_verified": {
+      "approved": false,
+      "reference": null
+    },
+    "credits_and_attributions_verified": {
+      "approved": false,
+      "reference": null
+    },
+    "publisher_explicit_release_approval": {
+      "approved": false,
+      "reference": null
+    }
+  }
+}
