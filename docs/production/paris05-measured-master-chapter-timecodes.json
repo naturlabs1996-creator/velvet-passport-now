@@ -11,7 +11,8 @@
     "Times measured from original master component durations at assembly; starts are cumulative zero-based.",
     "Internal word-level and visual cue times are not yet aligned and remain unknown.",
     "FR Sebai new approved insert is not in the measured master; final timecodes will shift if inserted.",
-    "Rights, subtitles, listening and publishing QA remain pending."
+    "Rights, subtitles, listening and publishing QA remain pending.",
+    "EN assembly inserts exactly 1.2 seconds of silence between each of 11 tracks (10 gaps = 12.0 s), confirmed against scripts/audio/paris05_en_assemble.py."
   ],
   "tracks": {
     "fr": {
@@ -118,91 +119,102 @@
           "end_seconds": 129.56,
           "duration_seconds": 129.56,
           "start_timecode": "00:00.00",
-          "end_timecode": "02:09.56"
+          "end_timecode": "02:09.56",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "STOP-01",
-          "start_seconds": 129.56,
-          "end_seconds": 606.96,
+          "start_seconds": 130.76,
+          "end_seconds": 608.16,
           "duration_seconds": 477.4,
-          "start_timecode": "02:09.56",
-          "end_timecode": "10:06.96"
+          "start_timecode": "02:10.76",
+          "end_timecode": "10:08.16",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "TRANSITION-01-SEBAI",
-          "start_seconds": 606.96,
-          "end_seconds": 714.52,
+          "start_seconds": 609.36,
+          "end_seconds": 716.92,
           "duration_seconds": 107.56,
-          "start_timecode": "10:06.96",
-          "end_timecode": "11:54.52"
+          "start_timecode": "10:09.36",
+          "end_timecode": "11:56.92",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "STOP-SEBAI-1977",
-          "start_seconds": 714.52,
-          "end_seconds": 1475.68,
+          "start_seconds": 718.12,
+          "end_seconds": 1479.28,
           "duration_seconds": 761.16,
-          "start_timecode": "11:54.52",
-          "end_timecode": "24:35.68"
+          "start_timecode": "11:58.12",
+          "end_timecode": "24:39.28",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "TRANSITION-01-02",
-          "start_seconds": 1475.68,
-          "end_seconds": 1503.36,
+          "start_seconds": 1480.48,
+          "end_seconds": 1508.16,
           "duration_seconds": 27.68,
-          "start_timecode": "24:35.68",
-          "end_timecode": "25:03.36"
+          "start_timecode": "24:40.48",
+          "end_timecode": "25:08.16",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "STOP-02",
-          "start_seconds": 1503.36,
-          "end_seconds": 2015.44,
+          "start_seconds": 1509.36,
+          "end_seconds": 2021.44,
           "duration_seconds": 512.08,
-          "start_timecode": "25:03.36",
-          "end_timecode": "33:35.44"
+          "start_timecode": "25:09.36",
+          "end_timecode": "33:41.44",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "TRANSITION-02-03",
-          "start_seconds": 2015.44,
-          "end_seconds": 2142.64,
+          "start_seconds": 2022.64,
+          "end_seconds": 2149.84,
           "duration_seconds": 127.2,
-          "start_timecode": "33:35.44",
-          "end_timecode": "35:42.64"
+          "start_timecode": "33:42.64",
+          "end_timecode": "35:49.84",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "STOP-03",
-          "start_seconds": 2142.64,
-          "end_seconds": 2654.72,
+          "start_seconds": 2151.04,
+          "end_seconds": 2663.12,
           "duration_seconds": 512.08,
-          "start_timecode": "35:42.64",
-          "end_timecode": "44:14.72"
+          "start_timecode": "35:51.04",
+          "end_timecode": "44:23.12",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "TRANSITION-03-04",
-          "start_seconds": 2654.72,
-          "end_seconds": 2771.56,
+          "start_seconds": 2664.32,
+          "end_seconds": 2781.16,
           "duration_seconds": 116.84,
-          "start_timecode": "44:14.72",
-          "end_timecode": "46:11.56"
+          "start_timecode": "44:24.32",
+          "end_timecode": "46:21.16",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "STOP-04",
-          "start_seconds": 2771.56,
-          "end_seconds": 3652,
+          "start_seconds": 2782.36,
+          "end_seconds": 3662.8,
           "duration_seconds": 880.44,
-          "start_timecode": "46:11.56",
-          "end_timecode": "60:52.00"
+          "start_timecode": "46:22.36",
+          "end_timecode": "61:02.80",
+          "interchapter_silence_after_seconds": 1.2
         },
         {
           "id": "OUTRO",
-          "start_seconds": 3652,
-          "end_seconds": 3722.48,
+          "start_seconds": 3664,
+          "end_seconds": 3734.48,
           "duration_seconds": 70.48,
-          "start_timecode": "60:52.00",
-          "end_timecode": "62:02.48"
+          "start_timecode": "61:04.00",
+          "end_timecode": "62:14.48",
+          "interchapter_silence_after_seconds": 0
         }
       ],
-      "total_seconds": 3722.48,
-      "total_timecode": "62:02.48"
+      "total_seconds": 3734.48,
+      "total_timecode": "62:14.48"
     }
   }
 }
