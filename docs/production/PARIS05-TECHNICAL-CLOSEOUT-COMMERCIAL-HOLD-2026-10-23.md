@@ -36,3 +36,20 @@ La version purement graphique ne remplace pas le film historique. Nouveaux maste
 - **Commercial** : aucun feu vert automatique ; le fichier `paris05-commercial-release-evidence.json` conserve ses autorisations manquantes et reste opposable.
 
 La prochaine QA porte sur l'écoute intégrale, les sous-titres (noms propres, dates), le calage EN, la validité des droits pour chaque image effectivement retenue et les voix.
+
+
+## RECTIFICATIF CRITIQUE — REJET DES FILMS, LE 23 OCTOBRE 2026
+
+**Verdict du visionnement par le commanditaire : REJET TOTAL, Y COMPRIS EN TANT QUE DÉMO.**
+
+La détection de pistes MP4, la vérification des empreintes de fichiers et des durées ne constituent **pas** une inspection éditoriale ou un contrôle de synchronisation. Les mentions antérieures `READY_FOR_HUMAN_LISTENING_REVIEW` sont insuffisantes et ne doivent plus être présentées comme une approbation de la qualité visuelle.
+
+Défauts observés et rapportés : (1) image statique prolongée pendant la narration d'ouverture ; (2) carte de Turgot 1739 hors du contexte narré en ouverture/transition ; (3) absence au moment attendu d'une photographie explicitement décrite d'Ernest Appert ; (4) chapitre Laïd Sebaï sans photographie ; (5) images globalement hors sujet / non synchronisées.
+
+**Cause démontrée dans le code** : `scripts/production/build_paris05_fr_image_edl.py` attribuait d'office `TURGOT-LOUIS-1739` à la première image de `INTRO` et un `None` au cue `STOP-01` index 8 (« neuf personnalités politiques »). Le script `paris05_curated_historical_render.py` construit seulement 38 images pour environ 61/62 minutes, remplaçant 19 par des cartons génériques ; l'anglais dérive ses temps d'un ratio FR/EN sans contrôle mot-à-mot.
+
+Le visuel EXACT des neuf personnalités, **Rijksmuseum RP-F-2007-161**, était documenté dans la shotlist mais non téléchargé ; rattrapage : fichier effectivement récupéré dans l'artifact `12535889502`, workflow `40034625984`, **non encore intégré dans un film corrigé**. Référence : https://id.rijksmuseum.nl/200489498. Une seconde requête Rijksmuseum `200332472` avait donné 404 et a été écartée ; le montage Appert/Roquette déjà ingéré reste distinct.
+
+**État opérationnel** : films des runs `40025579787` et lots d'écoute `40027134815` **rejetés sur le plan éditorial et visuel**, malgré leur intégrité technique. Interdiction de les présenter comme films prêts, démonstrations ou showroom. L'audio vocal reçoit un avis favorable du commanditaire et doit être conservé.
+
+Une nouvelle porte qualité `scripts/production/paris05_editorial_quality_gate.py` vérifie des défauts objectifs : intro hors sujet, montage neuf Appert absent, stop Sebaï visuellement vide, volume de plans dramatiquement insuffisant, plans figés et calage EN fictif. Corriger les sources et établir une correspondance **texte prononcé → image exacte → temps réel** AVANT tout nouveau rendu de démo. Aucun feu vert commercial ou artistique n'est acquis.
