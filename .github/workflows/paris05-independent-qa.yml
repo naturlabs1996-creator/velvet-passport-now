@@ -2,7 +2,7 @@ name: Paris05 independent technical release inspection
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/paris05-independent-qa.yml']
+    paths: ['.github/workflows/paris05-independent-qa.yml', 'scripts/production/paris05_captioned_mechanical_qa.py']
   workflow_dispatch:
 permissions:
   contents: read
