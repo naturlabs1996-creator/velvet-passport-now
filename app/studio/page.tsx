@@ -3,6 +3,7 @@ import path from "node:path";
 import Link from "next/link";
 import styles from "./studio.module.css";
 import StudioRuns from "./StudioRuns";
+import StudioActions from "./StudioActions";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Production Studio | Velvet Passport NOW", robots: { index: false, follow: false } };
 type Segment = { id: string; status: string };
@@ -33,6 +34,7 @@ export default async function StudioPage() {
     {d.source_artifact && <a href={`https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/${d.source_artifact.run_id}/artifacts/${d.source_artifact.artifact_id}`} target="_blank" rel="noopener noreferrer">Open source audio artifact ↗</a>}
    </article>})}
   </section>
+  <StudioActions />
   <StudioRuns />
   <section className={styles.card}><h3>Production release gates</h3><div className={styles.checks}>
    <Status done={route.segments.length === 11} label={`${route.segments.length}/11 chapter identifiers`} />
