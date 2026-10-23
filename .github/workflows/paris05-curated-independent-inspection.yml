@@ -20,7 +20,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}
-          run-id: 40025303247
+          run-id: 40025579787
           name: PARIS05-${{ matrix.lang }}-CURATED-HISTORICAL-PRIVATE-MASTER
           path: delivered
       - name: Inspect actual media streams and sidecar audit
@@ -39,6 +39,8 @@ jobs:
           assert all(x["asset_id"] is None for x in shots if x["disposition"]=="DOCUMENTARY_SUBSTITUTE")
           assert q["final_commercial_rights_and_voice_clearance"] is False
           assert film.stat().st_size>1000000
+          assert q["historical_image_appearances"]>=15, q
+          assert q["documentary_substitutions"]>=1, q
           import shutil
           media=shutil.which("ffprobe")
           if media:
