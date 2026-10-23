@@ -29,6 +29,17 @@
       "expected_rights": "PUBLIC_DOMAIN",
       "credit": "BnF/Gallica, Hennin 4499, btv1b8405032k",
       "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "MET-702001",
+      "cue": "STOP-01-CUE-05",
+      "provider": "met",
+      "met_object_id": 702001,
+      "source_record": "https://www.metmuseum.org/art/collection/search/702001",
+      "expected_rights": "Met Open Access/Public Domain",
+      "credit": "The Metropolitan Museum of Art, 2012.352 (11), Ernest Eugène Appert",
+      "editorial_note": "Historical photomontage created by Appert; staged reconstruction, not a documentary event photograph",
+      "status": "CANDIDATE_FOR_INGEST"
     }
   ],
   "blocked_asset_ids": [
