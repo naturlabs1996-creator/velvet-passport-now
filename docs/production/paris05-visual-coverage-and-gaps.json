@@ -95,6 +95,7 @@
       "id": "STOP-02",
       "available_assets": [
         "RP-P-1951-602",
+        "BAUDIN-1801-MEDAL",
         "BAUDIN-1801-MEDAL"
       ],
       "valid_for": [
@@ -112,7 +113,8 @@
       "id": "TRANSITION-02-03",
       "available_assets": [
         "OPERA-1900",
-        "MARVILLE-OPERA-PH940"
+        "MARVILLE-OPERA-PH940",
+        "OPERA-1900-LOC"
       ],
       "valid_for": [
         "Paris Opera late 19th century context"
@@ -145,8 +147,7 @@
     {
       "id": "TRANSITION-03-04",
       "available_assets": [
-        "VENDOME-1900",
-        "GOMBOUST-1652"
+        "VENDOME-1900"
       ],
       "valid_for": [
         "Place Vendome circa 1900",
@@ -154,7 +155,8 @@
       ],
       "missing": [
         "historically correct turning points",
-        "17th-century map neighborhood crop"
+        "17th-century map neighborhood crop",
+        "Gomboust 1652 whole-plan asset (Wikimedia 429; authenticated source found, file not ingested)"
       ],
       "status": "PARTIAL"
     },
@@ -163,7 +165,7 @@
       "available_assets": [
         "BNF-BTV1B8405032K",
         "RCIN-615675",
-        "GOMBOUST-1652",
+        "GRANDE-MADEMOISELLE-P1983",
         "GRANDE-MADEMOISELLE-P1983"
       ],
       "valid_for": [
@@ -175,7 +177,8 @@
       "missing": [
         "duel's micro-location on authenticated Gomboust map",
         "horse market anchoring source",
-        "current rue d'Antin legally licensed facade"
+        "current rue d'Antin legally licensed facade",
+        "Gomboust 1652 whole-plan asset (Wikimedia 429; authenticated source found, file not ingested)"
       ],
       "status": "PARTIAL"
     },
@@ -202,5 +205,6 @@
     "GOMBOUST-1652 is a period plan of Paris; do not place a duel pin before cadastral triangulation.",
     "All listed assets are for review only until exact provenance and commercial-rights sign-off.",
     "No complete FR/EN picture-locked timeline is available; actual shot timing requires word/scene alignment."
-  ]
+  ],
+  "notes": "Asset availability grounded in latest 39881034897 ingest report. Coverage is editorial, not cue-exact time sync. Staging-only, not commercial rights release."
 }
