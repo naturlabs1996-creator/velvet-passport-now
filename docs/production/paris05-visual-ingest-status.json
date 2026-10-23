@@ -1,0 +1,40 @@
+{
+  "route_id": "VP-PAR-05",
+  "run_id": 39878711438,
+  "artifact_id": 12468909897,
+  "commercial_release_approved": false,
+  "checked_at": "2026-10-22",
+  "items": [
+    {
+      "id": "RP-P-1951-602",
+      "status": "INGEST_FAILED_429",
+      "rights_reference": "CC0 per Wikimedia Commons",
+      "cue": "STOP-02-CUE-02"
+    },
+    {
+      "id": "RCIN-615675",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "553f03f256894d7da67cc7c12ea985aab9eb6e08573e231ed36d2b9a41a2ddc3",
+      "bytes": 880155,
+      "dimensions": [
+        850,
+        1250
+      ],
+      "cue": "STOP-04-CUE-04",
+      "rights_reference": "Public domain per Wikimedia Commons"
+    },
+    {
+      "id": "BNF-BTV1B8405032K",
+      "status": "INGEST_FAILED_429",
+      "cue": "STOP-04-CUE-03",
+      "rights_reference": "Public domain per Commons, final review pending"
+    }
+  ],
+  "excluded": [
+    "PH10999",
+    "PH11026",
+    "PH35284",
+    "PH34929"
+  ],
+  "human_rights_signoff": false
+}
