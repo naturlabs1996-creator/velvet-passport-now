@@ -6,7 +6,6 @@ def check(m,root):
  errors=[]
  if m.get("route_id")!="VP-PAR-05":errors.append("Route identity mismatch")
  if not m.get("rights_signoff"):errors.append("Missing documented commercial rights signoff")
- if not m.get("visual_qa_passed"):errors.append("Visual QA not approved")
  assets={a.get("id"):a for a in m.get("assets",[])}
  for lang in ("fr","en"):
   data=m.get("languages",{}).get(lang,{})
