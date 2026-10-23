@@ -1,0 +1,19 @@
+{
+  "route_id": "VP-PAR-05",
+  "policy": "GARAGE_VELVET_NO_UNVERIFIED_ASSETS",
+  "release_authorized": false,
+  "shots": [
+    {"id":"INTRO","kind":"typography"},
+    {"id":"STOP-01","kind":"typography"},
+    {"id":"TRANSITION-01-SEBAI","kind":"typography"},
+    {"id":"STOP-SEBAI-1977","kind":"typography"},
+    {"id":"TRANSITION-01-02","kind":"typography"},
+    {"id":"STOP-02","kind":"typography"},
+    {"id":"TRANSITION-02-03","kind":"typography"},
+    {"id":"STOP-03","kind":"typography"},
+    {"id":"TRANSITION-03-04","kind":"typography"},
+    {"id":"STOP-04","kind":"typography"},
+    {"id":"OUTRO","kind":"typography"}
+  ],
+  "note":"This manifest proves that typographic safety fallbacks contain no unknown image; it does not represent an enriched commercial film."
+}
