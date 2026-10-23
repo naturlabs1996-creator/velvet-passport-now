@@ -9,6 +9,8 @@ export const metadata = { title: "Production Studio | Velvet Passport NOW", robo
 type Segment = { id: string; status: string };
 type Language = { audio_master: string; listening_qa_passed: boolean; subtitle_file?: string | null; source_artifact?: { run_id: number; artifact_id: number } };
 type RouteManifest = { route_id: string; title: string; segments: Segment[]; languages: { fr: Language; en: Language }; assets: { id: string; rights_status: string; use_in_export?: boolean }[]; rights_signoff: boolean; visual_qa_passed: boolean; release_requested: boolean; exports?: { fr?: string | null; en?: string | null } };
+type Coverage = { segments: { id: string; available_assets: string[]; missing: string[]; status: string; approved_narration_insert?: { status: string; file: string } }[]; production_issues?: string[] };
+async function readCoverage(): Promise<Coverage> {return JSON.parse(await fs.readFile(path.join(process.cwd(), "docs/production/paris05-visual-coverage-and-gaps.json"), "utf8")) as Coverage;}
 async function readVisualStatus() { const filepath = path.join(process.cwd(), "docs/production/paris05-visual-ingest-status.json"); return JSON.parse(await fs.readFile(filepath,"utf8")) as { run_id:number; artifact_id:number; items:{id:string;status:string;cue:string}[];excluded:string[] }; }
 async function readManifest(): Promise<RouteManifest> {
   const file = path.join(process.cwd(), "docs/production/routes/VP-PAR-05.json");
@@ -20,6 +22,7 @@ function Status({ done, label }: { done: boolean; label: string }) {
 export default async function StudioPage() {
  const route = await readManifest();
  const visuals = await readVisualStatus();
+ const coverage = await readCoverage();
  const cleared = route.assets.filter(a => a.rights_status === "CLEARED_COMMERCIAL").length;
  const holds = route.assets.filter(a => a.rights_status === "RIGHTS_HOLD").length;
  return (
@@ -45,6 +48,7 @@ export default async function StudioPage() {
    <Status done={route.release_requested && Boolean(route.exports?.fr) && Boolean(route.exports?.en)} label="Bilingual publication authorization" />
   </div><p>Assets in manifest: {route.assets.length} · rights cleared for export: {cleared} · rights holds: {holds}. Items under HOLD are excluded.</p></section>
   <section className={styles.card}><h3>Historical visual archive — Paris 05</h3><p>{visuals.items.filter(a=>a.status==="INGESTED_REVIEW_ONLY").length} / {visuals.items.length} candidate images ingested. Rights-HOLD photos remain excluded.</p><ol>{visuals.items.map(item=><li key={item.id}><strong>{item.id}</strong><small>{item.status.replaceAll("_"," ")}</small></li>)}</ol><a href={`https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/${visuals.run_id}/artifacts/${visuals.artifact_id}`} target="_blank" rel="noopener noreferrer">Open image artifact and provenance ↗</a></section>
+  <section className={styles.card}><h3>Editorial shot coverage — 11 chapters</h3><p>Confirmed archive references versus missing shots; this is not a commercial rights clearance or final shot timing.</p><ol>{coverage.segments.map(segment=><li key={segment.id} style={{display:"block"}}><strong>{segment.id}</strong><small style={{display:"block"}}>Images referenced: {segment.available_assets.length} · {segment.status.replaceAll("_"," ")}</small>{segment.missing.length>0&&<small style={{display:"block",color:"#ffcf9f"}}>Missing: {segment.missing.slice(0,2).join(" · ")}</small>}{segment.approved_narration_insert&&<small style={{display:"block"}}>Approved Sebaï copy — audio insert not yet recorded</small>}</li>)}</ol><Link href="https://github.com/naturlabs1996-creator/velvet-passport-now/blob/main/docs/production/paris05-sebai-approved-insert.md">Read approved Sebaï narration insert ↗</Link></section>
   <section className={styles.card}><h3>Production sequence</h3><ol>{route.segments.map((s,i)=><li key={s.id}><span>{String(i+1).padStart(2,"0")}</span><strong>{s.id}</strong><small>{s.status}</small></li>)}</ol></section>
   <footer>Read-only administrative dashboard · no automated publishing · GitHub is the authoritative job runner</footer>
  </main>);
