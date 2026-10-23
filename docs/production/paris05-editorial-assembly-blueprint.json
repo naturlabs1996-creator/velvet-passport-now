@@ -1,0 +1,390 @@
+{
+  "schema_version": "1.0",
+  "route_id": "VP-PAR-05",
+  "kind": "EDITORIAL_ASSEMBLY_BLUEPRINT_NOT_RENDERED_VIDEO",
+  "master_policy": "Existing FR and EN masters stay unchanged. No durations or cut times can be asserted until audio waveform cue inspection.",
+  "release_ready": false,
+  "language_tracks": [
+    "fr",
+    "en"
+  ],
+  "visual_policy": {
+    "no_ai": true,
+    "do_not_present_historical_images_as_actual_event_footage": true,
+    "commercial_export_requires_individual_rights_review": true,
+    "prohibited_asset_ids": [
+      "PH10999",
+      "PH11026",
+      "PH35284",
+      "PH34929"
+    ]
+  },
+  "chapters": [
+    {
+      "sequence": 1,
+      "segment_id": "INTRO",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "TURGOT-LOUIS-1739",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "OPERA-1900",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Use images as period/place context with precise labels; avoid claiming they capture narrated event.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "current-day arrival view / exact walking approach"
+      ]
+    },
+    {
+      "sequence": 2,
+      "segment_id": "STOP-01",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "MARVILLE-LOUIS-PH460",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "MET-702001",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "APPERT-ROQUETTE",
+          "priority": 3,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Appert image is an authentic staged composition, never footage of an actual incident.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "21 rue Louis-le-Grand current facade",
+        "19th-century cartes-de-visite + reverse",
+        "RP-F-2007-161 exact nine-person montage",
+        "Rijksmuseum second Appert montage",
+        "accurate precise crop"
+      ]
+    },
+    {
+      "sequence": 3,
+      "segment_id": "TRANSITION-01-SEBAI",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "MARVILLE-LOUIS-PH460",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Use images as period/place context with precise labels; avoid claiming they capture narrated event.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "Authorized current-day establishing view from 21 to doorway 23, ideally one authentic photograph with safe crops"
+      ]
+    },
+    {
+      "sequence": 4,
+      "segment_id": "STOP-SEBAI-1977",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [],
+      "pending_location_visual": "Photograph of real door 23 rue Louis-le-Grand; commercially licensed or owned",
+      "editorial_notes": "Authentic current-day doorway 23 rue Louis-le-Grand is editorially selected but not ingested; no victim portrait has been verified. Approved FR voice insert separate and not recorded.",
+      "narration_insert": {
+        "fr_text_file": "docs/production/paris05-sebai-approved-insert.md",
+        "fr_audio": "NOT_RECORDED",
+        "en_script": "PENDING_ADAPTATION",
+        "en_audio": "NOT_RECORDED"
+      },
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "Actual rights-cleared photograph of door 23 rue Louis-le-Grand (not yet ingested)"
+      ]
+    },
+    {
+      "sequence": 5,
+      "segment_id": "TRANSITION-01-02",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "MARVILLE-OPERA-PH940",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Use images as period/place context with precise labels; avoid claiming they capture narrated event.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "accurate walking directions and contemporary street facade"
+      ]
+    },
+    {
+      "sequence": 6,
+      "segment_id": "STOP-02",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "RP-P-1951-602",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "BAUDIN-1801-MEDAL",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Use images as period/place context with precise labels; avoid claiming they capture narrated event.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "16 rue Louis-le-Grand actual facade",
+        "specific 1819 sale catalogue title/folios verified with rights",
+        "Malmaison interior exterior historic iconography"
+      ]
+    },
+    {
+      "sequence": 7,
+      "segment_id": "TRANSITION-02-03",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "OPERA-1900",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "MARVILLE-OPERA-PH940",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "OPERA-1900-LOC",
+          "priority": 3,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Use images as period/place context with precise labels; avoid claiming they capture narrated event.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "present day destination walk / site orientation"
+      ]
+    },
+    {
+      "sequence": 8,
+      "segment_id": "STOP-03",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "PARIS-1944",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "MEURICE-PH19383",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "OPERA-1900",
+          "priority": 3,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Paris 1944 picture is only citywide atmosphere; Hotel Meurice picture depicts another location and must be labeled correctly.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "exact 19 Aug Opera context",
+        "Kommandantur exterior as period image",
+        "LAPI 28401 rights-cleared SUBSTITUTE",
+        "authenticated 25 Aug surrender/white flag at correct site",
+        "current matching angle"
+      ]
+    },
+    {
+      "sequence": 9,
+      "segment_id": "TRANSITION-03-04",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "VENDOME-1900",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "GOMBOUST-1652",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "MARVILLE-OPERA-ANTIN-1876",
+          "priority": 3,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Use images as period/place context with precise labels; avoid claiming they capture narrated event.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "historically correct turning points",
+        "17th-century map neighborhood crop"
+      ]
+    },
+    {
+      "sequence": 10,
+      "segment_id": "STOP-04",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "BNF-BTV1B8405032K",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "RCIN-615675",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "GRANDE-MADEMOISELLE-P1983",
+          "priority": 3,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "GOMBOUST-1652",
+          "priority": 4,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "MARVILLE-ANTIN-1866",
+          "priority": 5,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Gomboust map must not be cropped to imply exact duel location without verification.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "duel's micro-location on authenticated Gomboust map",
+        "horse market anchoring source",
+        "current rue d'Antin legally licensed facade"
+      ]
+    },
+    {
+      "sequence": 11,
+      "segment_id": "OUTRO",
+      "cut_in_seconds": null,
+      "cut_out_seconds": null,
+      "preferred_images": [
+        {
+          "id": "TURGOT-LOUIS-1739",
+          "priority": 1,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "OPERA-1900",
+          "priority": 2,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        },
+        {
+          "id": "VENDOME-1900",
+          "priority": 3,
+          "rights_review": "PENDING",
+          "export_allowed": false
+        }
+      ],
+      "pending_location_visual": null,
+      "editorial_notes": "Use images as period/place context with precise labels; avoid claiming they capture narrated event.",
+      "narration_insert": null,
+      "shot_timing_status": "TO_BE_ALIGNED_WITH_AUDIO_CUES",
+      "subtitles_fr": "NOT_TIMED",
+      "subtitles_en": "NOT_TIMED",
+      "still_missing": [
+        "authorized present-day area views or final wayfinding return"
+      ]
+    }
+  ],
+  "next_stage": [
+    "Read segment-level audio cue sheet and derive exact durations from actual masters",
+    "Make rights decision for each image; never clear by guesswork",
+    "Create FR/EN synchronized still-image assembly previews and subtitle track",
+    "Perform human listening and visual correctness QA before release"
+  ]
+}
