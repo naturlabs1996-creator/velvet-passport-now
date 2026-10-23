@@ -5,7 +5,7 @@ type Result={action:string;result:string;issues?:string[];reason?:string;mode?:s
 export default function StudioActions(){
  const [busy,setBusy]=useState<string|null>(null);
  const [result,setResult]=useState<Result|null>(null);
- async function execute(action:"prepare"|"verify") {
+ async function execute(action:"prepare"|"verify"|"mount") {
   setBusy(action);setResult(null);
   try {
    const response=await fetch("/api/studio/commands",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({route_id:"VP-PAR-05",action})});
@@ -20,7 +20,7 @@ export default function StudioActions(){
   <div className={styles.actionButtons}>
    <button type="button" disabled={busy!==null} onClick={()=>void execute("prepare")}>Préparer</button>
    <button type="button" disabled={busy!==null} onClick={()=>void execute("verify")}>Vérifier</button>
-   <button type="button" disabled title="Asset rights, subtitles and audiovisual QA not complete">Monter — verrouillé</button>
+   <button type="button" disabled={busy!==null} onClick={()=>void execute("mount")}>Monter (contrôlé)</button>
    <button type="button" disabled title="Publication unavailable until commercial validation">Publier — verrouillé</button>
   </div>
   {busy&&<p role="status">Contrôle en cours…</p>}
@@ -28,7 +28,7 @@ export default function StudioActions(){
    <strong>{result.action}: {result.result}</strong>
    {result.reason&&<p>{result.reason}</p>}
    {result.issues&&result.issues.length>0&&<ul>{result.issues.map(issue=><li key={issue}>{issue}</li>)}</ul>}
-   <small>Aucun rendu ni publication déclenché.</small>
+   <small>{result.result==="DISPATCHED"?"Demande transmise : suivre GitHub Actions pour le résultat.":"Aucun rendu ni publication déclenché."}</small>
   </div>}
  </section>;
 }
