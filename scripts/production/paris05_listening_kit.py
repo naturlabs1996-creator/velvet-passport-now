@@ -28,7 +28,7 @@ def ffcall(args, check=True):
 def probe(path):
     p = ffcall(["-i", str(path)], check=False)
     data = p.stderr
-    m = re.search(r"Duration:\\s*(\\d+):(\\d+):(\\d+\\.\\d+)", data)
+    m = re.search(r"Duration:[ ]*([0-9]+):([0-9]+):([0-9]+[.][0-9]+)", data)
     assert m, (path, data[-1000:])
     dur = int(m[1])*3600 + int(m[2])*60 + float(m[3])
     return {"duration":dur, "video":bool(re.search(r"Video:",data)), "audio":bool(re.search(r"Audio:",data)), "subtitle":bool(re.search(r"Subtitle:",data))}
