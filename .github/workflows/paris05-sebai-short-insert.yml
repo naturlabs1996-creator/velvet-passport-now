@@ -1,8 +1,38 @@
-name: Sebai insert voice
-on: workflow_dispatch
+name: Paris05 Sebai final standalone inserts
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-sebai-short-insert.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  test:
+  voice-insert:
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [fr, en]
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - run: echo Sebai
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install established Chatterbox engine
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch established voice reference
+        run: |
+          mkdir -p references
+          curl -fL --retry 3 -o references/developer-1.mp3 "https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developer-1.mp3?download=true"
+          curl -fL --retry 3 -o references/p232.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true"
+      - name: Produce separate voice insert for listening QA
+        run: python scripts/audio/paris05_sebai_insert_render.py ${{ matrix.language }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paris05-sebai-insert-${{ matrix.language }}-review
+          path: insert-audio/
+          retention-days: 30
