@@ -1,7 +1,60 @@
-name: Paris05 bilingual final review
-on: workflow_dispatch
+name: Paris05 bilingual Sebai-integrated private review
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-bilingual-sebai-final-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
 jobs:
-  starter:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lang: fr
+            audio_artifact: PARIS05-fr-SEBAI-INTEGRATED-REVIEW-AUDIO
+          - lang: en
+            audio_artifact: PARIS05-en-SEBAI-INTEGRATED-REVIEW-AUDIO
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
-      - run: echo ready
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39892403459
+          name: paris05-fr-image-edl-review
+          path: dist/paris05-image-alignment
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39954802793
+          name: ${{ matrix.audio_artifact }}
+          path: downloaded/master
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881034897
+          name: paris05-authentic-visuals-provenance-REVIEW-ONLY
+          path: downloaded/archival-main
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881285190
+          name: paris05-targeted-authentic-visuals-REVIEW-ONLY
+          path: downloaded/archival-targeted
+      - name: Install video renderer
+        run: python -m pip install Pillow==11.3.0 imageio-ffmpeg==0.6.0
+      - name: Render full bilingual film with Sebai insert
+        run: python scripts/production/render_paris05_${{ matrix.lang }}_with_sebai_private.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.lang }}-SEBAI-INTEGRATED-PRIVATE-VIDEO
+          path: dist/paris05-${{ matrix.lang }}-sebai-integrated-review/
+          retention-days: 14
