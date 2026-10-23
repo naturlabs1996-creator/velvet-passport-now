@@ -1,18 +1,28 @@
 {
   "route_id": "VP-PAR-05",
-  "run_id": 39878711438,
-  "artifact_id": 12468909897,
+  "run_id": 39879767248,
+  "artifact_id": 12470281254,
   "commercial_release_approved": false,
   "checked_at": "2026-10-22",
+  "ingested_count": 4,
+  "errors": 0,
   "items": [
     {
       "id": "RP-P-1951-602",
-      "status": "INGEST_FAILED_429",
-      "rights_reference": "CC0 per Wikimedia Commons",
-      "cue": "STOP-02-CUE-02"
+      "cue": "STOP-02-CUE-02",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "28e42dec10d2c63f1132e0a43595ff580228229df565df67a0e5dae2a50e9e2e",
+      "bytes": 2400990,
+      "dimensions": [
+        4460,
+        6354
+      ],
+      "rights": "CC0",
+      "credit": "Rijksmuseum"
     },
     {
       "id": "RCIN-615675",
+      "cue": "STOP-04-CUE-04",
       "status": "INGESTED_REVIEW_ONLY",
       "sha256": "553f03f256894d7da67cc7c12ea985aab9eb6e08573e231ed36d2b9a41a2ddc3",
       "bytes": 880155,
@@ -20,15 +30,35 @@
         850,
         1250
       ],
-      "cue": "STOP-04-CUE-04",
-      "rights_reference": "Public domain per Wikimedia Commons"
+      "rights": "Public domain",
+      "credit": "Royal Collection"
     },
     {
       "id": "BNF-BTV1B8405032K",
-      "status": "INGEST_FAILED_429",
       "cue": "STOP-04-CUE-03",
-      "rights_reference": "Public domain per Commons, final review pending"
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "57752a7a7f9a9cffa5ab146f5ed89f7a2bbd7fb841918457935b7a993ba92d24",
+      "bytes": 3991773,
+      "dimensions": [
+        3936,
+        4888
+      ],
+      "rights": "Public domain",
+      "credit": "BnF Gallica"
+    },
+    {
+      "id": "MET-702001",
+      "cue": "STOP-01-CUE-05",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "343efc535c3b577caf022e7a5eebe29fcbd0f75cac419330a3ea7a277b736f16",
+      "bytes": 680170,
+      "rights": "Met Open Access Public Domain",
+      "credit": "The Met",
+      "editorial_note": "Authentic Appert historical staged photomontage; not contemporaneous documentary photo"
     }
+  ],
+  "pending_exact_source": [
+    "RP-F-2007-161 (Rijksmuseum Appert)"
   ],
   "excluded": [
     "PH10999",
