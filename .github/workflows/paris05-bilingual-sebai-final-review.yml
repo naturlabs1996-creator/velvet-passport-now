@@ -1,0 +1,7 @@
+name: Paris05 bilingual final review
+on: workflow_dispatch
+jobs:
+  starter:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ready
