@@ -4,8 +4,8 @@
   "artifact_id": 12470696663,
   "commercial_release_approved": false,
   "checked_at": "2026-10-22",
-  "ingested_count": 15,
-  "errors": 1,
+  "ingested_count": 18,
+  "errors": 0,
   "items": [
     {
       "id": "RP-P-1951-602",
@@ -119,12 +119,6 @@
       "source_batch": "39881034897"
     },
     {
-      "id": "GOMBOUST-1652",
-      "status": "INGEST_FAILED_HTTP_429",
-      "rights_review": "PENDING",
-      "source_batch": "39881034897"
-    },
-    {
       "id": "GRANDE-MADEMOISELLE-P1983",
       "status": "INGESTED_REVIEW_ONLY",
       "sha256": "4425e584d79c5ed19e57391fa78de6fd00889c0a7c208fd20e601c9533b2a145",
@@ -148,6 +142,48 @@
       "rights": "CC0",
       "rights_review": "PENDING",
       "source_batch": "39881034897"
+    },
+    {
+      "id": "GOMBOUST-1652",
+      "cue": "STOP-04-CUE-02",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "9a35e9a69560fafa6a756a0aa75279bb7e7ba86ca97b14777e38faa0ceb5c09c",
+      "bytes": 12459053,
+      "dimensions": [
+        5177,
+        4708
+      ],
+      "rights": "Public domain",
+      "rights_review": "PENDING",
+      "source_batch": "39881285190"
+    },
+    {
+      "id": "MARVILLE-ANTIN-1866",
+      "cue": "STOP-04-CUE-01",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "6a5ad35cff0385b7a64e0e08cf54aaebba99b8591dd9d1963362fdd950fdc21d",
+      "bytes": 1178637,
+      "dimensions": [
+        2126,
+        2787
+      ],
+      "rights": "CC0",
+      "rights_review": "PENDING",
+      "source_batch": "39881285190"
+    },
+    {
+      "id": "MARVILLE-OPERA-ANTIN-1876",
+      "cue": "TRANSITION-03-04",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "98e68b4bc6ecffeb268896d59a77cc07c6b6dd283b5b5794fb40ad7e8c52e316",
+      "bytes": 1273836,
+      "dimensions": [
+        2767,
+        2094
+      ],
+      "rights": "CC0",
+      "rights_review": "PENDING",
+      "source_batch": "39881285190"
     }
   ],
   "pending_exact_source": [
@@ -160,5 +196,19 @@
     "PH34929"
   ],
   "human_rights_signoff": false,
-  "notes": "Latest archive package contains 15 authentic images, one 1652 map blocked by Wikimedia 429; commercial export is not approved. Segment mapping in paris05-visual-coverage-and-gaps.json."
+  "notes": "18 files across TWO archives. First 15-file run reports failure because Gomboust hit 429, then the 3-file targeted follow-up acquired it. The first run's partial archive is retained. Commercial rights signoff remains pending.",
+  "batches": [
+    {
+      "run_id": 39881034897,
+      "artifact_id": 12470696663,
+      "items": 15,
+      "status": "PARTIAL_JOB_FAILURE_BUT_ARTIFACT_SAVED"
+    },
+    {
+      "run_id": 39881285190,
+      "artifact_id": 12470502716,
+      "items": 3,
+      "status": "SUCCESS"
+    }
+  ]
 }
