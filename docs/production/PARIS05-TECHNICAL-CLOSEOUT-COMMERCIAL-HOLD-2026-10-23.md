@@ -21,3 +21,18 @@ Decision: **TECHNICAL BILINGUAL REVIEW BUILD COMPLETE**; **NOT AUTHORIZED FOR CO
 6. Explicit publisher release approval.
 
 The commercial publication gate remains CLOSED. The technical phase should not be repeated. Next action is not archival exploration; it is fulfillment/verification of the above 6 blockers and creation of rights-cleared final masters. No public deployment authorized by this document.
+
+
+## Actualisation — montage historique enrichi (23 octobre 2026)
+
+La version purement graphique ne remplace pas le film historique. Nouveaux masters de contrôle **avec archives** :
+- **FR** : run `40025579787`, artifact `12532158154`.
+- **EN** : run `40025579787`, artifact `12532527156`.
+- **Contenu de chaque film** : 38 plans, dont 19 apparitions d'archives documentées et 19 substitutions graphiques assumées ; aucune image en attente affichée comme une archive authentique.
+- **Inspection automatique indépendante FR/EN** : run `40025724428` — succès pour les deux versions.
+- **Métadonnées** : source, licence déclarée, empreinte SHA-256 contrôlée par image effectivement employée ; certaines notices Wikimedia indiquent « domaine public » sur la fiche sans URL de licence distincte. Cela ne remplace pas la validation humaine/juridique.
+- **Prudence** : image générique `PARIS-1944` conservée hors montage faute de confirmation indépendante suffisante du statut de l'auteur.
+- **EN** : timing interne des images reste proportionnel aux chapitres, non synchronisé à la phrase par reconnaissance vocale anglaise.
+- **Commercial** : aucun feu vert automatique ; le fichier `paris05-commercial-release-evidence.json` conserve ses autorisations manquantes et reste opposable.
+
+La prochaine QA porte sur l'écoute intégrale, les sous-titres (noms propres, dates), le calage EN, la validité des droits pour chaque image effectivement retenue et les voix.
