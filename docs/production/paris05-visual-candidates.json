@@ -148,6 +148,15 @@
       "credit": "Musée Carnavalet P1983 / Paris Musées",
       "expected_rights": "CC0",
       "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "BAUDIN-1801-MEDAL",
+      "cue": "STOP-02-CUE-04",
+      "commons_title": "File:Expédition de Baudin en Australie, 1801, ND2747.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Expédition_de_Baudin_en_Australie,_1801,_ND2747.jpg",
+      "credit": "Musée Carnavalet ND2747 / Paris Musées",
+      "expected_rights": "CC0",
+      "status": "CANDIDATE_FOR_INGEST"
     }
   ],
   "blocked_asset_ids": [
