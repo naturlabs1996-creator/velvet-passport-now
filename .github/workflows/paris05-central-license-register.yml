@@ -1,8 +1,34 @@
-name: Paris05 license register
-on: workflow_dispatch
+name: Paris05 centralized image provenance audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-central-license-register.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo Audit
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881034897
+          name: paris05-authentic-visuals-provenance-REVIEW-ONLY
+          path: downloaded/archival-main
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881285190
+          name: paris05-targeted-authentic-visuals-REVIEW-ONLY
+          path: downloaded/archival-targeted
+      - name: Consolidate license evidence by archive ID
+        run: python scripts/production/paris05_rights_register.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-CENTRAL-IMAGE-RIGHTS-REGISTER
+          path: dist/paris05-rights-audit/rights-register.json
+          retention-days: 30
