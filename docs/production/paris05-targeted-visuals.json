@@ -1,0 +1,36 @@
+{
+  "route_id": "VP-PAR-05",
+  "stage": "TARGETED_GAP_FILL_REVIEW_ONLY",
+  "blocked_asset_ids": [
+    "PH10999",
+    "PH11026",
+    "PH35284",
+    "PH34929"
+  ],
+  "assets": [
+    {
+      "id": "GOMBOUST-1652",
+      "cue": "STOP-04-CUE-02",
+      "commons_title": "File:1652 Plan de Gomboust.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:1652_Plan_de_Gomboust.jpg",
+      "credit": "Jacques Gomboust 1652 / Wikimedia Commons",
+      "editorial_note": "Period general Paris plan; duel position unverified"
+    },
+    {
+      "id": "MARVILLE-ANTIN-1866",
+      "cue": "STOP-04-CUE-01",
+      "commons_title": "File:Charles Marville, Rue d'Antin.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Charles_Marville,_Rue_d'Antin.jpg",
+      "credit": "Charles Marville ca. 1866, Bibliothèque historique de la Ville de Paris / Commons",
+      "editorial_note": "Historic rue d'Antin, not current frontage"
+    },
+    {
+      "id": "MARVILLE-OPERA-ANTIN-1876",
+      "cue": "TRANSITION-03-04",
+      "commons_title": "File:Charles Marville, Avenue de l'Opéra (au droit de la rue d'Antin).jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Charles_Marville,_Avenue_de_l'Opéra_(au_droit_de_la_rue_d'Antin).jpg",
+      "credit": "Charles Marville 1876, Bibliothèque historique de la Ville de Paris / Commons",
+      "editorial_note": "Useful localized historical transition, not 1652 duel photograph"
+    }
+  ]
+}
