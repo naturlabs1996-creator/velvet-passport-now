@@ -37,7 +37,7 @@ for aid,pid in objects.items():
         identifier=urls[0].split("iiif.micr.io/")[1].split("/")[0]
         url=f"https://iiif.micr.io/{identifier}/full/1200,/0/default.jpg"
         blob,ctype=get(url,"image/jpeg")
-        if not blob.startswith(b"\\xff\\xd8\\xff") or len(blob)<12000:
+        if not blob.startswith(bytes.fromhex("ffd8ff")) or len(blob)<12000:
             raise ValueError("Not a JPEG image "+str(len(blob)))
         f=out/(aid+".jpg");f.write_bytes(blob)
         state.update({"status":"DOWNLOADED_REVIEW_ONLY","image_source":url,"IIIF_identifier":identifier,"bytes":len(blob),"sha256":hashlib.sha256(blob).hexdigest(),"file":f.name,"object_metadata":art.get("identified_by",[])[:3]})
