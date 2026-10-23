@@ -1,0 +1,76 @@
+{
+  "route_id": "VP-PAR-05",
+  "language": "fr",
+  "source_run": 39889321388,
+  "source_artifact_id": 12474720562,
+  "source_job_id": 120204997875,
+  "kind": "ASR_CUE_ALIGNMENT_AUTOMATED_QA",
+  "method": "faster-whisper word timestamps, conservative confidence thresholds",
+  "expected_cues": 114,
+  "matched_cues": 111,
+  "unmatched_cues": 3,
+  "human_qa_passed": false,
+  "chapter_counts": [
+    {
+      "id": "INTRO",
+      "aligned": 0,
+      "total": 0
+    },
+    {
+      "id": "STOP-01",
+      "aligned": 16,
+      "total": 17
+    },
+    {
+      "id": "TRANSITION-01-SEBAI",
+      "aligned": 4,
+      "total": 4
+    },
+    {
+      "id": "STOP-SEBAI-1977",
+      "aligned": 24,
+      "total": 25
+    },
+    {
+      "id": "TRANSITION-01-02",
+      "aligned": 0,
+      "total": 0
+    },
+    {
+      "id": "STOP-02",
+      "aligned": 14,
+      "total": 14
+    },
+    {
+      "id": "TRANSITION-02-03",
+      "aligned": 0,
+      "total": 0
+    },
+    {
+      "id": "STOP-03",
+      "aligned": 19,
+      "total": 20
+    },
+    {
+      "id": "TRANSITION-03-04",
+      "aligned": 0,
+      "total": 0
+    },
+    {
+      "id": "STOP-04",
+      "aligned": 34,
+      "total": 34
+    },
+    {
+      "id": "OUTRO",
+      "aligned": 0,
+      "total": 0
+    }
+  ],
+  "notes": [
+    "Counts confirmed from original successful GitHub Actions job logs.",
+    "111 matches are automated candidate timings, not human-validated frame-accurate cue placements.",
+    "Do not invent exact timestamps for 3 unmatched cues.",
+    "Detailed candidate timestamps are in the linked Actions artifact, not copied into this summary."
+  ]
+}
