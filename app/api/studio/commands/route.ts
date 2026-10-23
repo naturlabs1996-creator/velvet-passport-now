@@ -31,10 +31,10 @@ export async function POST(request:Request) {
   if(!l?.listening_qa_passed) errors.push(lang+": listening review pending");
   if(!l?.subtitle_file) errors.push(lang+": subtitles pending");
   if(!m.timelines?.[lang]?.length) errors.push(lang+": shot timeline pending");
-  if(!m.exports?.[lang]) errors.push(lang+": final export pending");
+  if(body.action!=="mount" && !m.exports?.[lang]) errors.push(lang+": final export pending");
  }
  if(!m.rights_signoff) errors.push("Commercial rights signoff pending");
- if(!m.visual_qa_passed) errors.push("Visual QA pending");
+ if(body.action!=="mount" && !m.visual_qa_passed) errors.push("Visual QA pending");
  if(m.assets.some(a=>a.use_in_export && (a.rights_status!=="CLEARED_COMMERCIAL"||!a.local_file)))errors.push("Export contains unverified rights or missing asset");
  if(body.action==="mount"){
    if(errors.length)return NextResponse.json({route_id:m.route_id,action:"mount",result:"BLOCKED",issues:errors,reason:"Preflight not complete; render not dispatched"},{status:409,headers:{"Cache-Control":"no-store"}});
