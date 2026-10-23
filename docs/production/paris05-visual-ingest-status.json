@@ -1,11 +1,11 @@
 {
   "route_id": "VP-PAR-05",
-  "run_id": 39879767248,
-  "artifact_id": 12470281254,
+  "run_id": 39880409756,
+  "artifact_id": 12470042368,
   "commercial_release_approved": false,
   "checked_at": "2026-10-22",
-  "ingested_count": 4,
-  "errors": 0,
+  "ingested_count": 12,
+  "errors": 1,
   "items": [
     {
       "id": "RP-P-1951-602",
@@ -18,7 +18,9 @@
         6354
       ],
       "rights": "CC0",
-      "credit": "Rijksmuseum"
+      "credit": "Rijksmuseum",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
     },
     {
       "id": "RCIN-615675",
@@ -31,7 +33,9 @@
         1250
       ],
       "rights": "Public domain",
-      "credit": "Royal Collection"
+      "credit": "Royal Collection",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
     },
     {
       "id": "BNF-BTV1B8405032K",
@@ -44,7 +48,9 @@
         4888
       ],
       "rights": "Public domain",
-      "credit": "BnF Gallica"
+      "credit": "BnF Gallica",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
     },
     {
       "id": "MET-702001",
@@ -54,7 +60,63 @@
       "bytes": 680170,
       "rights": "Met Open Access Public Domain",
       "credit": "The Met",
-      "editorial_note": "Authentic Appert historical staged photomontage; not contemporaneous documentary photo"
+      "editorial_note": "Authentic Appert historical staged photomontage; not contemporaneous documentary photo",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "TURGOT-LOUIS-1739",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "MARVILLE-LOUIS-PH460",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "MARVILLE-OPERA-PH940",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "OPERA-1900",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "VENDOME-1900",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "PARIS-1944",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "MEURICE-PH19383",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "APPERT-ROQUETTE",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
+    },
+    {
+      "id": "OPERA-1900-LOC",
+      "status": "INGEST_FAILED_HTTP_429",
+      "rights_review": "PENDING",
+      "source_batch": "39880409756"
     }
   ],
   "pending_exact_source": [
@@ -66,5 +128,6 @@
     "PH35284",
     "PH34929"
   ],
-  "human_rights_signoff": false
+  "human_rights_signoff": false,
+  "notes": "12/13 genuine image assets downloaded. Historic Appert imagery must be clearly labeled staged where applicable. Rights-HOLD photos excluded; no commercial approval."
 }
