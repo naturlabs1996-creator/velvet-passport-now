@@ -1,0 +1,25 @@
+name: Garage Velvet visual gate
+on:
+  push:
+    paths:
+      - scripts/production/garage_velvet_visual_gate.py
+      - docs/production/paris05-safe-visual-manifest.json
+      - .github/workflows/garage-velvet-visual-gate.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visual-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce no unapproved visual assets
+        run: python scripts/production/garage_velvet_visual_gate.py docs/production/paris05-safe-visual-manifest.json
+      - name: Commercial release stays blocked
+        run: |
+          if python scripts/production/paris05_release_gate.py; then
+            echo "Unexpected commercial release authorization"
+            exit 1
+          else
+            echo "PASS: commercial rights and human QA approvals still required"
+          fi
