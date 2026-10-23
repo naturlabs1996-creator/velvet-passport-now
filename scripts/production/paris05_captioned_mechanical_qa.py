@@ -12,7 +12,7 @@ raw=srt.read_text(encoding='utf-8-sig'); assert vtt.read_text(encoding='utf-8-si
 def stamp(t):
  h,m,s,ms=map(int,re.split('[:,]',t))
  return ((h*60+m)*60+s)+ms/1000
-pattern=re.compile(r'(?m)^(\\d+)\\n(\\d{2}:\\d{2}:\\d{2},\\d{3}) --> (\\d{2}:\\d{2}:\\d{2},\\d{3})\\n(.+)$')
+pattern=re.compile(r'(?m)^(\d+)\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n(.+)$')
 items=[(int(i),stamp(a),stamp(b),txt) for i,a,b,txt in pattern.findall(raw)]
 assert len(items)>100,(lang,len(items))
 assert [x[0] for x in items]==list(range(1,len(items)+1))
@@ -26,5 +26,5 @@ assert 'Subtitle: mov_text' in streams
 assert 'Video:' in streams and 'Audio:' in streams
 report={'lang':lang,'subtitle_entries':len(items),'last_subtitle_sec':max(x[2] for x in items),'expected_film_sec':expected,'timestamps_valid':True,'track_muxed':True,'rights_cleared':False,'human_proofread':False,'human_av_qa':False,'commercial_release_approved':False,'qa_class':'MECHANICAL_ONLY'}
 Path('qa').mkdir(exist_ok=True)
-Path(f'qa/PARIS05-{lang.upper()}-MECHANICAL-QA.json').write_text(json.dumps(report,indent=2)+'\\n')
+Path(f'qa/PARIS05-{lang.upper()}-MECHANICAL-QA.json').write_text(json.dumps(report,indent=2)+'\n')
 print(json.dumps(report))
