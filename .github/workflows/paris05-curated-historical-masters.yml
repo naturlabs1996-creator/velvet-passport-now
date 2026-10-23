@@ -1,0 +1,76 @@
+name: Paris05 curated bilingual historical master assembly
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/paris05-curated-historical-masters.yml
+      - scripts/production/paris05_curated_historical_render.py
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: [fr, en]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39892403459
+          name: paris05-fr-image-edl-review
+          path: downloaded/edl
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881034897
+          name: paris05-authentic-visuals-provenance-REVIEW-ONLY
+          path: downloaded/archival-main
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881285190
+          name: paris05-targeted-authentic-visuals-REVIEW-ONLY
+          path: downloaded/archival-targeted
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39971437794
+          name: PARIS05-${{ matrix.lang }}-CAPTIONED-PRIVATE-REVIEW
+          path: downloaded/previous
+      - name: Prepare offline audiovisual renderer
+        run: python -m pip install Pillow==11.3.0 imageio-ffmpeg==0.6.0
+      - name: Reconstruct historical film using rights-evidenced assets
+        env:
+          VP_LANG: ${{ matrix.lang }}
+        run: python scripts/production/paris05_curated_historical_render.py
+      - name: Final file presence and audit check
+        env:
+          VP_LANG: ${{ matrix.lang }}
+        run: |
+          python - <<'PY'
+          import os,json,pathlib
+          l=os.environ["VP_LANG"];d=pathlib.Path(f"dist/paris05-curated-{l}")
+          qa=json.loads((d/"qa.json").read_text())
+          assert qa["historical_image_appearances"]>0,qa
+          assert qa["documentary_substitutions"]>0,qa
+          assert qa["final_commercial_rights_and_voice_clearance"] is False
+          assert (d/f"PARIS05-{l.upper()}-CURATED-HISTORICAL-PRIVATE-MASTER.mp4").stat().st_size>1000000
+          print(qa)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.lang }}-CURATED-HISTORICAL-PRIVATE-MASTER
+          path: |
+            dist/paris05-curated-${{ matrix.lang }}/*.mp4
+            dist/paris05-curated-${{ matrix.lang }}/qa.json
+            dist/paris05-curated-${{ matrix.lang }}/shot_decisions.json
+          retention-days: 30
