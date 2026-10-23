@@ -1,0 +1,1056 @@
+{
+  "schema_version": "1.0",
+  "route_id": "VP-PAR-05",
+  "kind": "SOURCE_CUE_ANCHORS_NOT_AUDIO_TIMECODES",
+  "language": "fr",
+  "source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json",
+  "audio_timing_verified": false,
+  "total_spoken_words": 8855,
+  "segments": [
+    {
+      "sequence": 1,
+      "id": "INTRO",
+      "title": "Opéra Back Streets",
+      "spoken_words": 301,
+      "spoken_characters": 1961,
+      "source_cue_count": 0,
+      "cues": [],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 2,
+      "id": "STOP-01",
+      "title": "Ernest Appert — 21 rue Louis-le-Grand",
+      "spoken_words": 1141,
+      "spoken_characters": 7775,
+      "source_cue_count": 17,
+      "cues": [
+        {
+          "index": 1,
+          "type": "AMBIENCE",
+          "source_char_index": 0,
+          "description": "Paris contemporain, très discret",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 2,
+          "type": "LOOK",
+          "source_char_index": 1,
+          "description": "façade du 21 rue Louis-le-Grand",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 3,
+          "type": "PAUSE",
+          "source_char_index": 489,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 4,
+          "type": "VISUAL",
+          "source_char_index": 1132,
+          "description": "cartes de visite photographiques du XIXe siècle",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 5,
+          "type": "PAUSE",
+          "source_char_index": 1818,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 6,
+          "type": "VISUAL",
+          "source_char_index": 1897,
+          "description": "verso de carte photographique Appert, collection du Rijksmuseum",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 7,
+          "type": "LOOK",
+          "source_char_index": 2258,
+          "description": "adresse actuelle",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 8,
+          "type": "PAUSE",
+          "source_char_index": 2672,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 9,
+          "type": "VISUAL",
+          "source_char_index": 3318,
+          "description": "photomontage Appert, groupe de neuf personnalités politiques, Rijksmuseum",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 10,
+          "type": "PAUSE",
+          "source_char_index": 3931,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 11,
+          "type": "VISUAL",
+          "source_char_index": 4459,
+          "description": "série Les Crimes de la Commune, image correctement légendée",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 12,
+          "type": "PAUSE",
+          "source_char_index": 5089,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 13,
+          "type": "VISUAL",
+          "source_char_index": 5425,
+          "description": "détail du montage, puis retour à l'image complète",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 14,
+          "type": "PAUSE",
+          "source_char_index": 5983,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 15,
+          "type": "LOOK",
+          "source_char_index": 6427,
+          "description": "façade du 21",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 16,
+          "type": "PAUSE",
+          "source_char_index": 7302,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 17,
+          "type": "AMBIENCE",
+          "source_char_index": 7808,
+          "description": "transition douce vers l'ambiance contemporaine",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        }
+      ],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 3,
+      "id": "TRANSITION-01-SEBAI",
+      "title": "Du 21 rue Louis-le-Grand à l’adresse Sebaï",
+      "spoken_words": 264,
+      "spoken_characters": 1689,
+      "source_cue_count": 4,
+      "cues": [
+        {
+          "index": 1,
+          "type": "WALK",
+          "source_char_index": 0,
+          "description": "Départ du 21 rue Louis-le-Grand",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 2,
+          "type": "LOOK",
+          "source_char_index": 682,
+          "description": "Porte cochère grise du numéro 23",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 3,
+          "type": "PAUSE",
+          "source_char_index": 1674,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 4,
+          "type": "AMBIENCE",
+          "source_char_index": 1676,
+          "description": "Diminution progressive du bruit de rue",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        }
+      ],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 4,
+      "id": "STOP-SEBAI-1977",
+      "title": "Laïd Sebaï — assassinat du 2 décembre 1977, rue Louis-le-Grand (23 bis cité par la presse; entrée à confirmer)",
+      "spoken_words": 1785,
+      "spoken_characters": 11584,
+      "source_cue_count": 25,
+      "cues": [
+        {
+          "index": 1,
+          "type": "LOOK",
+          "source_char_index": 0,
+          "description": "Grande porte cochère du 23 rue Louis-le-Grand",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 2,
+          "type": "AMBIENCE",
+          "source_char_index": 1,
+          "description": "Paris contemporain. Puis diminution progressive.",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 3,
+          "type": "AMBIENCE",
+          "source_char_index": 310,
+          "description": "Une détonation sourde et brève, suivie d'un retour au silence",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 4,
+          "type": "PAUSE",
+          "source_char_index": 507,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 5,
+          "type": "VISUAL",
+          "source_char_index": 755,
+          "description": "Article du Monde, 29 juillet 1975",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 6,
+          "type": "PAUSE",
+          "source_char_index": 1222,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 7,
+          "type": "PAUSE",
+          "source_char_index": 1702,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 8,
+          "type": "AMBIENCE",
+          "source_char_index": 1704,
+          "description": "Retour discret de la circulation parisienne",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 9,
+          "type": "PAUSE",
+          "source_char_index": 2582,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 10,
+          "type": "LOOK",
+          "source_char_index": 2770,
+          "description": "Porte cochère du numéro 23",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 11,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 3253,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 12,
+          "type": "PAUSE",
+          "source_char_index": 3357,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 13,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 3908,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 14,
+          "type": "VISUAL",
+          "source_char_index": 4034,
+          "description": "Portrait ou document historique concernant Ghraieb",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 15,
+          "type": "PAUSE",
+          "source_char_index": 4749,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 16,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 5532,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 17,
+          "type": "PAUSE",
+          "source_char_index": 6111,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 18,
+          "type": "PAUSE",
+          "source_char_index": 6916,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 19,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 7640,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 20,
+          "type": "PAUSE",
+          "source_char_index": 8175,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 21,
+          "type": "PAUSE",
+          "source_char_index": 8697,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 22,
+          "type": "PAUSE",
+          "source_char_index": 9452,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 23,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 10011,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 24,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 11279,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 25,
+          "type": "AMBIENCE",
+          "source_char_index": 11456,
+          "description": "Retour progressif du bruit de la rue",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        }
+      ],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 5,
+      "id": "TRANSITION-01-02",
+      "title": "De Sebaï à Joséphine",
+      "spoken_words": 75,
+      "spoken_characters": 482,
+      "source_cue_count": 0,
+      "cues": [],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 6,
+      "id": "STOP-02",
+      "title": "La dispersion de Malmaison — 16 rue Louis-le-Grand",
+      "spoken_words": 1187,
+      "spoken_characters": 7778,
+      "source_cue_count": 14,
+      "cues": [
+        {
+          "index": 1,
+          "type": "LOOK",
+          "source_char_index": 0,
+          "description": "Le numéro 16 rue Louis-le-Grand",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 2,
+          "type": "AMBIENCE",
+          "source_char_index": 1,
+          "description": "Paris contemporain, léger",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 3,
+          "type": "PAUSE",
+          "source_char_index": 431,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 4,
+          "type": "VISUAL",
+          "source_char_index": 1401,
+          "description": "Portrait authentifié de Joséphine, vues anciennes de Malmaison",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 5,
+          "type": "PAUSE",
+          "source_char_index": 1895,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 6,
+          "type": "VISUAL",
+          "source_char_index": 2656,
+          "description": "Page de titre et feuillets du catalogue de vente de 1819",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 7,
+          "type": "PAUSE",
+          "source_char_index": 3150,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 8,
+          "type": "PAUSE",
+          "source_char_index": 3831,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 9,
+          "type": "VISUAL",
+          "source_char_index": 4571,
+          "description": "Carte historique de l'expédition Baudin et gravures de collections naturalistes",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 10,
+          "type": "PAUSE",
+          "source_char_index": 5021,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 11,
+          "type": "PAUSE",
+          "source_char_index": 5631,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 12,
+          "type": "PAUSE",
+          "source_char_index": 6469,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 13,
+          "type": "PAUSE",
+          "source_char_index": 7135,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 14,
+          "type": "AMBIENCE",
+          "source_char_index": 7569,
+          "description": "Reprise très douce de la rue",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        }
+      ],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 7,
+      "id": "TRANSITION-02-03",
+      "title": "Vers l’Opéra",
+      "spoken_words": 283,
+      "spoken_characters": 1869,
+      "source_cue_count": 0,
+      "cues": [],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 8,
+      "id": "STOP-03",
+      "title": "La Kommandantur de l’Opéra — 19, 20 et 25 août 1944",
+      "spoken_words": 1210,
+      "spoken_characters": 7911,
+      "source_cue_count": 20,
+      "cues": [
+        {
+          "index": 1,
+          "type": "LOOK",
+          "source_char_index": 0,
+          "description": "Le Palais Garnier et les immeubles faisant face à la place",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 2,
+          "type": "AMBIENCE",
+          "source_char_index": 1,
+          "description": "Paris contemporain très discret",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 3,
+          "type": "PAUSE",
+          "source_char_index": 561,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 4,
+          "type": "VISUAL",
+          "source_char_index": 1038,
+          "description": "Photographie d'époque du secteur Opéra, 19 août 1944, attribution vérifiée",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 5,
+          "type": "PAUSE",
+          "source_char_index": 1393,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 6,
+          "type": "PAUSE",
+          "source_char_index": 2208,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 7,
+          "type": "AMBIENCE",
+          "source_char_index": 2331,
+          "description": "Silence",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 8,
+          "type": "PAUSE",
+          "source_char_index": 2651,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 9,
+          "type": "VISUAL",
+          "source_char_index": 2968,
+          "description": "Chronologie photographique 19–25 août 1944",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 10,
+          "type": "PAUSE",
+          "source_char_index": 3471,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 11,
+          "type": "VISUAL",
+          "source_char_index": 4041,
+          "description": "Photo LAPI n° 28401, attaque de la Kommandantur",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 12,
+          "type": "PAUSE",
+          "source_char_index": 4246,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 13,
+          "type": "PAUSE",
+          "source_char_index": 4743,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 14,
+          "type": "VISUAL",
+          "source_char_index": 5214,
+          "description": "Vue comparative historique et actuelle depuis angle validé",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 15,
+          "type": "PAUSE",
+          "source_char_index": 5587,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 16,
+          "type": "VISUAL",
+          "source_char_index": 5856,
+          "description": "Photo historique de la reddition et drapeau blanc, légende authentifiée",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 17,
+          "type": "PAUSE",
+          "source_char_index": 6323,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 18,
+          "type": "PAUSE",
+          "source_char_index": 6881,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 19,
+          "type": "PAUSE",
+          "source_char_index": 7177,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 20,
+          "type": "AMBIENCE",
+          "source_char_index": 7644,
+          "description": "Retour doux de Paris contemporain",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        }
+      ],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 9,
+      "id": "TRANSITION-03-04",
+      "title": "Faire disparaître l’Opéra",
+      "spoken_words": 237,
+      "spoken_characters": 1566,
+      "source_cue_count": 0,
+      "cues": [],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 10,
+      "id": "STOP-04",
+      "title": "Beaufort contre Nemours — 30 juillet 1652",
+      "spoken_words": 2173,
+      "spoken_characters": 14097,
+      "source_cue_count": 34,
+      "cues": [
+        {
+          "index": 1,
+          "type": "LOOK",
+          "source_char_index": 0,
+          "description": "Secteur de l'ancienne rue Neuve-des-Petits-Champs et de la rue d'Antin",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 2,
+          "type": "AMBIENCE",
+          "source_char_index": 1,
+          "description": "Paris contemporain, puis diminution progressive",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 3,
+          "type": "PAUSE",
+          "source_char_index": 705,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 4,
+          "type": "VISUAL",
+          "source_char_index": 1067,
+          "description": "Plan historique de Paris au milieu du XVIIe siècle",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 5,
+          "type": "PAUSE",
+          "source_char_index": 1617,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 6,
+          "type": "VISUAL",
+          "source_char_index": 1679,
+          "description": "Portrait historique identifié du duc de Beaufort",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 7,
+          "type": "VISUAL",
+          "source_char_index": 2358,
+          "description": "Portrait historique identifié de Charles-Amédée de Savoie, duc de Nemours",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 8,
+          "type": "PAUSE",
+          "source_char_index": 2712,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 9,
+          "type": "PAUSE",
+          "source_char_index": 3466,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 10,
+          "type": "VISUAL",
+          "source_char_index": 3674,
+          "description": "Portrait de la Grande Mademoiselle",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 11,
+          "type": "PAUSE",
+          "source_char_index": 4115,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 12,
+          "type": "PAUSE",
+          "source_char_index": 4624,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 13,
+          "type": "AMBIENCE",
+          "source_char_index": 5168,
+          "description": "Silence discret",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 14,
+          "type": "PAUSE",
+          "source_char_index": 5540,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 15,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 5742,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 16,
+          "type": "VISUAL",
+          "source_char_index": 6281,
+          "description": "Plan ancien localisant le marché aux chevaux",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 17,
+          "type": "PAUSE",
+          "source_char_index": 6543,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 18,
+          "type": "PAUSE",
+          "source_char_index": 7097,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 19,
+          "type": "PAUSE",
+          "source_char_index": 7372,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 20,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 7784,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 21,
+          "type": "AMBIENCE",
+          "source_char_index": 7786,
+          "description": "Silence presque complet",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 22,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 8134,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 23,
+          "type": "PAUSE",
+          "source_char_index": 8825,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 24,
+          "type": "PAUSE",
+          "source_char_index": 9355,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 25,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 9867,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 26,
+          "type": "PAUSE",
+          "source_char_index": 10154,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 27,
+          "type": "PAUSE",
+          "source_char_index": 10577,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 28,
+          "type": "PAUSE",
+          "source_char_index": 11129,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 29,
+          "type": "PAUSE",
+          "source_char_index": 11839,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 30,
+          "type": "LOOK",
+          "source_char_index": 12330,
+          "description": "Rue d'Antin et environnement actuel",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 31,
+          "type": "PAUSE",
+          "source_char_index": 12748,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 32,
+          "type": "PAUSE LONGUE",
+          "source_char_index": 13057,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 33,
+          "type": "PAUSE",
+          "source_char_index": 13447,
+          "description": "",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        },
+        {
+          "index": 34,
+          "type": "AMBIENCE",
+          "source_char_index": 13925,
+          "description": "Retour très progressif de Paris contemporain",
+          "audio_time_seconds": null,
+          "alignment_status": "NEEDS_AUDIO_LISTENING_OR_FORCED_ALIGNMENT"
+        }
+      ],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    },
+    {
+      "sequence": 11,
+      "id": "OUTRO",
+      "title": "Paris superposé",
+      "spoken_words": 199,
+      "spoken_characters": 1268,
+      "source_cue_count": 0,
+      "cues": [],
+      "chapter_start_seconds": null,
+      "chapter_end_seconds": null
+    }
+  ],
+  "caveats": [
+    "Source character positions are not timecodes; never linearly convert text offset to audio time.",
+    "Source script counts do not verify the rendered master timing or inserted pauses.",
+    "Existing masters unchanged; Sebai approved later insert is not part of existing audio.",
+    "English source requires a separate cue pass."
+  ]
+}
