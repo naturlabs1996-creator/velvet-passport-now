@@ -1,0 +1,40 @@
+{
+  "route_id": "VP-PAR-05",
+  "segment": "STOP-SEBAI-1977",
+  "checked_at": "2026-10-22",
+  "items": [
+    {
+      "id": "CURIEL-COMMONS-YOUNG",
+      "person": "Henri Curiel",
+      "status": "FOUND_SOURCE_RIGHTS_REVIEW_PENDING",
+      "page": "https://commons.wikimedia.org/wiki/File:Henri_Curiel_jeune_%C3%A9tudiant.jpg",
+      "license_reported": "CC BY-SA 4.0",
+      "resolution": "1239x1029",
+      "warning": "Historic original photo credit/upload provenance must be independently assessed; license from uploader does not necessarily prove original photographer rights."
+    },
+    {
+      "id": "CURIEL-IMA-PORTRAIT",
+      "person": "Henri Curiel",
+      "status": "FOUND_RIGHTS_HOLD",
+      "page": "https://www.imarabe.org/fr/magazine/juifs-orient3-henri-curiel-juif-egyptien-anticolonialiste-et-combattant-pour-paix",
+      "warning": "Image displayed by Institut du monde arabe but rights for commercial montage not established."
+    },
+    {
+      "id": "CURIEL-CNC-1977",
+      "person": "Henri Curiel",
+      "status": "FOUND_RIGHTS_HOLD",
+      "page": "https://imagesdelaculture.cnc.fr/-/henri-curiel-itineraire-d-un-combattant-de-la-paix-et-de-la-liberte",
+      "warning": "Period stills from documentary; no free commercial image license verified."
+    },
+    {
+      "id": "GHRAIEB-PORTRAIT",
+      "person": "Ghraieb",
+      "status": "NOT_LOCATED",
+      "page": null,
+      "warning": "Web searches of Ghraieb and variants with Laid Sebai did not identify a trustworthy captioned photographic source. Do not attach an unrelated person's picture."
+    }
+  ],
+  "publish_ready": false,
+  "story_alignment": "Henri Curiel and Laid Sebai ballistics link: Le Monde 12 May 1978",
+  "story_source": "https://www.lemonde.fr/archives/article/1978/05/12/henri-curiel-et-laid-sebai-ont-ete-tues-par-la-meme-arme_2980172_1819218.html"
+}
