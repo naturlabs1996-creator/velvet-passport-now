@@ -74,7 +74,7 @@
       "missing": [
         "Actual rights-cleared photograph of door 23 rue Louis-le-Grand (not yet ingested)"
       ],
-      "status": "SINGLE_LOCATION_VISUAL_SELECTED_ASSET_PENDING",
+      "status": "EDITORIAL_LOCK_VISUAL_ASSET_AND_AUDIO_INSERT_PENDING",
       "visual_direction": {
         "primary_subject": "Porte cochère du 23 rue Louis-le-Grand, Paris",
         "type": "PRESENT_DAY_AUTHENTIC_LOCATION",
@@ -87,6 +87,11 @@
         "caution": "23 bis appears in some period references; do not claim present-day door precisely identifies historical entrance without evidence",
         "asset_status": "NOT_INGESTED",
         "rights_status": "PENDING"
+      },
+      "approved_narration_insert": {
+        "file": "docs/production/paris05-sebai-approved-insert.md",
+        "status": "EDITORIAL_APPROVED_AUDIO_NOT_RECORDED",
+        "production_policy": "Record as separate audio insert FR then adapt EN; do not alter existing locked WAV masters."
       }
     },
     {
@@ -233,5 +238,12 @@
     }
   ],
   "available_files_total": 18,
-  "editorial_decision": "Stop Sebai visual: use authentic door number 23 instead of searching for unavailable portraits or historical imagery; do not fabricate a photograph or imply verified historical entrance at 23 bis."
+  "editorial_decision": "Stop Sebai visual: use authentic door number 23 instead of searching for unavailable portraits or historical imagery; do not fabricate a photograph or imply verified historical entrance at 23 bis.",
+  "production_issues": [
+    "Sebaï door: image not ingested or cleared",
+    "Sebaï approved insert: audio not recorded FR/EN",
+    "Image rights review and cue timing incomplete",
+    "Human audio listening QA not complete",
+    "Subtitle timing FR/EN not approved"
+  ]
 }
