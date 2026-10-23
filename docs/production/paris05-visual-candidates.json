@@ -130,6 +130,15 @@
       "credit": "Library of Congress / Wikimedia Commons",
       "editorial_note": "Historical Photochrom, turn-of-century",
       "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "GOMBOUST-1652",
+      "cue": "STOP-04-CUE-02",
+      "commons_title": "File:1652 Plan de Gomboust.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:1652_Plan_de_Gomboust.jpg",
+      "credit": "Jacques Gomboust / Wikimedia Commons",
+      "expected_rights": "PUBLIC_DOMAIN",
+      "status": "CANDIDATE_FOR_INGEST"
     }
   ],
   "blocked_asset_ids": [
