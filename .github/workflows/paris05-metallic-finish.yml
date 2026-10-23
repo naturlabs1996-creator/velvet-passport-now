@@ -1,0 +1,49 @@
+name: Paris05 metallic finish review
+on:
+  push:
+    paths: [.github/workflows/paris05-metallic-finish.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: [fr,en]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39971437794
+          name: PARIS05-${{ matrix.lang }}-CAPTIONED-PRIVATE-REVIEW
+          path: incoming
+      - run: python -m pip install Pillow imageio-ffmpeg
+      - name: Design metallic chapters
+        env:
+          LC: ${{ matrix.lang }}
+        run: python scripts/production/paris05_metallic_design.py
+      - name: Compose captioned feature
+        env:
+          LC: ${{ matrix.lang }}
+        run: |
+          python - <<'PY'
+          import pathlib,os,subprocess,imageio_ffmpeg
+          l=os.environ["LC"];u=l.upper()
+          src=pathlib.Path("incoming")/f"PARIS05-{u}-SEBAI-CAPTIONED-PRIVATE-REVIEW.mp4"
+          assert src.exists()
+          dest=pathlib.Path("output");dest.mkdir(exist_ok=True)
+          target=dest/f"PARIS05-{u}-METALLIC-FINISH-REVIEW.mp4"
+          cmd=[imageio_ffmpeg.get_ffmpeg_exe(),"-y","-loglevel","error","-safe","0","-f","concat","-i","frames/playlist.ffconcat","-i",str(src),"-map","0:v:0","-map","1:a:0","-map","1:s:0","-c:v","libx264","-preset","veryfast","-crf","29","-pix_fmt","yuv420p","-vsync","vfr","-c:a","copy","-c:s","mov_text","-movflags","+faststart",str(target)]
+          subprocess.run(cmd,check=True)
+          assert target.stat().st_size>100000
+          (dest/"REVIEW-STATUS.txt").write_text("Metallic chapter typography, no third-party images. Voice rights and human listening/subtitle approval remain pending. Not approved for sale.\n")
+          print(target,target.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.lang }}-METALLIC-FINISH-REVIEW
+          path: output/
