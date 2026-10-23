@@ -33,7 +33,10 @@ jobs:
           name: paris05-fr-final-11seg-audio-and-qa
           path: downloaded/master
       - name: Install private QA renderer
-        run: python -m pip install Pillow==11.3.0
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          python -m pip install Pillow==11.3.0
       - name: Render 11-chapter audio contact reel with placeholder slates
         run: python scripts/production/render_paris05_fr_private_contact_reel.py
       - name: Upload private audiovisual contact reel
