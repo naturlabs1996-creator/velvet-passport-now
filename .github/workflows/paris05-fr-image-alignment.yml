@@ -1,0 +1,33 @@
+name: Paris05 FR — align authentic images to measured narration
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production/build_paris05_fr_image_edl.py'
+      - '.github/workflows/paris05-fr-image-alignment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  image-edl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 39889321388
+          github-token: ${{ github.token }}
+          name: paris05-fr-measured-cue-alignment-review
+          path: downloaded/alignment
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Map verified source assets to measured narration cues
+        run: python scripts/production/build_paris05_fr_image_edl.py
+      - name: Upload editorial image alignment and holds
+        uses: actions/upload-artifact@v4
+        with:
+          name: paris05-fr-image-edl-review
+          path: dist/paris05-image-alignment/*.json
+          retention-days: 30
