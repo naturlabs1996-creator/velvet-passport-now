@@ -1,10 +1,10 @@
 {
   "route_id": "VP-PAR-05",
-  "run_id": 39880409756,
-  "artifact_id": 12470042368,
+  "run_id": 39881034897,
+  "artifact_id": 12470696663,
   "commercial_release_approved": false,
   "checked_at": "2026-10-22",
-  "ingested_count": 12,
+  "ingested_count": 15,
   "errors": 1,
   "items": [
     {
@@ -114,9 +114,40 @@
     },
     {
       "id": "OPERA-1900-LOC",
+      "status": "INGESTED_REVIEW_ONLY",
+      "rights_review": "PENDING",
+      "source_batch": "39881034897"
+    },
+    {
+      "id": "GOMBOUST-1652",
       "status": "INGEST_FAILED_HTTP_429",
       "rights_review": "PENDING",
-      "source_batch": "39880409756"
+      "source_batch": "39881034897"
+    },
+    {
+      "id": "GRANDE-MADEMOISELLE-P1983",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "4425e584d79c5ed19e57391fa78de6fd00889c0a7c208fd20e601c9533b2a145",
+      "bytes": 1376204,
+      "dimensions": [
+        2541,
+        3000
+      ],
+      "rights_review": "PENDING",
+      "source_batch": "39881034897"
+    },
+    {
+      "id": "BAUDIN-1801-MEDAL",
+      "status": "INGESTED_REVIEW_ONLY",
+      "sha256": "e73771580c1a5410f0e9c25d10ddfa38500099483005750a1ff36517e66b035c",
+      "bytes": 2920564,
+      "dimensions": [
+        5402,
+        4039
+      ],
+      "rights": "CC0",
+      "rights_review": "PENDING",
+      "source_batch": "39881034897"
     }
   ],
   "pending_exact_source": [
@@ -129,5 +160,5 @@
     "PH34929"
   ],
   "human_rights_signoff": false,
-  "notes": "12/13 genuine image assets downloaded. Historic Appert imagery must be clearly labeled staged where applicable. Rights-HOLD photos excluded; no commercial approval."
+  "notes": "Latest archive package contains 15 authentic images, one 1652 map blocked by Wikimedia 429; commercial export is not approved. Segment mapping in paris05-visual-coverage-and-gaps.json."
 }
