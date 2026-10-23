@@ -1,0 +1,26 @@
+name: Paris 05 — Targeted archival gap fill
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/production/paris05-targeted-visuals.json'
+      - '.github/workflows/paris05-targeted-visuals.yml'
+permissions:
+  contents: read
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch three precise authentic archives
+        run: python scripts/production/ingest_paris05_visuals.py docs/production/paris05-targeted-visuals.json dist/paris05-targeted
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paris05-targeted-authentic-visuals-REVIEW-ONLY
+          path: dist/paris05-targeted/
+          retention-days: 30
