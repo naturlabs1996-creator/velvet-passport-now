@@ -29,6 +29,8 @@ jobs:
           run-id: 39960369921
           name: PARIS05-${{ matrix.lang }}-SUBTITLES-SRT-VTT-REVIEW
           path: review/subtitles
+      - name: Install FFmpeg utilities
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Mux review subtitles as an optional MP4 text track
         shell: bash
         env:
