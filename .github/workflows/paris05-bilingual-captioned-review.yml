@@ -29,8 +29,11 @@ jobs:
           run-id: 39960369921
           name: PARIS05-${{ matrix.lang }}-SUBTITLES-SRT-VTT-REVIEW
           path: review/subtitles
-      - name: Install FFmpeg utilities
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Install bundled FFmpeg without system package manager
+        run: |
+          python -m pip install imageio-ffmpeg==0.6.0
+          python -c 'import imageio_ffmpeg,shutil,pathlib; shutil.copy2(imageio_ffmpeg.get_ffmpeg_exe(), "/tmp/ffmpeg"); pathlib.Path("/tmp/ffmpeg").chmod(0o755)'
+          echo /tmp >> "$GITHUB_PATH"
       - name: Mux review subtitles as an optional MP4 text track
         shell: bash
         env:
@@ -45,8 +48,8 @@ jobs:
           test -s "$captions"
           ffmpeg -hide_banner -loglevel error -y -i "$source" -i "$captions" -map 0:v:0 -map 0:a:0 -map 1:0 -c:v copy -c:a copy -c:s mov_text -metadata:s:s:0 language="$LANG_CODE" -disposition:s:0 default -movflags +faststart "$target"
           test -s "$target"
-          ffprobe -v error -show_entries stream=codec_type,codec_name -of csv=p=0 "$target" | tee dist/private-captioned/streams.txt
-          test "$(ffprobe -v error -select_streams s -show_entries stream=index -of csv=p=0 "$target" | wc -l)" -eq 1
+          ffmpeg -hide_banner -i "$target" 2>&1 | tee dist/private-captioned/streams.txt || true
+          grep -q "Subtitle: mov_text" dist/private-captioned/streams.txt
           cp "$captions" "dist/private-captioned/PARIS05-${LANG_CODE^^}-REVIEW.srt"
           cp "review/subtitles/PARIS05-${LANG_CODE^^}-REVIEW.vtt" dist/private-captioned/
           printf 'PRIVATE REVIEW ONLY — NOT CLEARED FOR COMMERCIAL RELEASE. ASR captions require proofreading; image and voice rights unresolved.\n' >dist/private-captioned/RELEASE-BLOCK.txt
