@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/production/build_paris05_fr_image_edl.py'
+      - 'scripts/production/render_paris05_fr_private_contact_reel.py'
       - '.github/workflows/paris05-fr-image-alignment.yml'
   workflow_dispatch:
 permissions:
@@ -25,6 +26,24 @@ jobs:
           python-version: '3.11'
       - name: Map verified source assets to measured narration cues
         run: python scripts/production/build_paris05_fr_image_edl.py
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 39629212549
+          github-token: ${{ github.token }}
+          name: paris05-fr-final-11seg-audio-and-qa
+          path: downloaded/master
+      - name: Install private QA renderer
+        run: python -m pip install Pillow==11.3.0
+      - name: Render 11-chapter audio contact reel with placeholder slates
+        run: python scripts/production/render_paris05_fr_private_contact_reel.py
+      - name: Upload private audiovisual contact reel
+        uses: actions/upload-artifact@v4
+        with:
+          name: paris05-fr-private-audiovisual-qa-preview
+          path: |
+            dist/paris05-image-alignment/paris05-fr-private-contact-reel.mp4
+            dist/paris05-image-alignment/private-contact-reel-qa.json
+          retention-days: 7
       - name: Upload editorial image alignment and holds
         uses: actions/upload-artifact@v4
         with:
