@@ -40,6 +40,21 @@ holds={
  ("STOP-03",15):"Duly authenticated surrender photo missing",
  ("STOP-04",15):"Horse-market precise plan localization remains unverified"
 }
+# Explicit subject mismatch review: never show historical city images as contemporary address footage.
+context_only={
+ ("STOP-01",None):"Historical streetscape only, NOT present-day 21 façade",
+ ("STOP-01",1):"Historical streetscape only, NOT present-day 21 façade",
+ ("STOP-01",6):"Historical streetscape only, NOT present-day 21 façade",
+ ("STOP-01",14):"Historical streetscape only, NOT present-day 21 façade",
+ ("TRANSITION-01-SEBAI",None):"Historical street, NOT contemporary walking directions",
+ ("TRANSITION-01-SEBAI",0):"Historical street, NOT contemporary walking directions",
+ ("STOP-02",None):"Josephine portrait, NOT modern façade no. 16",
+ ("STOP-03",None):"Opera circa 1900, NOT the events of August 1944",
+ ("STOP-03",0):"Opera circa 1900, NOT contemporary Palais Garnier",
+ ("STOP-03",8):"1944 Paris context only, NOT the Opera 19 August event",
+ ("STOP-04",3):"Period map overview, NOT a verified duel point",
+ ("STOP-04",29):"Historical rue d'Antin, NOT its current view"
+}
 out={"schema_version":"1.0","route_id":"VP-PAR-05","language":"fr","type":"REVIEW_ONLY_IMAGE_EDIT_DECISION_LIST","audio_master_unchanged":True,"source_alignment_run":39889321388,"source_alignment_artifact":12474720562,"commercial_export_allowed":False,"shot_events":[],"chapters":[],"qa":{"unmatched_audio_cues":[],"unavailable_visuals":[],"unsafe_visuals":[]}}
 for ch,b in zip(aligned["chapters"],times):
  assert ch["id"]==b["id"],(ch["id"],b["id"])
@@ -68,13 +83,18 @@ for ch,b in zip(aligned["chapters"],times):
    e["status"]="CANDIDATE_REVIEW_ONLY";e["export_allowed"]=False
    e["rights_review"]=available[asset].get("rights_review","PENDING")
    e["rights_source"]=available[asset].get("rights","UNKNOWN")
+  if (ident,e["index"]) in context_only and e["status"]=="CANDIDATE_REVIEW_ONLY":
+   e["status"]="CONTEXT_ONLY_REVIEW"
+   e["context_disclaimer"]=context_only[(ident,e["index"])]
   e["asset_id"]=e.pop("asset");e["time_seconds"]=e.pop("t")
   if e["source"]=="measured_asr_cue" and e["time_seconds"] is not None and not (b["start_seconds"]<=e["time_seconds"]<=b["end_seconds"]):
    raise ValueError("Cue outside master segment: "+ident)
   cs["visual_events"].append(e)
   out["shot_events"].append({"chapter":ident,**e})
  out["chapters"].append(cs)
-out["qa"]["counts"]={"chapters":len(out["chapters"]),"image_events":len(out["shot_events"]),"candidate_visual_events":sum(x["status"]=="CANDIDATE_REVIEW_ONLY" for x in out["shot_events"]),"visual_holds":sum(x["status"]=="EDITORIAL_ASSET_HOLD" for x in out["shot_events"]),"cue_alignment_holds":len(out["qa"]["unmatched_audio_cues"])}
+out["qa"]["counts"]={"chapters":len(out["chapters"]),"image_events":len(out["shot_events"]),"candidate_visual_events":sum(x["status"] in ("CANDIDATE_REVIEW_ONLY","CONTEXT_ONLY_REVIEW") for x in out["shot_events"]),"visual_holds":sum(x["status"]=="EDITORIAL_ASSET_HOLD" for x in out["shot_events"]),"cue_alignment_holds":len(out["qa"]["unmatched_audio_cues"])}
+out["qa"]["counts"]["context_only_review"]=sum(x["status"]=="CONTEXT_ONLY_REVIEW" for x in out["shot_events"])
+out["qa"]["counts"]["rights_blocked_for_export"]=len(out["shot_events"])
 assert len(out["chapters"])==11
 p=Path("dist/paris05-image-alignment");p.mkdir(parents=True,exist_ok=True)
 (p/"paris05-fr-image-edl-review.json").write_text(json.dumps(out,ensure_ascii=False,indent=2)+"\n")
