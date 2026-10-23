@@ -1,0 +1,27 @@
+name: Paris 05 — Ingest authentic historical visuals
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production/ingest_paris05_visuals.py'
+      - 'docs/production/paris05-visual-candidates.json'
+      - '.github/workflows/paris05-visual-ingest.yml'
+permissions:
+  contents: read
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download and document reuse candidates
+        run: python scripts/production/ingest_paris05_visuals.py docs/production/paris05-visual-candidates.json dist/paris05-historical-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paris05-authentic-visuals-provenance-REVIEW-ONLY
+          path: dist/paris05-historical-images/
+          retention-days: 30
