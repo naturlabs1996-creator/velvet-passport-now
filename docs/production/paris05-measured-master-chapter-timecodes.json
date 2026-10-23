@@ -1,0 +1,208 @@
+{
+  "schema_version": "1.0",
+  "route_id": "VP-PAR-05",
+  "type": "MEASURED_MASTER_CHAPTER_BOUNDARIES",
+  "origin": "Existing final assembly QA outputs printed in successful GitHub Actions job logs",
+  "source_runs": {
+    "fr": 39629212549,
+    "en": 39783346444
+  },
+  "notes": [
+    "Times measured from original master component durations at assembly; starts are cumulative zero-based.",
+    "Internal word-level and visual cue times are not yet aligned and remain unknown.",
+    "FR Sebai new approved insert is not in the measured master; final timecodes will shift if inserted.",
+    "Rights, subtitles, listening and publishing QA remain pending."
+  ],
+  "tracks": {
+    "fr": {
+      "source": "QA-FINAL-11SEG.json from GitHub Actions run 39629212549 job 119322512799",
+      "chapters": [
+        {
+          "id": "INTRO",
+          "start_seconds": 0,
+          "end_seconds": 120.92,
+          "duration_seconds": 120.92,
+          "start_timecode": "00:00.00",
+          "end_timecode": "02:00.92"
+        },
+        {
+          "id": "STOP-01",
+          "start_seconds": 120.92,
+          "end_seconds": 600.96,
+          "duration_seconds": 480.04,
+          "start_timecode": "02:00.92",
+          "end_timecode": "10:00.96"
+        },
+        {
+          "id": "TRANSITION-01-SEBAI",
+          "start_seconds": 600.96,
+          "end_seconds": 710.64,
+          "duration_seconds": 109.68,
+          "start_timecode": "10:00.96",
+          "end_timecode": "11:50.64"
+        },
+        {
+          "id": "STOP-SEBAI-1977",
+          "start_seconds": 710.64,
+          "end_seconds": 1446,
+          "duration_seconds": 735.36,
+          "start_timecode": "11:50.64",
+          "end_timecode": "24:06.00"
+        },
+        {
+          "id": "TRANSITION-01-02",
+          "start_seconds": 1446,
+          "end_seconds": 1474.96,
+          "duration_seconds": 28.96,
+          "start_timecode": "24:06.00",
+          "end_timecode": "24:34.96"
+        },
+        {
+          "id": "STOP-02",
+          "start_seconds": 1474.96,
+          "end_seconds": 1964.26,
+          "duration_seconds": 489.3,
+          "start_timecode": "24:34.96",
+          "end_timecode": "32:44.26"
+        },
+        {
+          "id": "TRANSITION-02-03",
+          "start_seconds": 1964.26,
+          "end_seconds": 2091.04,
+          "duration_seconds": 126.78,
+          "start_timecode": "32:44.26",
+          "end_timecode": "34:51.04"
+        },
+        {
+          "id": "STOP-03",
+          "start_seconds": 2091.04,
+          "end_seconds": 2597.66,
+          "duration_seconds": 506.62,
+          "start_timecode": "34:51.04",
+          "end_timecode": "43:17.66"
+        },
+        {
+          "id": "TRANSITION-03-04",
+          "start_seconds": 2597.66,
+          "end_seconds": 2708.82,
+          "duration_seconds": 111.16,
+          "start_timecode": "43:17.66",
+          "end_timecode": "45:08.82"
+        },
+        {
+          "id": "STOP-04",
+          "start_seconds": 2708.82,
+          "end_seconds": 3595.1,
+          "duration_seconds": 886.28,
+          "start_timecode": "45:08.82",
+          "end_timecode": "59:55.10"
+        },
+        {
+          "id": "OUTRO",
+          "start_seconds": 3595.1,
+          "end_seconds": 3676.22,
+          "duration_seconds": 81.12,
+          "start_timecode": "59:55.10",
+          "end_timecode": "61:16.22"
+        }
+      ],
+      "total_seconds": 3676.22,
+      "total_timecode": "61:16.22"
+    },
+    "en": {
+      "source": "PARIS05-EN-ASSEMBLY-QA.json from GitHub Actions run 39783346444 job 119839959857",
+      "chapters": [
+        {
+          "id": "INTRO",
+          "start_seconds": 0,
+          "end_seconds": 129.56,
+          "duration_seconds": 129.56,
+          "start_timecode": "00:00.00",
+          "end_timecode": "02:09.56"
+        },
+        {
+          "id": "STOP-01",
+          "start_seconds": 129.56,
+          "end_seconds": 606.96,
+          "duration_seconds": 477.4,
+          "start_timecode": "02:09.56",
+          "end_timecode": "10:06.96"
+        },
+        {
+          "id": "TRANSITION-01-SEBAI",
+          "start_seconds": 606.96,
+          "end_seconds": 714.52,
+          "duration_seconds": 107.56,
+          "start_timecode": "10:06.96",
+          "end_timecode": "11:54.52"
+        },
+        {
+          "id": "STOP-SEBAI-1977",
+          "start_seconds": 714.52,
+          "end_seconds": 1475.68,
+          "duration_seconds": 761.16,
+          "start_timecode": "11:54.52",
+          "end_timecode": "24:35.68"
+        },
+        {
+          "id": "TRANSITION-01-02",
+          "start_seconds": 1475.68,
+          "end_seconds": 1503.36,
+          "duration_seconds": 27.68,
+          "start_timecode": "24:35.68",
+          "end_timecode": "25:03.36"
+        },
+        {
+          "id": "STOP-02",
+          "start_seconds": 1503.36,
+          "end_seconds": 2015.44,
+          "duration_seconds": 512.08,
+          "start_timecode": "25:03.36",
+          "end_timecode": "33:35.44"
+        },
+        {
+          "id": "TRANSITION-02-03",
+          "start_seconds": 2015.44,
+          "end_seconds": 2142.64,
+          "duration_seconds": 127.2,
+          "start_timecode": "33:35.44",
+          "end_timecode": "35:42.64"
+        },
+        {
+          "id": "STOP-03",
+          "start_seconds": 2142.64,
+          "end_seconds": 2654.72,
+          "duration_seconds": 512.08,
+          "start_timecode": "35:42.64",
+          "end_timecode": "44:14.72"
+        },
+        {
+          "id": "TRANSITION-03-04",
+          "start_seconds": 2654.72,
+          "end_seconds": 2771.56,
+          "duration_seconds": 116.84,
+          "start_timecode": "44:14.72",
+          "end_timecode": "46:11.56"
+        },
+        {
+          "id": "STOP-04",
+          "start_seconds": 2771.56,
+          "end_seconds": 3652,
+          "duration_seconds": 880.44,
+          "start_timecode": "46:11.56",
+          "end_timecode": "60:52.00"
+        },
+        {
+          "id": "OUTRO",
+          "start_seconds": 3652,
+          "end_seconds": 3722.48,
+          "duration_seconds": 70.48,
+          "start_timecode": "60:52.00",
+          "end_timecode": "62:02.48"
+        }
+      ],
+      "total_seconds": 3722.48,
+      "total_timecode": "62:02.48"
+    }
+  }
+}
