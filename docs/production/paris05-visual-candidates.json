@@ -40,6 +40,96 @@
       "credit": "The Metropolitan Museum of Art, 2012.352 (11), Ernest Eugène Appert",
       "editorial_note": "Historical photomontage created by Appert; staged reconstruction, not a documentary event photograph",
       "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "TURGOT-LOUIS-1739",
+      "cue": "INTRO",
+      "commons_title": "File:Rue Louis le Grand.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Rue_Louis_le_Grand.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Plan de Turgot, 1739 / Wikimedia Commons",
+      "editorial_note": "Historic 1739 map; not a photograph",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "MARVILLE-LOUIS-PH460",
+      "cue": "STOP-01",
+      "commons_title": "File:Rue Louis-le-Grand, vue prise du boulevard des Italiens, 2ème arrondissement, Paris, PH460(2).jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Rue_Louis-le-Grand,_vue_prise_du_boulevard_des_Italiens,_2ème_arrondissement,_Paris,_PH460(2).jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Charles Marville / Musée Carnavalet",
+      "editorial_note": "1865-1868 street photograph",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "MARVILLE-OPERA-PH940",
+      "cue": "TRANSITION-01-02",
+      "commons_title": "File:Percement de l'avenue de l'Opéra, entre la rue Louis-le-Grand et la rue d'Antin, vers l'Opéra, 2ème arrondissement, Pari, PH940.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Percement_de_l'avenue_de_l'Opéra,_entre_la_rue_Louis-le-Grand_et_la_rue_d'Antin,_vers_l'Opéra,_2ème_arrondissement,_Pari,_PH940.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Charles Marville / Musée Carnavalet",
+      "editorial_note": "1876-1877 avenue works",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "OPERA-1900",
+      "cue": "INTRO",
+      "commons_title": "File:Paris Opera, circa 1900.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Paris_Opera,_circa_1900.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Historic lithograph / Wikimedia Commons",
+      "editorial_note": "Palais Garnier ca. 1900",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "VENDOME-1900",
+      "cue": "TRANSITION-03-04",
+      "commons_title": "File:Place Vendome, Paris, France, ca. 1890-1900.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Place_Vendome,_Paris,_France,_ca._1890-1900.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Library of Congress / Wikimedia Commons",
+      "editorial_note": "Historic photochrom",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "PARIS-1944",
+      "cue": "STOP-03",
+      "commons_title": "File:Paris1944.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Paris1944.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "US government / Library of Congress",
+      "editorial_note": "1944 liberation city context, not specific location",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "MEURICE-PH19383",
+      "cue": "STOP-03",
+      "commons_title": "File:La Libération de Paris -25 août 1944 - Prisonniers allemands de l'hôtel Meurice, sous les arcades de la rue de Rivoli, 1, PH19383.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:La_Libération_de_Paris_-25_août_1944_-_Prisonniers_allemands_de_l'hôtel_Meurice,_sous_les_arcades_de_la_rue_de_Rivoli,_1,_PH19383.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Musée Carnavalet / Wikimedia Commons",
+      "editorial_note": "25 August 1944 Meurice prisoners; CC0 recorded on Commons",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "APPERT-ROQUETTE",
+      "cue": "STOP-01",
+      "commons_title": "File:Ernest Eugène Appert, Exécution des otages, prison de la Roquette, le 24 mai 1871.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Ernest_Eugène_Appert,_Exécution_des_otages,_prison_de_la_Roquette,_le_24_mai_1871.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Ernest Eugène Appert / Wikimedia Commons",
+      "editorial_note": "Historic photomontage; staged reconstruction, not live photography",
+      "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "OPERA-1900-LOC",
+      "cue": "TRANSITION-02-03",
+      "commons_title": "File:The Opera House, Paris, France ca. 1890-1900.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:The_Opera_House,_Paris,_France_ca._1890-1900.jpg",
+      "expected_rights": "PD_OR_CC0_REVIEW",
+      "credit": "Library of Congress / Wikimedia Commons",
+      "editorial_note": "Historical Photochrom, turn-of-century",
+      "status": "CANDIDATE_FOR_INGEST"
     }
   ],
   "blocked_asset_ids": [
