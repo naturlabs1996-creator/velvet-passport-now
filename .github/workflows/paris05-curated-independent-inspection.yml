@@ -1,0 +1,67 @@
+name: Paris05 curated master independent inspection
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/paris05-curated-independent-inspection.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: [fr,en]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 40025303247
+          name: PARIS05-${{ matrix.lang }}-CURATED-HISTORICAL-PRIVATE-MASTER
+          path: delivered
+      - name: Inspect actual media streams and sidecar audit
+        env:
+          LC: ${{ matrix.lang }}
+        run: |
+          python - <<'PY'
+          import pathlib,subprocess,json,os
+          l=os.environ["LC"];base=pathlib.Path("delivered");q=json.loads((base/"qa.json").read_text())
+          shots=json.loads((base/"shot_decisions.json").read_text())
+          film=base/f"PARIS05-{l.upper()}-CURATED-HISTORICAL-PRIVATE-MASTER.mp4"
+          assert len(shots)==q["slides"] and q["chapters"]==11
+          assert sum(x["disposition"]=="ARCHIVAL_CONTEXT" for x in shots)==q["historical_image_appearances"]
+          assert sum(x["disposition"]=="DOCUMENTARY_SUBSTITUTE" for x in shots)==q["documentary_substitutions"]
+          assert all(x["source_page"] and x["license_url"] for x in shots if x["asset_id"])
+          assert all(x["asset_id"] is None for x in shots if x["disposition"]=="DOCUMENTARY_SUBSTITUTE")
+          assert q["final_commercial_rights_and_voice_clearance"] is False
+          assert film.stat().st_size>1000000
+          import shutil
+          media=shutil.which("ffprobe")
+          if media:
+           res=subprocess.run([media,"-v","error","-show_entries","stream=codec_type,codec_name","-of","json",str(film)],capture_output=True,text=True,check=True)
+           streams=json.loads(res.stdout)["streams"]
+           assert {"video","audio","subtitle"}.issubset({x["codec_type"] for x in streams}),streams
+           print(streams)
+          print(json.dumps({"lang":l,"qa":"PASS","shots":len(shots),"historical":q["historical_image_appearances"],"fallbacks":q["documentary_substitutions"],"commercial":False}))
+          PY
+  license-diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881034897
+          name: paris05-authentic-visuals-provenance-REVIEW-ONLY
+          path: downloaded/archival-main
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39881285190
+          name: paris05-targeted-authentic-visuals-REVIEW-ONLY
+          path: downloaded/archival-targeted
+      - run: python scripts/production/paris05_visual_proof_diagnostic.py
