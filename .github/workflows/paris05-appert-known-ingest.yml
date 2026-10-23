@@ -1,0 +1,23 @@
+name: Paris05 known Appert photos Rijksmuseum ingest
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-appert-known-ingest.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve two identified Appert works via Rijksmuseum public IIIF
+        run: python scripts/production/paris05_ingest_known_appert.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PARIS05-APPERT-EXACT-ARCHIVES-REVIEW
+          path: dist/appert-rijks/
+          retention-days: 30
