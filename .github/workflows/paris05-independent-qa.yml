@@ -1,0 +1,38 @@
+name: Paris05 independent technical release inspection
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/paris05-independent-qa.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: [fr, en]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39971437794
+          name: PARIS05-${{ matrix.lang }}-CAPTIONED-PRIVATE-REVIEW
+          path: review/${{ matrix.lang }}
+      - name: QA timed captions and video audio subtitle stream metadata
+        run: python scripts/production/paris05_captioned_mechanical_qa.py ${{ matrix.lang }}
+      - name: Check that commercial release remains blocked
+        shell: bash
+        run: |
+          if python scripts/production/paris05_release_gate.py; then
+            echo 'ERROR: release gate unexpectedly passed'; exit 1
+          else
+            echo 'PASS: unsigned commercial evidence cannot authorize release'
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.lang }}-INDEPENDENT-MECHANICAL-QA
+          path: qa/
