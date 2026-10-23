@@ -61,22 +61,33 @@
         "historic street setting only"
       ],
       "missing": [
-        "present-day 21-to-23 walk",
-        "23 grey coach door photo"
+        "Authorized current-day establishing view from 21 to doorway 23, ideally one authentic photograph with safe crops"
       ],
-      "status": "GAP"
+      "status": "SINGLE_LOCATION_VISUAL_SELECTED_ASSET_PENDING"
     },
     {
       "id": "STOP-SEBAI-1977",
       "available_assets": [],
-      "valid_for": [],
-      "missing": [
-        "23/23 bis doorway captured with permission",
-        "actual 1975 Le Monde article copyright clearance or document-free alternative",
-        "Ghraieb primary historical document with rights clearance",
-        "authenticated 1977 location image"
+      "valid_for": [
+        "Editorial visual decision: actual present-day door at 23 rue Louis-le-Grand; a rights-cleared photograph is required before audiovisual use"
       ],
-      "status": "CRITICAL_GAP"
+      "missing": [
+        "Actual rights-cleared photograph of door 23 rue Louis-le-Grand (not yet ingested)"
+      ],
+      "status": "SINGLE_LOCATION_VISUAL_SELECTED_ASSET_PENDING",
+      "visual_direction": {
+        "primary_subject": "Porte cochère du 23 rue Louis-le-Grand, Paris",
+        "type": "PRESENT_DAY_AUTHENTIC_LOCATION",
+        "editorial_lock": true,
+        "shots": [
+          "Wide establishing shot showing number and doorway if visible",
+          "Closer crop on actual door",
+          "Static details or subtle motion within same authentic image"
+        ],
+        "caution": "23 bis appears in some period references; do not claim present-day door precisely identifies historical entrance without evidence",
+        "asset_status": "NOT_INGESTED",
+        "rights_status": "PENDING"
+      }
     },
     {
       "id": "TRANSITION-01-02",
@@ -221,5 +232,6 @@
       "files": 3
     }
   ],
-  "available_files_total": 18
+  "available_files_total": 18,
+  "editorial_decision": "Stop Sebai visual: use authentic door number 23 instead of searching for unavailable portraits or historical imagery; do not fabricate a photograph or imply verified historical entrance at 23 bis."
 }
