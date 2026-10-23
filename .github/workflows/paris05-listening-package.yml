@@ -1,0 +1,41 @@
+name: Paris05 bilingual human listening package
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-listening-package.yml'
+      - 'scripts/production/paris05_listening_kit.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  listening:
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [fr, en]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 40025579787
+          name: PARIS05-${{ matrix.language }}-CURATED-HISTORICAL-PRIVATE-MASTER
+          path: incoming
+      - name: Install bundled FFmpeg
+        run: python -m pip install imageio-ffmpeg==0.6.0
+      - name: Build 11 individually playable audio chapters and insert excerpt
+        env:
+          VP_LANG: ${{ matrix.language }}
+        run: python scripts/production/paris05_listening_kit.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.language }}-HUMAN-LISTENING-11-CHAPTERS
+          path: listening/
+          retention-days: 30
