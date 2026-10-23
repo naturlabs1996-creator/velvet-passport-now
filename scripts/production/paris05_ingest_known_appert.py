@@ -4,7 +4,7 @@ Exact identifier, credit, provenance and bytes are retained. No new candidate re
 """
 import hashlib,json,time,urllib.request,urllib.error
 from pathlib import Path
-objects={"APPERT-NEUF-1867":"200489498","APPERT-ROQUETTE-RIJK":"200332472"}
+objects={"APPERT-NEUF-1867":"200489498"}
 out=Path("dist/appert-rijks");out.mkdir(parents=True,exist_ok=True)
 headers={"User-Agent":"VelvetPassportArchivalProduction/1.0 (https://github.com/naturlabs1996-creator/velvet-passport-now)","Accept":"application/json"}
 def get(url,accept="application/json"):
