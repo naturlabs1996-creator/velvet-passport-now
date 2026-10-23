@@ -37,8 +37,14 @@ def safe_asset(aid):
     if not a:return(None,"missing_original_provenance")
     rights=(a.get("rights") or "").lower()
     if not any(tok in rights for tok in ALLOW):return(None,"no_open_license_metadata")
-    if not a.get("rights_url") or not a.get("page") or not a.get("sha256"):
-        return(None,"incomplete_license_provenance")
+    if not a.get("page") or not a.get("sha256"):
+        return(None,"incomplete_source_provenance")
+    # Wikimedia Commons sometimes tags an old engraving PUBLIC DOMAIN with no
+    # separate LicenseUrl. Its file description page holds the rights statement.
+    # 1944 event images are excluded under the conservative author-term rule.
+    if aid=="PARIS-1944":return(None,"1944_image_author_term_not_independently_resolved")
+    if not a.get("rights_url") and rights.strip()!="public domain":
+        return(None,"no_license_url_and_no_explicit_public_domain_statement")
     p=files.get(aid)
     if p is None or not p.exists():return(None,"file_unavailable")
     if hashlib.sha256(p.read_bytes()).hexdigest()!=a["sha256"]:
@@ -145,7 +151,7 @@ for i,(t,ev) in enumerate(filtered):
     frame(ev,i,path).save(f,quality=89)
     count+=int(path is not None)
     frames.append((f,end-t))
-    rows.append({"chapter":ev["chapter"],"second":round(t,3),"asset_id":aid if path else None,"disposition":"ARCHIVAL_CONTEXT" if path else "DOCUMENTARY_SUBSTITUTE","substitution_reason":reason,"source_page":original[aid].get("page") if path else None,"license_url":original[aid].get("rights_url") if path else None})
+    rows.append({"chapter":ev["chapter"],"second":round(t,3),"asset_id":aid if path else None,"disposition":"ARCHIVAL_CONTEXT" if path else "DOCUMENTARY_SUBSTITUTE","substitution_reason":reason,"source_page":original[aid].get("page") if path else None,"license_url":(original[aid].get("rights_url") or original[aid].get("page")) if path else None,"license_basis":("CC0_OR_MET_PRIMARY" if original[aid].get("rights_url") else "COMMONS_PUBLIC_DOMAIN_FILE_PAGE") if path else None})
 assert len(frames)>25
 def quote(p):return str(p.resolve()).replace("'","")
 lst=P/"concat.ffconcat"
@@ -156,7 +162,7 @@ output=P/f"PARIS05-{lang.upper()}-CURATED-HISTORICAL-PRIVATE-MASTER.mp4"
 cmd=[imageio_ffmpeg.get_ffmpeg_exe(),"-y","-hide_banner","-loglevel","error","-safe","0","-f","concat","-i",str(lst),"-i",str(src),"-map","0:v:0","-map","1:a:0","-map","1:s:0","-c:v","libx264","-preset","veryfast","-crf","29","-pix_fmt","yuv420p","-vsync","vfr","-c:a","copy","-c:s","mov_text","-t",str(duration),"-movflags","+faststart",str(output)]
 subprocess.run(cmd,check=True)
 assert output.stat().st_size>1000000
-report={"route":"VP-PAR-05","lang":lang,"chapters":11,"slides":len(rows),"historical_image_appearances":count,"documentary_substitutions":len(rows)-count,"license_provenance_and_sha_verified_per_used_file":True,"final_commercial_rights_and_voice_clearance":False,"human_listening_qa":False,"subtitle_proofread":False,"en_visual_timing_provisional":lang=="en","status":"CURATED_PRIVATE_REVIEW_NOT_COMMERCIAL_RELEASE"}
+report={"route":"VP-PAR-05","lang":lang,"chapters":11,"slides":len(rows),"historical_image_appearances":count,"documentary_substitutions":len(rows)-count,"license_metadata_and_sha_checked_per_used_file":True,"human_legal_signoff_still_required":True,"final_commercial_rights_and_voice_clearance":False,"human_listening_qa":False,"subtitle_proofread":False,"en_visual_timing_provisional":lang=="en","status":"CURATED_PRIVATE_REVIEW_NOT_COMMERCIAL_RELEASE"}
 (P/"qa.json").write_text(json.dumps(report,indent=2,ensure_ascii=False)+"\n")
 (P/"shot_decisions.json").write_text(json.dumps(rows,indent=2,ensure_ascii=False)+"\n")
 print(json.dumps(report,ensure_ascii=False),flush=True)
