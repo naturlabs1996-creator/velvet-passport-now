@@ -1,49 +1,55 @@
 #!/usr/bin/env python3
-"""Download historical archive candidates from Wikimedia Commons with metadata and checksums.
-This tool DOES NOT approve rights for commercial release or change the production manifest.
-"""
-import hashlib,json,sys,urllib.parse,urllib.request
+"""Paris 05 archival image ingestion. Review-only, provenance-preserving, fail-closed."""
+import hashlib,json,sys,time,urllib.parse,urllib.request,urllib.error
 from pathlib import Path
 API="https://commons.wikimedia.org/w/api.php"
-UA="VelvetPassportProduction/1.0 (archival provenance and rights research)"
-def get(url):
- req=urllib.request.Request(url,headers={"User-Agent":UA,"Accept":"application/json"})
- with urllib.request.urlopen(req,timeout=50) as response:return response.read()
-def main():
- inp=Path(sys.argv[1]);out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)
- source=json.loads(inp.read_text(encoding="utf8"));seen=set();report=[]
- for asset in source["assets"]:
-  aid=asset["id"];title=asset["commons_title"]
-  if aid in source["blocked_asset_ids"] or aid in seen:raise RuntimeError("Blocked or duplicate ID "+aid)
-  seen.add(aid)
-  query=urllib.parse.urlencode({"action":"query","titles":title,"prop":"imageinfo","iiprop":"url|size|mime|sha1|extmetadata","format":"json"})
+UA="VelvetPassportArchiveResearch/1.0 (contact: https://github.com/naturlabs1996-creator/velvet-passport-now)"
+def get(url,accept="application/json"):
+ req=urllib.request.Request(url,headers={"User-Agent":UA,"Accept":accept})
+ for attempt in range(3):
   try:
-   raw=json.loads(get(API+"?"+query))
-   pages=list(raw["query"]["pages"].values());info=pages[0].get("imageinfo",[None])[0]
-   if not info or info.get("mime") not in ("image/jpeg","image/png"):raise ValueError("No qualifying image")
-   metadata=info.get("extmetadata",{})
-   license_value=metadata.get("LicenseShortName",{}).get("value","")
-   license_url=metadata.get("LicenseUrl",{}).get("value","")
-   allowed=(license_value.lower().replace(" ","") in ("cc0","publicdomain","publicdomainmark","pd-old","pd-art","pd-old-100","cc-zero")) or "publicdomain" in license_url
-   if not allowed:raise ValueError("License not allowlisted: "+license_value)
-   if info.get("size",0)>30_000_000:raise ValueError("Image exceeds 30MB ingest cap")
-   ext=".png" if info["mime"]=="image/png" else ".jpg"
-   blob=get(info["url"])
-   if len(blob)>30_000_000 or not blob:raise ValueError("Image size mismatch")
-   (out/(aid+ext)).write_bytes(blob)
-   report.append({"id":aid,"cue":asset["cue"],"status":"INGESTED_RIGHTS_REVIEW_REQUIRED","local_file":aid+ext,
-      "sha256":hashlib.sha256(blob).hexdigest(),"size_bytes":len(blob),"commons_page":info["descriptionurl"],
-      "source_record":asset["source_record"],"license_declared":license_value,"license_url":license_url,
-      "creator_credit":asset["credit"],"image_width":info["width"],"image_height":info["height"],
-      "commercial_release_approved":False})
-  except Exception as exc:
-   report.append({"id":aid,"status":"INGEST_FAILED","reason":str(exc),"commercial_release_approved":False})
- result={"route_id":source["route_id"],"ingest_status":"REVIEW_ONLY","items":report,
-  "ingested_count":sum(x["status"].startswith("INGESTED") for x in report),
-  "errors":sum(x["status"]=="INGEST_FAILED" for x in report),"excluded_rights_hold":source["blocked_asset_ids"]}
- (out/"provenance.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf8")
- print(json.dumps(result,ensure_ascii=False,indent=2))
- if result["ingested_count"]==0:sys.exit(1)
+   with urllib.request.urlopen(req,timeout=55) as r:return r.read()
+  except urllib.error.HTTPError as exc:
+   if exc.code not in (429,500,502,503) or attempt==2:raise
+   time.sleep(3*(attempt+1))
+def ingest_commons(a,out):
+ params=urllib.parse.urlencode({"action":"query","titles":a["commons_title"],"prop":"imageinfo","iiprop":"url|size|mime|sha1|extmetadata","format":"json"})
+ data=json.loads(get(API+"?"+params))
+ info=next(iter(data["query"]["pages"].values())).get("imageinfo",[None])[0]
+ if not info or info.get("mime") not in ("image/jpeg","image/png"):raise ValueError("Missing qualifying image")
+ rights=info.get("extmetadata",{}).get("LicenseShortName",{}).get("value","")
+ rightsurl=info.get("extmetadata",{}).get("LicenseUrl",{}).get("value","")
+ if rights.lower().replace(" ","") not in ("cc0","publicdomain","publicdomainmark","pd-old","pd-art","pd-old-100","cc-zero") and "publicdomain" not in rightsurl:
+  raise ValueError("Rights not allowlisted: "+rights)
+ if int(info.get("size",0))>30000000:raise ValueError("Oversized source image")
+ blob=get(info["url"],accept="image/*")
+ return blob,{"rights":rights,"rights_url":rightsurl,"image_url":info["url"],"page":info["descriptionurl"],"width":info["width"],"height":info["height"],"mime":info["mime"]}
+def ingest_met(a,out):
+ obj=json.loads(get("https://collectionapi.metmuseum.org/public/collection/v1/objects/"+str(a["met_object_id"])))
+ if not obj.get("isPublicDomain") or not obj.get("primaryImage"):raise ValueError("Met Public Domain or image unavailable")
+ if str(obj.get("objectID"))!=str(a["met_object_id"]):raise ValueError("Met object mismatch")
+ blob=get(obj["primaryImage"],accept="image/*")
+ return blob,{"rights":"Public Domain (Met Open Access)","rights_url":"https://www.metmuseum.org/about-the-met/policies-and-documents/open-access",
+ "image_url":obj["primaryImage"],"page":obj["objectURL"],"mime":"image/jpeg","title":obj.get("title"),"artist":obj.get("artistDisplayName")}
+def main(inp,out):
+ out.mkdir(parents=True,exist_ok=True);source=json.loads(inp.read_text());result=[]
+ for a in source["assets"]:
+  aid=a["id"];entry={"id":aid,"cue":a["cue"],"source_record":a["source_record"],"creator_credit":a["credit"],"commercial_release_approved":False}
+  if aid in source["blocked_asset_ids"]:entry.update(status="EXCLUDED_RIGHTS_HOLD");result.append(entry);continue
+  try:
+   blob,meta=(ingest_met(a,out) if a.get("provider")=="met" else ingest_commons(a,out))
+   if not 1000<=len(blob)<=30000000:raise ValueError("Unexpected binary length")
+   if not (blob.startswith(b"\xff\xd8\xff") or blob.startswith(b"\x89PNG\r\n\x1a\n")):raise ValueError("Not a JPEG/PNG")
+   ext=".png" if blob.startswith(b"\x89PNG") else ".jpg"
+   fn=aid+ext;(out/fn).write_bytes(blob)
+   entry.update(status="INGESTED_RIGHTS_REVIEW_REQUIRED",local_file=fn,sha256=hashlib.sha256(blob).hexdigest(),bytes=len(blob),**meta)
+  except Exception as e:entry.update(status="INGEST_FAILED",reason=str(e))
+  result.append(entry)
+ report={"route_id":source["route_id"],"status":"REVIEW_ONLY","items":result,"ingested_count":sum(x["status"].startswith("INGESTED") for x in result),
+ "errors":sum(x["status"]=="INGEST_FAILED" for x in result),"excluded_rights_hold":source["blocked_asset_ids"]}
+ (out/"provenance.json").write_text(json.dumps(report,ensure_ascii=False,indent=2))
+ print(json.dumps(report,ensure_ascii=False,indent=2))
+ return 1 if report["errors"] else 0
 if __name__=="__main__":
- if len(sys.argv)!=3:sys.exit("Usage: ingest_paris05_visuals.py manifest.json output_dir")
- main()
+ if len(sys.argv)!=3:sys.exit("usage: ingest manifest.json directory")
+ sys.exit(main(Path(sys.argv[1]),Path(sys.argv[2])))
