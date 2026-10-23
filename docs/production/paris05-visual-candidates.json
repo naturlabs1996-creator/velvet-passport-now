@@ -139,6 +139,15 @@
       "credit": "Jacques Gomboust / Wikimedia Commons",
       "expected_rights": "PUBLIC_DOMAIN",
       "status": "CANDIDATE_FOR_INGEST"
+    },
+    {
+      "id": "GRANDE-MADEMOISELLE-P1983",
+      "cue": "STOP-04-CUE-05",
+      "commons_title": "File:Anonymous - Portrait de Anne-Marie-Louise d'Orléans, duchesse de Montpensier, dite la Grande Mademoiselle (1627-1693) - P1983 - Musée Carnavalet.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Anonymous_-_Portrait_de_Anne-Marie-Louise_d'Orléans,_duchesse_de_Montpensier,_dite_la_Grande_Mademoiselle_(1627-1693)_-_P1983_-_Musée_Carnavalet.jpg",
+      "credit": "Musée Carnavalet P1983 / Paris Musées",
+      "expected_rights": "CC0",
+      "status": "CANDIDATE_FOR_INGEST"
     }
   ],
   "blocked_asset_ids": [
