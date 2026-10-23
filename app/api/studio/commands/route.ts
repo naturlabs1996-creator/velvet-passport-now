@@ -17,7 +17,7 @@ export async function POST(request:Request) {
  if(!body||body.route_id!=="VP-PAR-05"||!["prepare","verify","mount","publish"].includes(body.action||"")){
   return NextResponse.json({error:"Unknown request"},{status:400});
  }
- if(body.action==="mount"||body.action==="publish"){
+ if(body.action==="publish"){
   return NextResponse.json({route_id:body.route_id,action:body.action,result:"BLOCKED",reason:"Release and rendering commands require a reviewed job dispatcher and explicit rights/QA signoff; no changes made."},{status:409,headers:{"Cache-Control":"no-store"}});
  }
  const filepath=path.join(process.cwd(),"docs/production/routes/VP-PAR-05.json");
@@ -36,6 +36,17 @@ export async function POST(request:Request) {
  if(!m.rights_signoff) errors.push("Commercial rights signoff pending");
  if(!m.visual_qa_passed) errors.push("Visual QA pending");
  if(m.assets.some(a=>a.use_in_export && (a.rights_status!=="CLEARED_COMMERCIAL"||!a.local_file)))errors.push("Export contains unverified rights or missing asset");
+ if(body.action==="mount"){
+   if(errors.length)return NextResponse.json({route_id:m.route_id,action:"mount",result:"BLOCKED",issues:errors,reason:"Preflight not complete; render not dispatched"},{status:409,headers:{"Cache-Control":"no-store"}});
+   const token=process.env.STUDIO_GITHUB_ACTIONS_TOKEN;
+   if(!token)return NextResponse.json({route_id:m.route_id,action:"mount",result:"BLOCKED",reason:"Server-side GitHub Actions dispatch token not configured"},{status:503});
+   const result=await fetch("https://api.github.com/repos/naturlabs1996-creator/velvet-passport-now/actions/workflows/paris05-controlled-av-render.yml/dispatches",{
+    method:"POST",headers:{Authorization:`Bearer ${token}`,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},
+    body:JSON.stringify({ref:"main",inputs:{route_id:"VP-PAR-05"}}),cache:"no-store",signal:AbortSignal.timeout(10000)
+   }).catch(()=>null);
+   if(!result||result.status!==204)return NextResponse.json({route_id:m.route_id,action:"mount",result:"ERROR",reason:"GitHub did not confirm dispatch"},{status:502});
+   return NextResponse.json({route_id:m.route_id,action:"mount",result:"DISPATCHED",reason:"Controlled render requested; GitHub Actions must confirm completion before any delivery."},{headers:{"Cache-Control":"no-store"}});
+ }
  const response={route_id:m.route_id,action:body.action,result:errors.length?"NOT_READY":"READY_FOR_REVIEW",
    segments:m.segments.length,source_masters:{fr:!!m.languages.fr?.source_artifact,en:!!m.languages.en?.source_artifact},
    issues:errors,mode:"READ_ONLY_NO_JOBS_DISPATCHED"};
