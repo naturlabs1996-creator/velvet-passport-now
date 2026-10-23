@@ -1,0 +1,206 @@
+{
+  "route_id": "VP-PAR-05",
+  "version": "v1.0",
+  "source": "docs/pilots/PARIS-05-V4-AUDIOVISUAL-SHOTLIST-RIGHTS.md",
+  "purpose": "Image-to-narration correspondence and truthful gap map; not an approved timeline",
+  "commercial_release_approved": false,
+  "asset_policy": {
+    "historic_authentic_only": true,
+    "documentary_image_must_not_be_misrepresented": true,
+    "no_ai": true,
+    "no_new_rights_outreach": true,
+    "exclude": [
+      "PH10999",
+      "PH11026",
+      "PH35284",
+      "PH34929"
+    ],
+    "current_facades_require_rights_clearance": true
+  },
+  "segments": [
+    {
+      "id": "INTRO",
+      "available_assets": [
+        "TURGOT-LOUIS-1739",
+        "OPERA-1900"
+      ],
+      "valid_for": [
+        "opening place context"
+      ],
+      "missing": [
+        "current-day arrival view / exact walking approach"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "id": "STOP-01",
+      "available_assets": [
+        "MARVILLE-LOUIS-PH460",
+        "MET-702001",
+        "APPERT-ROQUETTE"
+      ],
+      "valid_for": [
+        "historic street",
+        "Appert-authored montage explicitly staged"
+      ],
+      "missing": [
+        "21 rue Louis-le-Grand current facade",
+        "19th-century cartes-de-visite + reverse",
+        "RP-F-2007-161 exact nine-person montage",
+        "Rijksmuseum second Appert montage",
+        "accurate precise crop"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "id": "TRANSITION-01-SEBAI",
+      "available_assets": [
+        "MARVILLE-LOUIS-PH460"
+      ],
+      "valid_for": [
+        "historic street setting only"
+      ],
+      "missing": [
+        "present-day 21-to-23 walk",
+        "23 grey coach door photo"
+      ],
+      "status": "GAP"
+    },
+    {
+      "id": "STOP-SEBAI-1977",
+      "available_assets": [],
+      "valid_for": [],
+      "missing": [
+        "23/23 bis doorway captured with permission",
+        "actual 1975 Le Monde article copyright clearance or document-free alternative",
+        "Ghraieb primary historical document with rights clearance",
+        "authenticated 1977 location image"
+      ],
+      "status": "CRITICAL_GAP"
+    },
+    {
+      "id": "TRANSITION-01-02",
+      "available_assets": [
+        "MARVILLE-OPERA-PH940"
+      ],
+      "valid_for": [
+        "19th-century street context"
+      ],
+      "missing": [
+        "accurate walking directions and contemporary street facade"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "id": "STOP-02",
+      "available_assets": [
+        "RP-P-1951-602",
+        "BAUDIN-1801-MEDAL"
+      ],
+      "valid_for": [
+        "Josephine portrait",
+        "Baudin period document"
+      ],
+      "missing": [
+        "16 rue Louis-le-Grand actual facade",
+        "specific 1819 sale catalogue title/folios verified with rights",
+        "Malmaison interior exterior historic iconography"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "id": "TRANSITION-02-03",
+      "available_assets": [
+        "OPERA-1900",
+        "MARVILLE-OPERA-PH940"
+      ],
+      "valid_for": [
+        "Paris Opera late 19th century context"
+      ],
+      "missing": [
+        "present day destination walk / site orientation"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "id": "STOP-03",
+      "available_assets": [
+        "PARIS-1944",
+        "MEURICE-PH19383",
+        "OPERA-1900"
+      ],
+      "valid_for": [
+        "Paris Liberation 1944 generic",
+        "Meurice German prisoners 25 Aug 1944 at distinct site"
+      ],
+      "missing": [
+        "exact 19 Aug Opera context",
+        "Kommandantur exterior as period image",
+        "LAPI 28401 rights-cleared SUBSTITUTE",
+        "authenticated 25 Aug surrender/white flag at correct site",
+        "current matching angle"
+      ],
+      "status": "CRITICAL_GAP"
+    },
+    {
+      "id": "TRANSITION-03-04",
+      "available_assets": [
+        "VENDOME-1900",
+        "GOMBOUST-1652"
+      ],
+      "valid_for": [
+        "Place Vendome circa 1900",
+        "Paris 1652 map"
+      ],
+      "missing": [
+        "historically correct turning points",
+        "17th-century map neighborhood crop"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "id": "STOP-04",
+      "available_assets": [
+        "BNF-BTV1B8405032K",
+        "RCIN-615675",
+        "GOMBOUST-1652",
+        "GRANDE-MADEMOISELLE-P1983"
+      ],
+      "valid_for": [
+        "authentic Beaufort engraving",
+        "authentic Nemours engraving",
+        "period map of Paris",
+        "Grande Mademoiselle original portrait"
+      ],
+      "missing": [
+        "duel's micro-location on authenticated Gomboust map",
+        "horse market anchoring source",
+        "current rue d'Antin legally licensed facade"
+      ],
+      "status": "PARTIAL"
+    },
+    {
+      "id": "OUTRO",
+      "available_assets": [
+        "TURGOT-LOUIS-1739",
+        "OPERA-1900",
+        "VENDOME-1900"
+      ],
+      "valid_for": [
+        "closing historical composite from individually credited documents"
+      ],
+      "missing": [
+        "authorized present-day area views or final wayfinding return"
+      ],
+      "status": "PARTIAL"
+    }
+  ],
+  "editorial_cautions": [
+    "MET-702001 and APPERT-ROQUETTE are staged photomontages made in the period; label clearly.",
+    "PARIS-1944 and MEURICE-PH19383 do not prove the exact Opera Kommandantur event; do not caption them as that event.",
+    "RP-P-1951-602 is circa 1834, not an image documenting the 1819 auction.",
+    "GOMBOUST-1652 is a period plan of Paris; do not place a duel pin before cadastral triangulation.",
+    "All listed assets are for review only until exact provenance and commercial-rights sign-off.",
+    "No complete FR/EN picture-locked timeline is available; actual shot timing requires word/scene alignment."
+  ]
+}
