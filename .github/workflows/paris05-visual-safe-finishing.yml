@@ -1,0 +1,46 @@
+name: Paris05 visual-safe finishing
+on:
+  push:
+    paths:
+      - .github/workflows/paris05-visual-safe-finishing.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  finish:
+    strategy:
+      matrix:
+        lang: [fr, en]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39971437794
+          name: PARIS05-${{ matrix.lang }}-CAPTIONED-PRIVATE-REVIEW
+          path: input
+      - run: python -m pip install imageio-ffmpeg
+      - name: Finish with neutral visual layer and original subtitled narration
+        env:
+          LC: ${{ matrix.lang }}
+        run: |
+          python - <<'PY'
+          import os,pathlib,subprocess,imageio_ffmpeg
+          l=os.environ["LC"]; u=l.upper()
+          source=pathlib.Path("input")/f"PARIS05-{u}-SEBAI-CAPTIONED-PRIVATE-REVIEW.mp4"
+          assert source.is_file()
+          duration={"fr":"3694.30","en":"3750.76"}[l]
+          folder=pathlib.Path("out");folder.mkdir(exist_ok=True)
+          target=folder/f"PARIS05-{u}-CLEAN-EDITORIAL-REVIEW.mp4"
+          cmd=[imageio_ffmpeg.get_ffmpeg_exe(),"-y","-loglevel","error","-f","lavfi","-i",f"color=c=0x18263b:s=1280x720:r=1:d={duration}","-i",str(source),"-map","0:v:0","-map","1:a:0","-map","1:s:0","-c:v","libx264","-preset","ultrafast","-crf","33","-c:a","copy","-c:s","mov_text","-t",duration,str(target)]
+          subprocess.run(cmd,check=True)
+          assert target.stat().st_size>100000
+          (folder/"STATUS.txt").write_text("No external images. Audio and captions are review-only; release blocked pending voice rights and human QA.\n")
+          print(target,target.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.lang }}-CLEAN-EDITORIAL-REVIEW
+          path: out/
