@@ -1,8 +1,44 @@
-name: Sebai inserted-master assembly
-on: workflow_dispatch
+name: Paris05 bilingual inserted-master assembly
+on:
+  workflow_run:
+    workflows: ["Paris05 Sebai final standalone inserts"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
 jobs:
-  ready:
+  integrate:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [fr, en]
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - run: echo ready
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 39954058073
+          name: paris05-sebai-insert-${{ matrix.language }}-review
+          path: downloaded/insert
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ matrix.language == 'fr' && 39629212549 || 39783346444 }}
+          name: ${{ matrix.language == 'fr' && 'paris05-fr-final-11seg-audio-and-qa' || 'paris05-en-full-11seg-audio-qa-p232' }}
+          path: downloaded/master
+      - name: Install alignment utilities
+        run: python -m pip install faster-whisper==1.2.1 soundfile==0.13.1 numpy==2.2.6
+      - name: Safe insert in distinct source-preserving master
+        run: python scripts/audio/paris05_sebai_insert_splice.py ${{ matrix.language }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-${{ matrix.language }}-SEBAI-INTEGRATED-REVIEW-AUDIO
+          path: dist/paris05-sebai-integrated/
+          retention-days: 14
