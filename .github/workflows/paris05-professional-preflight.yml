@@ -1,0 +1,24 @@
+name: Paris05 PROFESSIONAL demo preflight - fail closed
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-professional-preflight.yml'
+      - 'scripts/production/paris05_professional_preflight.py'
+      - 'docs/production/paris05-professional-storyboard-first-sequences.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visual-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Evaluate every exact photo, spoken phrase, source approval and timing
+        run: python scripts/production/paris05_professional_preflight.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PARIS05-PROFESSIONAL-DEMO-RENDER-BLOCKERS
+          path: dist/paris05-professional-preflight.json
+          retention-days: 30
