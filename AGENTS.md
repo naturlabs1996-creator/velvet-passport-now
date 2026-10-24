@@ -14,6 +14,9 @@ Applicable aux images envoyées dans un chat, portraits de protagonistes, cartes
 6. **Documenter les droits** sans les deviner. Des droits non vérifiés n'empêchent pas la conservation privée à statut FOUND / REVIEW_PENDING, mais bloquent la commercialisation.
 7. **Échec** = `INGEST_BLOCKED` + raison + tâche de récupération immédiate. Une conversation, un lien, un Master, un commit ou un artifact GitHub ne sont PAS des preuves d'archivage Mastodon.
 
+## En cas d'interruption de Supabase ou de la connexion
+Sur une machine de production **disposant réellement du fichier**, déposer l'original dans la file persistante `scripts/production/mastodon_reliable_queue.py` et conserver la preuve locale ; voir [MASTODON-STORAGE-RELIABILITY-2026-10-24.md](docs/production/MASTODON-STORAGE-RELIABILITY-2026-10-24.md). Le mécanisme de reprise évite un abandon silencieux, mais tant que l'ingestion Mastodon et la lecture de son catalogue n'ont pas été confirmées, marquer `INGEST_BLOCKED / STORED_CATALOG_PENDING`, jamais `FOUND`. Si ce dispositif n'est pas connecté à l'environnement de recherche, signaler le blocage : une consigne GitHub ne déclenche pas d'upload de ChatGPT toute seule.
+
 ## Aucun silence sur les pièces manquantes
 Chaque recherche documente ce qui est : `DISCOVERED`, `FOUND_IN_MASTODON`, `INGEST_BLOCKED`, `RIGHTS_HOLD`, `PRODUCTION_READY`. N'annoncer `FOUND_IN_MASTODON` qu'avec un reçu vérifié. Ne jamais remplacer en silence un document manquant par une image hors sujet ou générée par IA.
 
