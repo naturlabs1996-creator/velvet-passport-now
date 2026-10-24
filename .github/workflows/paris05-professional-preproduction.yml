@@ -1,0 +1,24 @@
+name: Paris05 professional rebuild - visual preproduction gate
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-professional-preproduction.yml'
+      - 'scripts/production/paris05_rebuild_visual_coverage.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Demand exact archive coverage and independent audio timecodes
+        run: python scripts/production/paris05_rebuild_visual_coverage.py
+      - name: Preserve complete blocker report for production
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-PROFESSIONAL-REBUILD-VISUAL-COVERAGE-GAPS
+          path: dist/paris05-pro-rebuild/
+          retention-days: 30
