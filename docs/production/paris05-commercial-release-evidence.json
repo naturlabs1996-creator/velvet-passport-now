@@ -4,6 +4,14 @@
   "image_research": "CLOSED",
   "commercial_release_allowed": false,
   "evidence": {
+    "mastodon_assets_physical_receipts_verified": {
+      "approved": false,
+      "reference": null
+    },
+    "stop_to_asset_image_cues_complete": {
+      "approved": false,
+      "reference": null
+    },
     "fr_audio_listening_approved": {
       "approved": false,
       "reference": null
