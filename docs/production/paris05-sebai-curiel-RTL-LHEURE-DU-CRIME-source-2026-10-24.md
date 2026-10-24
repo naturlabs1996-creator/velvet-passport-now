@@ -52,3 +52,13 @@ Nouvelle vérification de la photographie d'identité policière remise par l'ut
 - Un ancien agent DST pouvait être photographié dans un autre contexte, notamment administratif ou policier. Une pratique habituelle de discrétion professionnelle n'équivaut **pas** à une impossibilité absolue de cliché public ou retrouvé.
 - **Statut de production** : pièce exacte **HOLD_UNVERIFIED_ATTRIBUTION** (jamais publiée); son hash et son nom de fichier restent interdits à Paris05. Ne pas bloquer toute photographie contenant le patronyme Ducarre dans l'avenir : un original indépendamment sourcé pourrait être recevable après droits et QA.
 - **Mastodon physique** : changement de statut/suppression de lien **non vérifiés** faute de réponse SQL. Le registre de rejet GitHub n'est pas la preuve d'une mutation du stockage.
+
+
+## Complément : hypothèse de photographie de garde à vue ancienne — 24 octobre 2026
+L'utilisateur interprète `17/02/54` sur le panneau de police comme **date de naissance**, et rattache l'allure ancienne du cliché à une **garde à vue en 1978**. Calcul chronologique : la personne désignée par une telle date de naissance aurait **24 ans en 1978**. **Hypothèse plausible, non validée par la seule photo.**
+
+- Source RTL, transcription **26:12–26:44** : le journaliste parle d'un frère, membre du PFN, placé en garde à vue à **Toulon en 1978**, dans un dossier d'attentat distinct.
+- Panneau de la photographie disputée : on lit apparemment **« SENS »**, pas Toulon. Le sens de cette mention (lieu d'établissement de la fiche, domicile, autre) **n'est pas documenté**; un lieu différent ne suffit ni à confirmer ni à infirmer le rapprochement.
+- **Point de tension dans les sources :** des notices secondaires (notamment un article encyclopédique sur le Service d'action civique) semblent aussi rattacher un placement en garde à vue de 1978 à **Marc Ducarre, l'ancien inspecteur DST**, et non distinctement à son frère. Ne pas créer deux biographies à partir d'une transcription automatique, ni décider à qui se rapporte la garde à vue sans **document nominatif de 1978** ou texte de presse contemporain.
+- Aucune inférence d'identité à partir de l'apparence ou du prénom inscrit. **Ne pas annoncer que la photo est un cliché officiel de garde à vue de 1978** sans date de prise de vue et provenance archivistique.
+- Décision maintenue : `HOLD_UNVERIFIED_ATTRIBUTION`, exclusion du film, vérification de l'original/la légende et du registre de police si une source accessible l'autorise.
