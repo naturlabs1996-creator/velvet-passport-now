@@ -36,5 +36,11 @@
   ],
   "publish_ready": false,
   "story_alignment": "Henri Curiel and Laid Sebai ballistics link: Le Monde 12 May 1978",
-  "story_source": "https://www.lemonde.fr/archives/article/1978/05/12/henri-curiel-et-laid-sebai-ont-ete-tues-par-la-meme-arme_2980172_1819218.html"
+  "story_source": "https://www.lemonde.fr/archives/article/1978/05/12/henri-curiel-et-laid-sebai-ont-ete-tues-par-la-meme-arme_2980172_1819218.html",
+  "marc_ducarre_dst_portrait": {
+    "status": "NO_AUTHENTICATED_PORTRAIT",
+    "rejected_misattribution": "docs/production/paris05-sebai-excluded-misattributed-images-2026-10-24.json",
+    "user_correction_date": "2026-10-24",
+    "direction": "NO FACE SUBSTITUTION. Do not use supplied photo as Marc Ducarre, former DST. The claim that it depicts his brother is supplied by user and is not independently verified."
+  }
 }
