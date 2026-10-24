@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hard exclusion for historically misattributed Sebaï portrait. No network call.
+"""Production hold for one disputed historical police photo. No network call.
 
 Do not use this module to infer a person's identity from a photograph. The
 exclusion is a source/editorial correction, not facial-recognition evidence.
@@ -16,12 +16,10 @@ def excluded(asset_id=None, sha256=None, filename=None):
             return row["exclusion_id"]
         if filename and filename.casefold() in {x.casefold() for x in row.get("filename_aliases",[])}:
             return row["exclusion_id"]
-        if asset_id:
-            # Broad enough to catch asset candidates falsely labelled as an
-            # authentic Ducarre portrait, not to block text about the case.
-            aid=str(asset_id).casefold()
-            if any(alias.casefold() in aid for alias in row.get("name_aliases", [])):
-                return row["exclusion_id"]
+        if asset_id and str(asset_id).casefold() in {a.casefold() for a in row.get("excluded_asset_ids", [])}:
+            # Restrict exclusion to the disputed asset itself; a family name
+            # is NOT evidence that another future photo is misattributed.
+            return row["exclusion_id"]
     return None
 
 def main():
