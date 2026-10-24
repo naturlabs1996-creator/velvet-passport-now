@@ -1,0 +1,17 @@
+{
+  "route_id": "VP-PAR-05",
+  "stage": "TARGETED_NEW_SOURCE_REVIEW_ONLY",
+  "rights_policy": "Only source metadata CC0 or Public Domain accepted; artwork contextual, not definitive commercial signoff",
+  "blocked_asset_ids": [],
+  "assets": [
+    {
+      "id": "APPERT-CARTE-MARCHAIS-PH19727-90",
+      "cue": "STOP-01-CUE-02",
+      "commons_title": "File:Portrait de Marchais Joséphine, pris à la prison des Chantiers à Versailles. Commune de Paris, 1871. PH19727-90.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Portrait_de_Marchais_Jos%C3%A9phine,_pris_%C3%A0_la_prison_des_Chantiers_%C3%A0_Versailles._Commune_de_Paris,_1871._PH19727-90.jpg",
+      "credit": "Musée Carnavalet PH19727-90 / Wikimedia Commons; attribué à E. Appert",
+      "expected_rights": "CC0",
+      "editorial_note": "Joséphine Marchais, woman of Commune; historical carte-de-visite not Joséphine de Beauharnais; no verso digitally pictured."
+    }
+  ]
+}
