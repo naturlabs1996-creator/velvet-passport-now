@@ -26,3 +26,17 @@
 - Brancher un serveur ou worker **persistant et privé** à la file d'ingestion; pas de scripts temporaires GitHub comme stockage principal.
 
 **Règle permanente :** pas de certificat positif sans sauvegarde indépendante restaurable ET inscription Mastodon réellement relue. Les statuts à appliquer sont `STORAGE_UNVERIFIED`, `INGEST_BLOCKED`, `BACKUP_UNCONFIGURED`.
+
+---
+
+## ADDENDUM DE RÉCUPÉRATION EFFECTIVE — 24 OCTOBRE 2026
+
+**Correction de l'état de la copie indépendante pour Paris 05 uniquement :** quatre ZIP contenant **20 fichiers images** (artifacts `12470696663`, `12470502716`, `12535889502`, `12545161463`), volume ZIP total **53 365 203 octets**, ont été transférés dans le dossier Google Drive privé `Velvet Passport NOW / MASTODON — Sauvetage provisoire des archives 2026-10-24`. Les quatre ZIP ont été *retéléchargés* depuis Drive; empreintes SHA-256 identiques aux ZIP initiaux, contrôle CRC sans anomalie. Le Master R2 et le manifeste des 20 images y sont également déposés.
+
+**CERTIFIÉ SUR CE PÉRIMÈTRE :** sauvegarde indépendante et restauration-test de ces quatre lots; aucun artifact GitHub original n'a été supprimé.
+
+**TOUJOURS NON CERTIFIÉ :** sauvegarde automatique de tous les assets, capacité de restauration de l'ensemble du catalogue, lecture Supabase live, ingestion Mastodon, droits commerciaux, disponibilité complète des 66 parcours. La décision générale `NOT CERTIFIED` reste inchangée.
+
+Références : `docs/production/MASTODON-PARIS05-INDEPENDENT-BACKUP-VERIFIED-2026-10-24.md` et `docs/production/paris05-first-sequences-reconciliation-2026-10-24.json`.
+
+**Couverture des 45 plans storyboardés :** 15 plans possèdent un asset candidat physiquement présent dans cette sauvegarde indépendante (8 IDs uniques), 30 plans ont encore un asset ou traitement non produit/identifié. Aucune autorisation de montage final ou de commercialisation.
