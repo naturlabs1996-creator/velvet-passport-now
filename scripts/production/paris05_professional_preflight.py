@@ -6,6 +6,7 @@ French/English real cue timing, and all-chapter coverage before any film is call
 """
 import json,sys
 from pathlib import Path
+from paris05_image_exclusion import excluded
 root=Path("docs/production")
 src=json.loads(Path("docs/pilots/paris-05-fr-v4-tts-and-cues.json").read_text())
 s={v["id"]:v for v in src["segments"]}
@@ -28,6 +29,11 @@ for i,shot in enumerate(board["shots"],1):
         errors.append(f"{shot['id']}: QUOTE_DOES_NOT_MATCH_SOURCE")
     if shot.get("actual_audio_second") is None:
         errors.append(f"{shot['id']}: NO_VERIFIED_SPEECH_TIMECODE")
+    asset_ref=shot.get("asset_id")
+    inv=inventory.get(asset_ref, {}) if asset_ref else {}
+    blocked=excluded(asset_id=asset_ref,sha256=inv.get("sha256"),filename=inv.get("filename"))
+    if blocked:
+        errors.append(f"{shot['id']}: REJECTED_MISATTRIBUTED_IMAGE ({blocked})")
     if shot.get("commercial_approval") is not True:
         errors.append(f"{shot['id']}: COMMERCIAL_NOT_APPROVED")
     if shot["kind"]=="VISUAL_MISSING_OR_DESIGN_UNPRODUCED":
