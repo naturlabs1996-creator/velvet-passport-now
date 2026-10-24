@@ -1,0 +1,53 @@
+{
+  "route_id": "VP-PAR-05",
+  "document_type": "PREPRODUCTION_TARGETED_VISUAL_LEADS_NOT_APPROVED",
+  "verified_date": "2026-10-23",
+  "notes": [
+    "CC BY-SA source photos can be commercially reusable only with full attribution/license/share-alike compliance checked in audiovisual context; neither facade 21 nor door 23 can be claimed without a photographic address verification.",
+    "Carte de visite by Appert depicting the communarde Joséphine Marchais must not be mislabeled as Joséphine de Beauharnais.",
+    "Commons file description claims for source licenses are candidates pending source-specific human rights QA."
+  ],
+  "assets": [
+    {
+      "id": "APPERT-CARTE-MARCHAIS-PH19727-90",
+      "cue": "STOP-01 cue index 3 — carte de visite attributed to Appert",
+      "commons_title": "File:Portrait de Marchais Joséphine, pris à la prison des Chantiers à Versailles. Commune de Paris, 1871. PH19727-90.jpg",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Portrait_de_Marchais_Jos%C3%A9phine,_pris_%C3%A0_la_prison_des_Chantiers_%C3%A0_Versailles._Commune_de_Paris,_1871._PH19727-90.jpg",
+      "credit": "Attribué à Ernest Charles Appert / Musée Carnavalet, PH19727-90 / Wikimedia Commons",
+      "license_observed": "CC0",
+      "image_subject": "Joséphine Marchais, communarde, not Joséphine de Beauharnais",
+      "editorial_role": "Example of Appert-related historical carte de visite; show only if matching spoken text, not a substitute for verso",
+      "status": "TARGETED_READY_TO_INGEST"
+    },
+    {
+      "id": "STREET-LOUIS-2025-CHABE01",
+      "cue": "INTRO / APPROACH-STOP-01",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Rue_Louis_Grand_-_Paris_II_(FR75)_-_2025-04-21_-_1.jpg",
+      "credit": "Chabe01 / Wikimedia Commons",
+      "license_observed": "CC BY-SA 4.0",
+      "image_subject": "Rue Louis-le-Grand, April 2025, exact number 21/23 not demonstrated",
+      "editorial_role": "Modern streetscape context only; verify angle, cropping, address, license compliance",
+      "status": "SOURCE_IDENTIFIED_SUBJECT_AND_RIGHTS_REVIEW"
+    },
+    {
+      "id": "STREET-LOUIS-2026-CHABE01-1",
+      "cue": "INTRO / WALK-21-23",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Rue_Louis_Grand_-_Paris_II_(FR75)_-_2026-09-25_-_1.jpg",
+      "credit": "Chabe01 / Wikimedia Commons",
+      "license_observed": "CC BY-SA 4.0",
+      "image_subject": "Rue Louis-le-Grand, 25 September 2026, position 48.869981,2.333619, direction 205 degrees; exact building unidentified",
+      "editorial_role": "Modern streetscape, never present as verified facade of 21 or doorway of 23",
+      "status": "SOURCE_IDENTIFIED_SUBJECT_AND_RIGHTS_REVIEW"
+    },
+    {
+      "id": "STREET-LOUIS-2026-CHABE01-2",
+      "cue": "INTRO / WALK-21-23",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Rue_Louis_Grand_-_Paris_II_(FR75)_-_2026-09-25_-_2.jpg",
+      "credit": "Chabe01 / Wikimedia Commons",
+      "license_observed": "CC BY-SA 4.0",
+      "image_subject": "Rue Louis-le-Grand, 25 September 2026, position 48.869969,2.333617, direction 299 degrees; exact building unidentified",
+      "editorial_role": "Modern streetscape, never present as verified facade of 21 or doorway of 23",
+      "status": "SOURCE_IDENTIFIED_SUBJECT_AND_RIGHTS_REVIEW"
+    }
+  ]
+}
