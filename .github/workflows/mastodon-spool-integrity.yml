@@ -1,0 +1,27 @@
+name: Mastodon durable spool integrity
+on:
+  push:
+    paths:
+      - scripts/production/mastodon_reliable_queue.py
+      - scripts/production/mastodon_queue_selftest.py
+      - .github/workflows/mastodon-spool-integrity.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-failure-recovery-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Python source
+        run: python3 -m py_compile scripts/production/mastodon_reliable_queue.py scripts/production/mastodon_queue_selftest.py
+      - name: Test persistence, integrity and no false archival claims
+        run: python3 scripts/production/mastodon_queue_selftest.py
+      - name: Assert no upload is attempted without private credentials
+        run: |
+          if python3 scripts/production/mastodon_reliable_queue.py --queue-dir /tmp/velvet-empty-spool push; then
+            echo 'ERROR: a private upload must be blocked without credentials'
+            exit 1
+          else
+            echo 'PASS: private credential gate blocked as intended'
+          fi
