@@ -17,6 +17,8 @@ jobs:
         lang: [fr, en]
     steps:
       - uses: actions/checkout@v4
+      - name: STOP if editorial images are incomplete, unlicensed or unaligned
+        run: python scripts/production/paris05_professional_preflight.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
