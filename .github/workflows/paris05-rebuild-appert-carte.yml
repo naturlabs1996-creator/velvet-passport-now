@@ -1,0 +1,24 @@
+name: Paris05 rebuild authenticated Appert carte-de-visite
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-rebuild-appert-carte.yml'
+      - 'docs/production/paris05-rebuild-appert-carte-ingest.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  historical-carte:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download archived Appert-attributed carte with public license metadata and hash
+        run: python scripts/production/ingest_paris05_visuals.py docs/production/paris05-rebuild-appert-carte-ingest.json dist/paris05-new-appert-carte
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PARIS05-APPERT-CARTE-DE-VISITE-ARCHIVAL-REVIEW
+          path: dist/paris05-new-appert-carte/
+          retention-days: 30
