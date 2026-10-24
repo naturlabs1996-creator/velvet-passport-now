@@ -2,8 +2,8 @@
   "route_id": "VP-PAR-05",
   "stop_id": "STOP-SEBAI-1977",
   "date": "2026-10-24",
-  "policy": "IMAGE_EXCLUSION_HARD_LOCK",
-  "note": "No verified portrait of Marc Ducarre (DST) is currently available in this working dossier. Never present a different individual as him.",
+  "policy": "SOURCE_ATTRIBUTION_UNVERIFIED_HARD_PRODUCTION_HOLD",
+  "note": "The user-supplied police portrait is NOT authenticated to a specific individual. Its name/date on a placard do not establish identity. Do not publish or use it in Paris05 pending source provenance and rights. Other independently verified Ducarre sources must not be blocked by name alone.",
   "entries": [
     {
       "exclusion_id": "VP-PAR-05-SEBAI-EXCLUDE-DUCARRE-001",
@@ -22,15 +22,21 @@
         "DUCARRE",
         "DUFARRE"
       ],
-      "user_correction": "L'image est présentée par l'utilisateur comme celle du frère de Marc Ducarre; ce n'est pas le portrait de l'ancien agent DST.",
+      "user_correction": "User believes the image depicts the brother of the former DST inspector, not the inspector; identity has NOT been independently established.",
       "independent_identity_proof": "NOT_OBTAINED",
-      "status": "REJECTED_MISATTRIBUTED",
-      "production_use": "PROHIBITED",
-      "catalog_action": "REMOVE_IMAGE_ASSOCIATION_FROM_MARC_DUCARRE_DST_AND_PARIS05_SEBAI_STOP",
+      "status": "HOLD_UNVERIFIED_ATTRIBUTION",
+      "production_use": "PROHIBITED_UNTIL_AUTHENTICATED_AND_RIGHTS_CLEARED",
+      "catalog_action": "QUARANTINE_QUESTIONED_PHOTO_REMOVE_UNVERIFIED_DST_ATTRIBUTION_OR_LABEL_PENDING_PROVENANCE",
       "mastodon_live_confirmation": "PENDING_SUPABASE_CATALOG_CONNECTION",
-      "archival_action": "Preserve only minimal evidence of exclusion/checksum in rejection register; do not place rejected image in production asset storage."
+      "archival_action": "Preserve exclusion receipt hash and user correction without claiming an individual's identity; don't distribute as verified DST portrait.",
+      "placard_transcription_observed": "M. DUCARRE / Marc / 17/02/54 (appears) / SENS / N°10",
+      "placard_date_interpretation": "UNKNOWN; may be birth date 17 February 1954, NOT necessarily photograph or arrest date; RTL says former inspector was aged 66 in October 2020, chronologically compatible",
+      "image_period_interpretation": "Archival appearance, not reliable date evidence; could be an old image of a person questioned decades later.",
+      "excluded_asset_ids": [
+        "VP-PAR-05-SEBAI-DISPUTED-POLICE-PORTRAIT-001"
+      ]
     }
   ],
-  "scene_instruction": "Use no portrait of Marc Ducarre; a documentary text/visual approach is permitted only if historically grounded and licensed. No substitute face.",
+  "scene_instruction": "No production use of disputed police photo. A different portrait may be considered if independently authenticated, rights-cleared and tied to its actual subject.",
   "checked_repo_scope": "Known Paris05 storyboard and image prospect records did not explicitly reference DUCARRE image; this is a preventive hard exclusion, not proof of Mastodon deletion."
 }
