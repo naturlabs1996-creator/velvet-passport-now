@@ -1,0 +1,31 @@
+name: Mastodon reconciliation (read-only)
+on:
+  push:
+    paths:
+      - scripts/production/audit_mastodon_reconciliation.py
+      - docs/production/paris05-visual-ingest-status.json
+      - docs/production/paris05-visual-coverage-and-gaps.json
+      - docs/production/paris05-professional-rebuild-source-candidates.json
+      - docs/production/paris05-sebai-curiel-ghraieb-photo-prospects.json
+      - docs/production/paris05-professional-storyboard-first-sequences.json
+      - .github/workflows/mastodon-reconciliation-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate strictly read-only report
+        run: python3 scripts/production/audit_mastodon_reconciliation.py --output mastodon-reconciliation.json
+      - name: Verify JSON integrity and no fabricated archive claim
+        run: |
+          python3 -m json.tool mastodon-reconciliation.json > /dev/null
+          python3 -c 'import json; d=json.load(open("mastodon-reconciliation.json")); assert d["live_supabase_storage_read_completed"] is False; assert d["verified_mastodon_asset_total"] is None; assert d["paris_05"]["release_status"]=="BLOCKED"'
+      - name: Preserve audit report (not Mastodon originals)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mastodon-reconciliation-read-only
+          path: mastodon-reconciliation.json
+          retention-days: 30
