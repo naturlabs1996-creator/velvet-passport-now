@@ -56,8 +56,38 @@ def main():
         with patch.object(q.time,"sleep"):
             response=q.retry_request(lambda: next(attempts),retries=3)
         assert response[0]==201
+        # Large-file TUS: recover an interrupted PATCH by reading server offset.
+        large=Path(temp)/"large-map.tif"
+        large.write_bytes(b"x"*(q.CHUNK+13))
+        req.file=str(large)
+        req.asset_id="VP-PAR-05-MAP-LARGE-TEST"
+        entry=q.enqueue(db,root,req)
+        large.unlink()
+        state={"patches":0,"offset":0}
+        location="https://example.storage.supabase.co/storage/v1/upload/resumable/test-123"
+        def fake_request(method,url,token,data=None,extra=None,timeout=90):
+            if method=="POST" and "/upload/resumable" in url:
+                assert url.startswith("https://example.storage.supabase.co/")
+                return (201,{"Location":location},b"")
+            if method=="HEAD":
+                return (204,{"Upload-Offset":str(state["offset"])},b"")
+            if method=="PATCH":
+                state["patches"] += 1
+                if state["patches"]==1:
+                    return (503,{},b"connection reset")
+                state["offset"] += len(data)
+                return (204,{"Upload-Offset":str(state["offset"])},b"")
+            raise AssertionError("Unexpected method "+method)
+        with patch.object(q,"request",side_effect=fake_request):
+            with patch.object(q,"verify_download",side_effect=[False,True]):
+                with patch.object(q.time,"sleep"):
+                    transferred=q.push(db,"https://example.supabase.co","dummy-private-token")
+        assert transferred[0]["status"]=="STORED_CATALOG_PENDING"
+        assert state["patches"]==3, state
+        assert state["offset"]==q.CHUNK+13
+        assert q.sha256_file(root/"blobs"/entry["sha256"])==entry["sha256"]
         db.close()
-    print("PASS durable spool / failure recovery / transient retry / checksum / no false archive claim")
+    print("PASS spool / reconnect / HTTP retry / TUS resume / checksum / no false archive claim")
 
 if __name__=="__main__":
     main()
