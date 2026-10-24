@@ -1,0 +1,36 @@
+{
+  "route_id": "VP-PAR-05",
+  "stop_id": "STOP-SEBAI-1977",
+  "date": "2026-10-24",
+  "policy": "IMAGE_EXCLUSION_HARD_LOCK",
+  "note": "No verified portrait of Marc Ducarre (DST) is currently available in this working dossier. Never present a different individual as him.",
+  "entries": [
+    {
+      "exclusion_id": "VP-PAR-05-SEBAI-EXCLUDE-DUCARRE-001",
+      "source": "User-supplied image in conversation, 2026-10-24 (1000013340.png)",
+      "sha256": "1f892f203e6c8ec1371634d9cd0c65d2ae4ab3284eb6bbd379e40d916af6c72d",
+      "bytes": 395462,
+      "dimensions_px": [
+        580,
+        697
+      ],
+      "mime_type": "image/png",
+      "filename_aliases": [
+        "1000013340.png"
+      ],
+      "name_aliases": [
+        "DUCARRE",
+        "DUFARRE"
+      ],
+      "user_correction": "L'image est présentée par l'utilisateur comme celle du frère de Marc Ducarre; ce n'est pas le portrait de l'ancien agent DST.",
+      "independent_identity_proof": "NOT_OBTAINED",
+      "status": "REJECTED_MISATTRIBUTED",
+      "production_use": "PROHIBITED",
+      "catalog_action": "REMOVE_IMAGE_ASSOCIATION_FROM_MARC_DUCARRE_DST_AND_PARIS05_SEBAI_STOP",
+      "mastodon_live_confirmation": "PENDING_SUPABASE_CATALOG_CONNECTION",
+      "archival_action": "Preserve only minimal evidence of exclusion/checksum in rejection register; do not place rejected image in production asset storage."
+    }
+  ],
+  "scene_instruction": "Use no portrait of Marc Ducarre; a documentary text/visual approach is permitted only if historically grounded and licensed. No substitute face.",
+  "checked_repo_scope": "Known Paris05 storyboard and image prospect records did not explicitly reference DUCARRE image; this is a preventive hard exclusion, not proof of Mastodon deletion."
+}
