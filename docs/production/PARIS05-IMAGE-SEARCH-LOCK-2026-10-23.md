@@ -1,3 +1,5 @@
+> **RECTIFICATIF DE PRODUCTION 23 OCTOBRE 2026** : ce gel éditorial V1 ne peut pas justifier la livraison d'un film dépourvu de photographies essentielles. À la suite du rejet du montage par le commanditaire et de la consigne explicite de **reprise intégrale professionnelle**, une recherche ciblée de pièces réellement manquantes est autorisée dans le cadre de `PARIS05-REPRISE-REALISATION-PROFESSIONNELLE.md` et du registre `paris05-professional-rebuild-source-candidates.json`. Aucun réemploi sans contrôle de sujet, d'authenticité et de droits. L'interdiction des fausses archives IA, des images sans licence et des achats/licences payantes demeure en vigueur. Les visuels précédemment refusés ne deviennent pas autorisés par cet amendement.
+
 # VP-PAR-05 — FERMETURE DES RECHERCHES VISUELLES (LOCK V1)
 Date de décision : 2026-10-23.
 Portée : Paris 05, FR+EN. Ce document **ne constitue pas une approbation commerciale**.
