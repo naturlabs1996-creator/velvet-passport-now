@@ -41,3 +41,14 @@ La ressemblance de deux personnes sur des photos ne permet **aucune authentifica
 - **Règle irrévocable** : pas de visage attribué à l'ex-DST; photo antérieure bloquée, aucune image de substitution.
 - Cette source peut nourrir une révision **proposée** de la narration, mais **ne réécrit pas les WAV FR/EN verrouillés** sans décision éditoriale.
 - **Absence de preuve d'ingestion Mastodon** : statut `INGEST_BLOCKED` tant que Supabase SQL/catalogue n'a pas pu être relu.
+
+
+## ADDENDUM — 24 octobre 2026 : lecture littérale du panneau photographié et correction de raisonnement
+Nouvelle vérification de la photographie d'identité policière remise par l'utilisateur (`1000013340.png`, SHA-256 `1f892f203e6c8ec1371634d9cd0c65d2ae4ab3284eb6bbd379e40d916af6c72d`). **Transcription visible du panneau, sans identification de la personne photographiée :** « M. DUCARRE », « Marc », « 17/02/54 » (lecture probable), « SENS », « N°10 ».
+
+- **La date 17/02/54 ne prouve pas que la photo a été prise en 1954, en 1978 ou en 2020.** Il pourrait s'agir d'une date de naissance, hypothèse non documentée.
+- **RTL dit explicitement « 66 ans »** au sujet de l'ancien inspecteur entendu le **21 octobre 2020** ([Dailymotion, transcription 24:31–24:38](https://www.dailymotion.com/video/xa0sg5a)), compatible avec une naissance en 1954. Cette compatibilité **ne prouve pas l'identité du portrait**, mais empêche de le réfuter au seul motif de son ancienneté apparente.
+- La transcription RTL parle d'un **frère** au **PFN** entendu en **1978** (26:12–26:44), mais elle transcrit « Marc » pour les deux et introduit d'autres prénoms ailleurs : **on ne peut pas attribuer ce portrait à un frère défini à partir du seul son transcrit, de la plaque, ou d'une ressemblance**.
+- Un ancien agent DST pouvait être photographié dans un autre contexte, notamment administratif ou policier. Une pratique habituelle de discrétion professionnelle n'équivaut **pas** à une impossibilité absolue de cliché public ou retrouvé.
+- **Statut de production** : pièce exacte **HOLD_UNVERIFIED_ATTRIBUTION** (jamais publiée); son hash et son nom de fichier restent interdits à Paris05. Ne pas bloquer toute photographie contenant le patronyme Ducarre dans l'avenir : un original indépendamment sourcé pourrait être recevable après droits et QA.
+- **Mastodon physique** : changement de statut/suppression de lien **non vérifiés** faute de réponse SQL. Le registre de rejet GitHub n'est pas la preuve d'une mutation du stockage.
