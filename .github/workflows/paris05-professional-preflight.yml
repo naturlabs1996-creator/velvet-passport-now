@@ -5,6 +5,10 @@ on:
     paths:
       - '.github/workflows/paris05-professional-preflight.yml'
       - 'scripts/production/paris05_professional_preflight.py'
+      - 'scripts/production/paris05_image_exclusion.py'
+      - 'docs/production/paris05-sebai-excluded-misattributed-images-2026-10-24.json'
+      - 'docs/production/paris05-sebai-curiel-ghraieb-photo-prospects.json'
+      - 'docs/production/paris05-visual-coverage-and-gaps.json'
       - 'docs/production/paris05-professional-storyboard-first-sequences.json'
   workflow_dispatch:
 permissions:
