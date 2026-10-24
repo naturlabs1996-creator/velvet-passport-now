@@ -1,16 +1,14 @@
 name: Paris05 curated bilingual historical master assembly
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/paris05-curated-historical-masters.yml
-      - scripts/production/paris05_curated_historical_render.py
+  # Previous renderer failed editorial visual QA and must NOT auto-run.
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 jobs:
   render:
+    # Intentionally decommissioned following the user's viewing rejection.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 100
     strategy:
