@@ -48,6 +48,16 @@
       "image_subject": "Rue Louis-le-Grand, 25 September 2026, position 48.869969,2.333617, direction 299 degrees; exact building unidentified",
       "editorial_role": "Modern streetscape, never present as verified facade of 21 or doorway of 23",
       "status": "SOURCE_IDENTIFIED_SUBJECT_AND_RIGHTS_REVIEW"
+    },
+    {
+      "id": "STREET-SIGN-LOUIS-2026-CHABE01",
+      "cue": "INTRO — nom actuel rue Louis-le-Grand",
+      "source_record": "https://commons.wikimedia.org/wiki/File:Plaque_Rue_Louis_Grand_-_Paris_II_(FR75)_-_2026-09-25_-_1.jpg",
+      "credit": "Chabe01 / Wikimedia Commons",
+      "license_observed": "CC BY-SA 4.0",
+      "image_subject": "Vraie plaque de rue Louis-le-Grand, photographie du 25 septembre 2026, pas la façade 21/23",
+      "editorial_role": "Plan exact uniquement lorsque la narration prononce le nom de la rue; remplacement potentiel de l'ouverture sur la carte Turgot, sous condition du calage audio et licence",
+      "status": "SOURCE_IDENTIFIED_SUBJECT_AND_RIGHTS_REVIEW"
     }
   ]
 }
