@@ -130,13 +130,27 @@ def destination(base, storage_path):
     return base + "/storage/v1/object/" + quote(BUCKET,safe="") + "/" + quote(storage_path,safe="/")
 
 def verify_download(base, token, row):
+    """Stream private original back: don't load large video/PDF into RAM."""
     url = destination(base,row["storage_path"]).replace("/storage/v1/object/", "/storage/v1/object/authenticated/",1)
-    status,headers,data = retry_request(lambda: request("GET",url,token,timeout=120))
-    if status == 404: return False
-    require_success((status,headers,data),{200})
-    if len(data) != row["bytes"] or hashlib.sha256(data).hexdigest() != row["sha256"]:
-        raise RuntimeError("CRITICAL remote checksum mismatch; no catalog receipt may be issued")
-    return True
+    for attempt in range(4):
+        try:
+            req=Request(url,headers={"Authorization":"Bearer "+token},method="GET")
+            with urlopen(req,timeout=120) as remote:
+                digest=hashlib.sha256()
+                length=0
+                for chunk in iter(lambda: remote.read(1024 * 1024),b""):
+                    length += len(chunk)
+                    digest.update(chunk)
+                if length != row["bytes"] or digest.hexdigest() != row["sha256"]:
+                    raise RuntimeError("CRITICAL remote checksum mismatch; no catalog receipt may be issued")
+                return True
+        except HTTPError as exc:
+            if exc.code == 404: return False
+            if exc.code not in RETRY_CODES: raise
+        except (URLError, TimeoutError, OSError):
+            pass
+        if attempt < 3: time.sleep(min(2**attempt,8))
+    raise RuntimeError("Remote readback failed after retries")
 
 def standard_upload(base,token,row):
     blob=Path(row["local_path"]).read_bytes()
@@ -150,6 +164,7 @@ def standard_upload(base,token,row):
     require_success(response,{200,201})
 
 def upload_tus(base,token,row,db):
+    tus_base=base.replace(".supabase.co", ".storage.supabase.co")
     meta={"bucketName":BUCKET,"objectName":row["storage_path"],
           "contentType":mimetypes.guess_type(row["filename"])[0] or "application/octet-stream",
           "cacheControl":"3600"}
@@ -165,15 +180,15 @@ def upload_tus(base,token,row,db):
     offset=head(location) if location else None
     if offset is None:
         metadata=",".join(k+" "+base64.b64encode(v.encode()).decode() for k,v in meta.items())
-        response=retry_request(lambda: request("POST",base+"/storage/v1/upload/resumable",token,b"",{
+        response=retry_request(lambda: request("POST",tus_base+"/storage/v1/upload/resumable",token,b"",{
           **auth,"Upload-Length":str(row["bytes"]),"Upload-Metadata":metadata,
           "Content-Type":"application/offset+octet-stream"}))
         require_success(response,{201,204})
         raw_loc=next((v for k,v in response[1].items() if k.lower()=="location"),None)
         if not raw_loc: raise RuntimeError("TUS upload URL missing")
-        location=urljoin(base,raw_loc)
+        location=urljoin(tus_base+"/",raw_loc)
         # The upload URL must remain under the expected project host.
-        if not location.startswith(base+"/storage/v1/upload/resumable/"):
+        if not location.startswith(tus_base+"/storage/v1/upload/resumable/"):
             raise RuntimeError("Unexpected TUS Location endpoint")
         offset=0
         with db:
@@ -211,7 +226,7 @@ def upload_tus(base,token,row,db):
 def push(db,base,token):
     rowdata=db.execute("""SELECT asset_id,sha256,local_path,bytes,filename,storage_path,
         status,upload_url,upload_started FROM entries
-        WHERE status IN ('PENDING','RETRY_PENDING','STORED_CATALOG_PENDING')
+        WHERE status IN ('PENDING','RETRY_PENDING')
         ORDER BY updated_at""").fetchall()
     names=["asset_id","sha256","local_path","bytes","filename","storage_path",
            "status","upload_url","upload_started"]
