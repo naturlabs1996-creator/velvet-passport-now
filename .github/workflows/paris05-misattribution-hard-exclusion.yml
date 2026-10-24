@@ -1,0 +1,21 @@
+name: Paris05 misattributed portrait hard exclusion
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/production/paris05_image_exclusion.py
+      - scripts/production/paris05_image_exclusion_selftest.py
+      - docs/production/paris05-sebai-excluded-misattributed-images-2026-10-24.json
+      - .github/workflows/paris05-misattribution-hard-exclusion.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reject-misattributed-portrait:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify hard block and legitimate image allowlist behavior
+        run: python3 scripts/production/paris05_image_exclusion_selftest.py
