@@ -41,3 +41,9 @@
 « Cinq mois après l'assassinat de Laïd Sebaï, Henri Curiel est tué à Paris. Les enquêteurs établissent alors qu'un même pistolet de calibre 11,43 a servi dans les deux affaires. Plusieurs décennies plus tard, l'enquête se poursuit et s'intéresse notamment à d'anciens réseaux d'extrême droite et à leurs relations possibles avec les services de l'État. Un ancien inspecteur de la DST, Marc Ducarre, fait partie des personnes sur lesquelles se sont portés les soupçons dans l'affaire Curiel. Sa participation à ces assassinats n'est pas établie par une condamnation. »
 
 **LOCK éditorial :** formulation à revalider à la date de montage et à aligner avec les masters FR/EN existants; ne pas réécrire la narration verrouillée en secret.
+
+
+## 6 — Complément audio RTL / noms contradictoires
+**Source localisée, examinée sur transcription horodatée Dailymotion, non écoutée indépendamment :** [RTL, L'Heure du crime — Henri Curiel : le mort de l'ascenseur](https://www.dailymotion.com/video/xa0sg5a). Index exact : `docs/production/paris05-sebai-curiel-RTL-LHEURE-DU-CRIME-source-2026-10-24.md`.
+
+L'invité **distingue explicitement deux frères** vers **26:12–26:44** : un ancien agent DST dans l'enquête Curiel (garde à vue en octobre 2020), et un frère présenté comme membre du PFN et entendu à Toulon en 1978 dans une autre affaire. **Noms automatiques incohérents** dans la même transcription (Marc, Bruno, Jean selon passage) : le nom de l'ex-DST **Marc Ducarre** est confirmé par Mediapart 2023, mais le prénom du frère demeure `HOLD`, faute de pièce fiable. Ne jamais attribuer la photo rejetée à l'un ou l'autre sans source iconographique nominative.
