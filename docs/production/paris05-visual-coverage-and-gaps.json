@@ -72,8 +72,7 @@
         "Editorial visual decision: actual present-day door at 23 rue Louis-le-Grand; a rights-cleared photograph is required before audiovisual use"
       ],
       "missing": [
-        "Actual rights-cleared photograph of door 23 rue Louis-le-Grand (not yet ingested)",
-        "Authenticated historical photograph of DST officer Marc Ducarre not available; do not substitute a different face"
+        "Actual rights-cleared photograph of door 23 rue Louis-le-Grand (not yet ingested)"
       ],
       "status": "EDITORIAL_LOCK_VISUAL_ASSET_AND_AUDIO_INSERT_PENDING",
       "visual_direction": {
@@ -95,11 +94,21 @@
         "production_policy": "Record as separate audio insert FR then adapt EN; do not alter existing locked WAV masters."
       },
       "misattribution_control": {
-        "status": "REJECTED_PORTRAIT_LOCK",
+        "status": "HOLD_UNVERIFIED_ATTRIBUTION",
         "suspected_asset_sha256": "1f892f203e6c8ec1371634d9cd0c65d2ae4ab3284eb6bbd379e40d916af6c72d",
         "evidence_register": "docs/production/paris05-sebai-excluded-misattributed-images-2026-10-24.json",
         "applies_to": "Marc Ducarre DST portrait claim",
         "use": "PROHIBITED"
+      },
+      "portrait_policy": {
+        "subject": "Marc Ducarre (former DST inspector)",
+        "decision": "NO_PORTRAIT_PLANNED",
+        "production_requirement": false,
+        "acquisition_campaign": "CLOSED",
+        "no_substitute_image": true,
+        "disputed_photo": "HOLD_UNVERIFIED_ATTRIBUTION_AND_NOT_FOR_FILM",
+        "visual_alternatives": "Use contextually accurate archival documents, authentic verified historical setting and approved present-day 23 rue Louis-le-Grand doorway, legally cleared; sync to actual narrated facts and FR/EN cue timing.",
+        "note": "Narrative may mention Ducarre accurately without any image of his face. Absence of portrait is an intentional artistic/archival choice, not a missing-asset blocker."
       }
     },
     {
