@@ -37,9 +37,12 @@ def safe(value):
     return value
 
 def queue_db(root):
-    root.mkdir(parents=True, exist_ok=True)
-    (root / "blobs").mkdir(exist_ok=True)
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(root, 0o700)
+    (root / "blobs").mkdir(exist_ok=True, mode=0o700)
+    os.chmod(root / "blobs", 0o700)
     conn = sqlite3.connect(root / "queue.sqlite3")
+    os.chmod(root / "queue.sqlite3", 0o600)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=FULL")
     conn.execute("""CREATE TABLE IF NOT EXISTS entries (
@@ -59,6 +62,7 @@ def atomic_copy(source, dest):
                 dst.write(part)
             dst.flush()
             os.fsync(dst.fileno())
+        os.chmod(temp, 0o600)
         os.replace(temp, dest)
     finally:
         if temp.exists():
