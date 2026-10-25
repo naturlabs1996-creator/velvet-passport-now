@@ -71,5 +71,24 @@
     "image_not_uploaded_to_public_repository": true,
     "master_kdenlive": "REFERENCE_ONLY_NOT_READY_FOR_FINAL_FILM",
     "next_action": "Source or acquire original independently licensed photograph of this now-identified façade and the separate doorway; no substitute generated photo."
+  },
+  "user_photo_comparison_2026_10_25": {
+    "verified_visual_match": "HIGH_CONFIDENCE_SAME_CORNER_BUILDING",
+    "photo_1": "User screenshot of a Wikimedia-hosted street photograph (1000013403.png); original Commons filename is truncated in browser header 'Rue_Quatre_Septe…', exact source page and capture date not verified",
+    "photo_2": "User screenshot of Google Street View showing 21 Rue Louis le Grand, imagery April 2026 (1000013402.png)",
+    "matching_features": [
+      "Same curved/chamfered corner massing and building rhythm",
+      "Same stone window surrounds and decorative carved stone details",
+      "Same continuous ornate black wrought-iron balconies",
+      "Same PMU storefront corner and pedestrian street context"
+    ],
+    "identity": "Modern corner building at 21 rue Louis-le-Grand / 28 rue du Quatre-Septembre",
+    "facade_photo_status": "PHOTO_VISIBLE_IN_USER_SCREENSHOT_MATCHED_BUT_ORIGINAL_FILE_UNVERIFIED",
+    "original_commons_page": "UNKNOWN_MUST_IDENTIFY_FULL_FILENAME",
+    "Wikimedia_license": "UNKNOWN_FOR_EXACT_USER_IMAGE_MUST_CHECK_ORIGINAL_PAGE_BEFORE_COMMERCIAL_USE",
+    "photo_date": "UNKNOWN_FOR_EXACT_USER_IMAGE",
+    "Google_StreetView_permission": "REFERENCE_ONLY_NOT_CLEARED_FOR_COMMERCIAL_FILM",
+    "no_historical_entrance_claim": "No evidence that current commercial entrance is the exact 1860s Appert workshop door",
+    "kdenlive_next_step": "Retrieve the matching original Wikimedia JPEG, record author/date/license/original SHA and then propose establishing facade shot separate from entry establishing shot"
   }
 }
