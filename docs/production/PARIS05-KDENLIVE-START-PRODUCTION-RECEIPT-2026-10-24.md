@@ -57,3 +57,15 @@ Archives GitHub Actions `39954802793` :
 
 ## VERDICT
 `MEDIA_KIT_AND_AUDIO_BLOCKS_AND_INDEPENDENT_DRIVE_BACKUP_VERIFIED` — **AV READY = FALSE / MASTODON VERIFIED = FALSE / RELEASE LOCK = TRUE.**
+
+
+## Reprise supplémentaire — exact Rijksmuseum et sources survivantes (24/10)
+- **RECTO EXACT** du photomontage neuf hommes : Rijksmuseum **RP-F-2007-161**, Linked Art `200489498`, IIIF Micrio `aEUaW`, fichier source original haute définition **2732×1810** / **719 048 octets**, SHA-256 `c7c545a7117f6442c385adb1ab57a6a86dfe9ebde7e20c6da5354eb83a142258`. Récupération instrumentée via GitHub Actions `40153261033` / artifact `12583058983`, traversée exacte objet → VisualItem → DigitalObject, sans inventer de verso. Le Rijksmuseum décrit les inscriptions du verso en texte, mais **n'expose qu'une image recto dans sa chaîne IIIF vérifiée**.
+- Sauvegarde originale `PARIS05-RIJKSMUSEUM-RP-F-2007-161-RECTO-MAX-SOURCE.zip`, SHA-256 `895636b1da197ffaea51756568c27ed56a06eb1d3072d2569ee813e17c207eee`, ZIP 722 266 octets, **Drive retéléchargé + SHA/CRC identiques**.
+- **Shot P05-VIS-027** pointe maintenant sur la source exacte haute définition `RIJKSMUSEUM-RP-F-2007-161-RECTO-MAX`, au lieu de l'ancienne version 1200 pixels, sans changer le WAV ni autoriser le rendu. Repère acoustique **ASR non validé humainement** pour le tableau de neuf hommes : 326,90 s du master FR (205,98 s local STOP-01, fondé sur cue char 3318). Ce repère n'est **pas** un timecode définitivement approuvé.
+- Delta transportable `VELVET_PARIS05_KDENLIVE_APPERT_RIJKSMUSEUM_DELTA_2026-10-24.zip`: image originale 2 732 px, provenance, 27 plans, 17 repères ASR FR, statut de synchro, script de vérification. ZIP **723 721 octets**, SHA-256 `4a117e5179e26818cf319d0a41f2d1742d53f5e1ff2a43a8b603948078ee42d8`; **Drive retéléchargé, ZIP/CRC et SHA identiques**.
+- Un autre asset qui restait sans copie indépendante : photo d'un **Colt 1911** fournie par l'utilisateur (dossier Sebaï) `VP-PAR-05-SEBAI-VIS-COLT1911-001` — simple candidat illustratif, pas arme précise authentifiée, licence commerciale non acquise. Archive `LAID_SEBAI_COLT1911_PACKAGE_2026-10-24.zip` **155 286 octets**, SHA-256 `facb0ca05dcfe6d240e60754046e34da3747d44b7b5249001f8f50bd70585cbf`, **Drive retéléchargé + SHA/CRC identiques**.
+- Des recherches de photo actuelle du **21 rue Louis-le-Grand** n'ont fourni **aucune image du numéro 21 dont provenance et droit commercial soient vérifiés**. Les résultats situés aux **3–5 rue Louis-le-Grand** ne sont pas le n°21 et ne seront pas substitués.
+- **Mastodon Supabase SQL :** timeout de nouveau, **aucun original nouveau certifié dans Mastodon**. Le résultat vert GitHub « Mastodon reconciliation (read-only) » n'est pas une validation du stockage.
+- **Verdict maintenu :** `KIT_AND_SOURCE_SHA_VERIFIED`, `FIRST_STOP_RENDER_BLOCKED` jusqu'aux médias complets, droits, timing FR/EN et reçus Mastodon.
+
