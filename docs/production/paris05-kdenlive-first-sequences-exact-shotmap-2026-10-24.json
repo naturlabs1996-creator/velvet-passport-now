@@ -492,7 +492,19 @@
       "voice_time_EN_in": null,
       "voice_time_EN_out": null,
       "media_alignment_approved": false,
-      "STATUS": "BLOCKED_IMAGE_OR_DESIGN_MISSING"
+      "STATUS": "BLOCKED_NEEDS_NARRATION_SOURCE_MATCH_AND_RIGHTS_MASTODON_TIMING",
+      "authentic_alternative_found": {
+        "name": "Musée Carnavalet carte Marie Jeanne Moussu — verso Appert",
+        "inventory": "PH19727-150",
+        "asset_candidate_id": "APPERT-VERSO-CARNAVALET-PH19727-150",
+        "asset_sha256": "0060eea66dc1258de4c22f6c9ad5f25083394c3ab61da8b878be1382366be7ab",
+        "source": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/portrait-de-marie-jeanne-moussu-pris-a-la-prison-des-chantiers-a-versailles",
+        "physical_file_recovered": true,
+        "independent_drive_backup_verified": true,
+        "source_page_rights_notice": "CC0",
+        "right_owner_signoff_pending": true,
+        "EXPLICIT_CRITICAL_NOTE": "This is NOT the same Rijksmuseum card described by spoken narration. Cannot substitute silently. Editorial decision or exact object verso required."
+      }
     },
     {
       "shot_id": "P05-VIS-024",
@@ -513,7 +525,19 @@
       "voice_time_EN_in": null,
       "voice_time_EN_out": null,
       "media_alignment_approved": false,
-      "STATUS": "BLOCKED_IMAGE_OR_DESIGN_MISSING"
+      "STATUS": "BLOCKED_NEEDS_NARRATION_SOURCE_MATCH_AND_RIGHTS_MASTODON_TIMING",
+      "authentic_alternative_found": {
+        "name": "Musée Carnavalet carte Marie Jeanne Moussu — verso Appert",
+        "inventory": "PH19727-150",
+        "asset_candidate_id": "APPERT-VERSO-CARNAVALET-PH19727-150",
+        "asset_sha256": "0060eea66dc1258de4c22f6c9ad5f25083394c3ab61da8b878be1382366be7ab",
+        "source": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/portrait-de-marie-jeanne-moussu-pris-a-la-prison-des-chantiers-a-versailles",
+        "physical_file_recovered": true,
+        "independent_drive_backup_verified": true,
+        "source_page_rights_notice": "CC0",
+        "right_owner_signoff_pending": true,
+        "EXPLICIT_CRITICAL_NOTE": "This is NOT the same Rijksmuseum card described by spoken narration. Cannot substitute silently. Editorial decision or exact object verso required."
+      }
     },
     {
       "shot_id": "P05-VIS-025",
@@ -534,7 +558,19 @@
       "voice_time_EN_in": null,
       "voice_time_EN_out": null,
       "media_alignment_approved": false,
-      "STATUS": "BLOCKED_IMAGE_OR_DESIGN_MISSING"
+      "STATUS": "BLOCKED_NEEDS_NARRATION_SOURCE_MATCH_AND_RIGHTS_MASTODON_TIMING",
+      "authentic_alternative_found": {
+        "name": "Musée Carnavalet carte Marie Jeanne Moussu — verso Appert",
+        "inventory": "PH19727-150",
+        "asset_candidate_id": "APPERT-VERSO-CARNAVALET-PH19727-150",
+        "asset_sha256": "0060eea66dc1258de4c22f6c9ad5f25083394c3ab61da8b878be1382366be7ab",
+        "source": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/portrait-de-marie-jeanne-moussu-pris-a-la-prison-des-chantiers-a-versailles",
+        "physical_file_recovered": true,
+        "independent_drive_backup_verified": true,
+        "source_page_rights_notice": "CC0",
+        "right_owner_signoff_pending": true,
+        "EXPLICIT_CRITICAL_NOTE": "This is NOT the same Rijksmuseum card described by spoken narration. Cannot substitute silently. Editorial decision or exact object verso required."
+      }
     },
     {
       "shot_id": "P05-VIS-026",
