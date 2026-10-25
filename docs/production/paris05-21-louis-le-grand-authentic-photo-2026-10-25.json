@@ -90,5 +90,18 @@
     "Google_StreetView_permission": "REFERENCE_ONLY_NOT_CLEARED_FOR_COMMERCIAL_FILM",
     "no_historical_entrance_claim": "No evidence that current commercial entrance is the exact 1860s Appert workshop door",
     "kdenlive_next_step": "Retrieve the matching original Wikimedia JPEG, record author/date/license/original SHA and then propose establishing facade shot separate from entry establishing shot"
+  },
+  "comparative_streetscape_2026_10_25": {
+    "observations_reported_by_user": {
+      "building_at_21_louis_le_grand": "PMU sign remains at corner; known photo compares with April 2026 Street View",
+      "opposite_corner": "BNP now present across intersection",
+      "architectural_change": "Opposite building seriously refurbished/restored relative to older photographs"
+    },
+    "verified_independent_records": {
+      "property_21": "2008 facade refurbishment authorized at 21 rue Louis-le-Grand — https://www.bercail.com/paris/75002/rue-louis-le-grand/21",
+      "property_opposite_area": "33 rue du Quatre-Septembre lies within Ilot 4 Septembre multi-building restructuring; address attribution of visible BNP storefront and precise scope of renovation NOT independently confirmed — https://www.bnppre.fr/a-louer/bureau/paris-75/paris-2-75002/location-bureau-3869-m2-divisible-OLBUR2100242.html"
+    },
+    "editorial_separation": "The PMU corner (21/28) and opposite BNP-side corner are distinct locations; do not use photos of opposite building as present-day Appert site. Older photos must be dated or marked as historical context; exact original Wikimedia image still needs dated provenance and rights for Kdenlive.",
+    "film_visual_status": "Current site located; exact facade image source/license still pending; 2011 plaque at 21 remains verified PD."
   }
 }
