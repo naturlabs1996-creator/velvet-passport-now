@@ -57,7 +57,7 @@ try:
                         m=re.search(r'iiif\.micr\.io/([^/]+)',u)
                         if not m:continue
                         image_id=m.group(1)
-                        url=f"https://iiif.micr.io/{image_id}/full/1800,/0/default.jpg"
+                        url=f"https://iiif.micr.io/{image_id}/full/max/0/default.jpg"
                         b, ct=get(url)
                         if len(b)<10000 or not b.startswith(bytes.fromhex("ffd8ff")):
                             raise ValueError("Downloaded resource not a valid JPEG image")
