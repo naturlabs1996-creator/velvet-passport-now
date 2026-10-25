@@ -3,7 +3,7 @@
   "run_id": 39881034897,
   "artifact_id": 12470696663,
   "commercial_release_approved": false,
-  "checked_at": "2026-10-22",
+  "checked_at": "2026-10-24",
   "ingested_count": 18,
   "errors": 0,
   "items": [
@@ -184,6 +184,29 @@
       "rights": "CC0",
       "rights_review": "PENDING",
       "source_batch": "39881285190"
+    },
+    {
+      "id": "RIJKSMUSEUM-RP-F-2007-161-RECTO-MAX",
+      "route_id": "VP-PAR-05",
+      "stop_id": "STOP-01",
+      "type": "HISTORICAL_PHOTOMONTAGE_ORIGINAL_SCAN",
+      "institution": "Rijksmuseum Amsterdam",
+      "object_number": "RP-F-2007-161",
+      "object_title": "Fotomontage van negen mannen (politici) rondom een tafel",
+      "object_uri": "https://id.rijksmuseum.nl/200489498",
+      "iiif_image": "https://iiif.micr.io/aEUaW/full/max/0/default.jpg",
+      "sha256": "c7c545a7117f6442c385adb1ab57a6a86dfe9ebde7e20c6da5354eb83a142258",
+      "bytes": 719048,
+      "width": 2732,
+      "height": 1810,
+      "rights": "Rijksmuseum public domain (object website)",
+      "rights_review": "PENDING",
+      "status": "DRIVE_BACKUP_VERIFIED_MASTODON_PENDING",
+      "commercial_approval": false,
+      "archive_provenance": "PARIS05-RIJKSMUSEUM-RP-F-2007-161-RECTO-MAX-SOURCE.zip",
+      "drive_backup_verification_sha256": "895636b1da197ffaea51756568c27ed56a06eb1d3072d2569ee813e17c207eee",
+      "mastodon_receipt_verified": false,
+      "notes": "Recto EXACT official digital image. Catalog verifies reverse inscriptions but no actual reverse photograph returned by museum IIIF; NEVER portray front as reverse."
     }
   ],
   "pending_exact_source": [
