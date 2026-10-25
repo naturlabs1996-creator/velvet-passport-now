@@ -48,11 +48,28 @@
   },
   "master_policy": {
     "forbidden": "No Google Street View commercial republishing without permission, no image_gen as historical/actual photo, no 28 rue du Quatre-Septembre building photo misrepresented as n°21 entrance without visual corroboration and rights",
-    "status_exact_facade": "STILL_MISSING",
-    "status_exact_entrance": "STILL_MISSING",
+    "status_exact_facade": "VISUALLY_LOCATED_IN_GOOGLE_STREET_VIEW_2026_SCREENSHOT_ONLY",
+    "status_exact_entrance": "GOOGLE_PIN_AT_PMU_GLAZED_DOOR_HISTORICAL_CORRESPONDENCE_UNPROVEN",
     "image_at_exact_site": "FOUND_UNDER_PD",
     "mastodon_state": "INGEST_BLOCKED_SUPABASE_SQL"
   },
   "additional_identification": "Fondation de la Résistance (AERI) identifies Louis Dumas plaque at 21 rue Louis-le-Grand, angle rue du IV-Septembre — independently corroborates location.",
-  "additional_source": "https://www.museedelaresistanceenligne.org/musee/mediatheque/mediatheque.php?r_Tri=1&r_texte=louis+coquillet"
+  "additional_source": "https://www.museedelaresistanceenligne.org/musee/mediatheque/mediatheque.php?r_Tri=1&r_texte=louis+coquillet",
+  "current_entry_streetview_2026_recon": {
+    "source": "User-supplied Google Street View screenshot, imagery marked April 2026",
+    "filename": "1000013401.png",
+    "screenshot_sha256": "1ec8140d298ba98458cfd33ddf97b4f5be0f2067930721b070ba73f83e9d2ffe",
+    "pixels": [
+      1080,
+      2400
+    ],
+    "visible_google_label": "21 Rue Louis le Grand",
+    "visual": "Street-level corner façade with PMU signage. A narrow glazed door under PMU at the corner, with Google Maps location pin directly over it; an ornamental glazed door is further left under a second PMU sign.",
+    "what_this_verifies": "Usable internal location-recce visual of present-day corner and the location Google Maps pins as 21 Rue Louis-le-Grand.",
+    "what_this_does_NOT_verify": "Cannot prove the exact legal designation of the modern business door, the building's residential access, or continuity with historic Appert workshop entrance.",
+    "commercial_media_permission": "NOT_ESTABLISHED: third-party Google Street View copyright applies, even if the street-visible building itself may be photographed freely.",
+    "image_not_uploaded_to_public_repository": true,
+    "master_kdenlive": "REFERENCE_ONLY_NOT_READY_FOR_FINAL_FILM",
+    "next_action": "Source or acquire original independently licensed photograph of this now-identified façade and the separate doorway; no substitute generated photo."
+  }
 }
