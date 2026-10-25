@@ -1,0 +1,47 @@
+{
+  "route_id": "VP-PAR-05",
+  "stop": "STOP-01",
+  "confirmed_address": "21 rue Louis-le-Grand, 75002 Paris",
+  "photograph_at_number_21": {
+    "asset_id": "VP-PAR-05-STOP01-21LOUIS-2011-REAL-PLAQUE-001",
+    "file": "Plaque Louis Dumas 21, rue Louis-le-Grand.jpg",
+    "description": "Actual photo at the exact n°21; wall with RUE LOUIS LE GRAND lettering and Louis Dumas plaque, not the complete building or doorway",
+    "source": "https://commons.wikimedia.org/wiki/File:Plaque_Louis_Dumas_21,_rue_Louis-le-Grand.jpg",
+    "author": "Tangopaso",
+    "date": "2011-07-13",
+    "size": [
+      3312,
+      4416
+    ],
+    "sha256": "b1f10530aa7623e41d57b858cfcec6f4a7c95d6520d23dc1773e6db57c919edb",
+    "license": "Public domain - author-declared on Wikimedia Commons; commercially reusable subject to source/QA",
+    "site_identification_proof": "Wikimedia Commons uploader explicitly identifies 21 and geotags at 48.870208,2.333861",
+    "actual_building_facade_or_door": "NOT_SHOWN",
+    "frame_number_21_written": "NO",
+    "candidate_use": "STOP-01 introduction 'Regardez cette adresse' — only a short honest close-up of the wall/plaque if appropriate to timing; no title falsely saying former original Appert structure",
+    "qa_status": "SOURCE_FILE_VERIFIED_EDITS_NOT_APPROVED",
+    "mastodon_live_verified": false
+  },
+  "building_context": {
+    "street_alias": "28 rue du Quatre-Septembre (same property per Bercail)",
+    "evidence": "https://www.bercail.com/paris/75002/rue-louis-le-grand/21",
+    "current_building_construction_report": "circa 1885; Appert activity at 21 is documented around 1859, hence the facade may have been replaced; do not identify it as original 19th-century atelier.",
+    "commercial_property_photographs": "https://www.knightfrank.fr/annonce/bureaux-32767-l/",
+    "commercial_photo_rights": "NOT_CLEARED. For editorial location reconnaissance only; do not ingest as commercially usable Kdenlive media."
+  },
+  "research": {
+    "additional_street_view": "Rue Louis-le-Grand, Paris 2012-11.jpg",
+    "additional_view_role": "STREET_CONTEXT_ONLY - exact number 21 not authenticated in view",
+    "additional_sha256": "82068d768fbc64cd4c999e5dd826082d5e3197e97ee001f58d18dfd356c8d410",
+    "source": "https://commons.wikimedia.org/wiki/File:Rue_Louis-le-Grand,_Paris_2012-11.jpg",
+    "source_license": "CC BY-SA 3.0 (restrictions/applicability to final compilation require legal QC)",
+    "acquisition_result": "2 original JPEG files downloaded, 5 request HTTP 429 blocked; no fabricated images"
+  },
+  "master_policy": {
+    "forbidden": "No Google Street View commercial republishing without permission, no image_gen as historical/actual photo, no 28 rue du Quatre-Septembre building photo misrepresented as n°21 entrance without visual corroboration and rights",
+    "status_exact_facade": "STILL_MISSING",
+    "status_exact_entrance": "STILL_MISSING",
+    "image_at_exact_site": "FOUND_UNDER_PD",
+    "mastodon_state": "INGEST_BLOCKED_SUPABASE_SQL"
+  }
+}
