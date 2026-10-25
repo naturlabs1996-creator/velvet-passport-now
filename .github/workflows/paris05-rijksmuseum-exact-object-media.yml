@@ -1,0 +1,26 @@
+name: Paris05 Appert Rijksmuseum exact RP-F-2007-161 media
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-rijksmuseum-exact-object-media.yml'
+      - 'scripts/production/paris05_rijksmuseum_exact_object_media.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fetch-museum-object:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check exact museum object identity and fetch official IIIF representations
+        run: python3 scripts/production/paris05_rijksmuseum_exact_object_media.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PARIS05-RIJKSMUSEUM-RP-F-2007-161-EXACT-DIGITAL-MEDIA-REVIEW
+          path: dist/paris05-rijksmuseum-exact-object/
+          retention-days: 90
