@@ -103,5 +103,21 @@
     },
     "editorial_separation": "The PMU corner (21/28) and opposite BNP-side corner are distinct locations; do not use photos of opposite building as present-day Appert site. Older photos must be dated or marked as historical context; exact original Wikimedia image still needs dated provenance and rights for Kdenlive.",
     "film_visual_status": "Current site located; exact facade image source/license still pending; 2011 plaque at 21 remains verified PD."
+  },
+  "street_view_memorial_detail_2026_04": {
+    "supplied_by": "User uploaded magnified Google Street View screenshot in current chat",
+    "filename": "1000013404.png",
+    "imagery_date": "April 2026 as shown in Google Street View UI",
+    "location_label": "21 Rue Louis le Grand",
+    "visually_confirmed": "Rue Louis-le-Grand official sign above rectangular memorial-sized plaque on the corner wall, near PMU entrance",
+    "historical_attribution": "Position and shape consistent with Louis Dumas memorial documented independently in 2011 Wikimedia Commons photo",
+    "legibility": "Text on 2026 street-view screenshot is NOT reliably readable; do not transcribe from screenshot",
+    "condition_claim": "Uncertain: near-illegibility may be caused by glare, compression or actual surface condition; no conclusion about vandalism/removal/restoration",
+    "earlier_documentary_source": "https://commons.wikimedia.org/wiki/File:Plaque_Louis_Dumas_21,_rue_Louis-le-Grand.jpg",
+    "earlier_source_text": "Ici tombait le 20 août 1944 sous les balles ennemies Louis Dumas FFI 19 ans. Français n'oubliez pas.",
+    "audiovisual_use": "Google screenshot location QA only; reuse older Commons original for legible readable plaque, if production plan calls for it. Do not reproduce Google Street View screenshot in commercial film without authorization.",
+    "rights": "Google street imagery NOT cleared; Commons older photo reported PD",
+    "direct_mastodon_catalog_mutation": "NOT_VERIFIED_SQL_UNAVAILABLE",
+    "screenplay_relation": "STOP-01 Appert address -> STOP-03 Paris insurrection 1944"
   }
 }
