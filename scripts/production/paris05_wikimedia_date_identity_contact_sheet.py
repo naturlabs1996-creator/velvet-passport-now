@@ -6,7 +6,7 @@ import pathlib,hashlib,urllib.parse,urllib.request,time,json
 from PIL import Image,ImageOps,ImageDraw
 out=pathlib.Path("dist/paris05-wikimedia-date-identity-check")
 out.mkdir(parents=True,exist_ok=True)
-dates=["2023-06-21","2025-04-21"]
+dates=["2021-06-14"]
 results=[]
 for date in dates:
  for n in [1,2]:
