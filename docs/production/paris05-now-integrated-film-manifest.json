@@ -1,0 +1,219 @@
+{
+  "routeId": "VP-PAR-05",
+  "stage": "PREPRODUCTION_NOT_RELEASED",
+  "source": "Integrated FR/EN final master WAV with Sebaï insert (NOT the pre-insert chapter map)",
+  "releaseApproved": false,
+  "mediaAssetsApproved": false,
+  "media": {
+    "fr": {
+      "durationSeconds": 3694.3,
+      "videoUrl": null,
+      "subtitlesUrl": null
+    },
+    "en": {
+      "durationSeconds": 3750.76,
+      "videoUrl": null,
+      "subtitlesUrl": null
+    }
+  },
+  "chapters": [
+    {
+      "id": "INTRO",
+      "titleFr": "Ouverture",
+      "titleEn": "Introduction",
+      "fr": {
+        "startSeconds": 0,
+        "endSeconds": 120.92,
+        "durationSeconds": 120.92
+      },
+      "en": {
+        "startSeconds": 0,
+        "endSeconds": 129.56,
+        "durationSeconds": 129.56
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "STOP-01",
+      "titleFr": "Ernest Appert",
+      "titleEn": "Ernest Appert",
+      "fr": {
+        "startSeconds": 120.92,
+        "endSeconds": 600.96,
+        "durationSeconds": 480.04
+      },
+      "en": {
+        "startSeconds": 130.76,
+        "endSeconds": 608.16,
+        "durationSeconds": 477.4
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "TRANSITION-01-SEBAI",
+      "titleFr": "Vers l'affaire Sebaï",
+      "titleEn": "Toward the Sebaï case",
+      "fr": {
+        "startSeconds": 600.96,
+        "endSeconds": 710.64,
+        "durationSeconds": 109.68
+      },
+      "en": {
+        "startSeconds": 609.36,
+        "endSeconds": 716.92,
+        "durationSeconds": 107.56
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "STOP-SEBAI-1977",
+      "titleFr": "Laïd Sebaï et Henri Curiel",
+      "titleEn": "Laïd Sebaï and Henri Curiel",
+      "fr": {
+        "startSeconds": 710.64,
+        "endSeconds": 1464.08,
+        "durationSeconds": 753.44
+      },
+      "en": {
+        "startSeconds": 718.12,
+        "endSeconds": 1495.56,
+        "durationSeconds": 777.44
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "TRANSITION-01-02",
+      "titleFr": "Vers Joséphine",
+      "titleEn": "Toward Joséphine",
+      "fr": {
+        "startSeconds": 1464.08,
+        "endSeconds": 1493.04,
+        "durationSeconds": 28.96
+      },
+      "en": {
+        "startSeconds": 1496.76,
+        "endSeconds": 1524.44,
+        "durationSeconds": 27.68
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "STOP-02",
+      "titleFr": "Joséphine de Beauharnais",
+      "titleEn": "Joséphine de Beauharnais",
+      "fr": {
+        "startSeconds": 1493.04,
+        "endSeconds": 1982.34,
+        "durationSeconds": 489.3
+      },
+      "en": {
+        "startSeconds": 1525.64,
+        "endSeconds": 2037.72,
+        "durationSeconds": 512.08
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "TRANSITION-02-03",
+      "titleFr": "Vers la Libération",
+      "titleEn": "Toward Liberation",
+      "fr": {
+        "startSeconds": 1982.34,
+        "endSeconds": 2109.12,
+        "durationSeconds": 126.78
+      },
+      "en": {
+        "startSeconds": 2038.92,
+        "endSeconds": 2166.12,
+        "durationSeconds": 127.2
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "STOP-03",
+      "titleFr": "Opéra — août 1944",
+      "titleEn": "Opéra — August 1944",
+      "fr": {
+        "startSeconds": 2109.12,
+        "endSeconds": 2615.74,
+        "durationSeconds": 506.62
+      },
+      "en": {
+        "startSeconds": 2167.32,
+        "endSeconds": 2679.4,
+        "durationSeconds": 512.08
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "TRANSITION-03-04",
+      "titleFr": "Vers le duel",
+      "titleEn": "Toward the duel",
+      "fr": {
+        "startSeconds": 2615.74,
+        "endSeconds": 2726.9,
+        "durationSeconds": 111.16
+      },
+      "en": {
+        "startSeconds": 2680.6,
+        "endSeconds": 2797.44,
+        "durationSeconds": 116.84
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "STOP-04",
+      "titleFr": "Beaufort et Nemours",
+      "titleEn": "Beaufort and Nemours",
+      "fr": {
+        "startSeconds": 2726.9,
+        "endSeconds": 3613.18,
+        "durationSeconds": 886.28
+      },
+      "en": {
+        "startSeconds": 2798.64,
+        "endSeconds": 3679.08,
+        "durationSeconds": 880.44
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    },
+    {
+      "id": "OUTRO",
+      "titleFr": "Conclusion",
+      "titleEn": "Closing",
+      "fr": {
+        "startSeconds": 3613.18,
+        "endSeconds": 3694.3,
+        "durationSeconds": 81.12
+      },
+      "en": {
+        "startSeconds": 3680.28,
+        "endSeconds": 3750.76,
+        "durationSeconds": 70.48
+      },
+      "visualQAApproved": false,
+      "rightsQAApproved": false
+    }
+  ],
+  "provenance": {
+    "finalFrMasterSHA": "NOT_STORED_IN_THIS_MANIFEST",
+    "finalEnMasterSHA": "NOT_STORED_IN_THIS_MANIFEST",
+    "frSpliceAtOriginalSeconds": 711.82,
+    "enSpliceAtOriginalSeconds": 718.94,
+    "frInsertedWithNetDeltaSeconds": 18.08,
+    "enInsertedWithNetDeltaSeconds": 16.28,
+    "chapterBoundaryInterpretation": "Chapter after splice shift by actual net inserted duration; chapter containing splice expands. Original EN 1.2s inter-chapter gaps preserved.",
+    "sourceRunFr": "39954802793",
+    "sourceRunEn": "39954802793"
+  }
+}
