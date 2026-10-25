@@ -84,6 +84,15 @@
         "mastodon_receipt_verified": false,
         "story_candidate": "P05-VIS-015: 'Regardez cette adresse' — under editorial and synchronization review",
         "never_call_original_19th_century_building": true
+      },
+      "cross_stop_1944_commemoration": {
+        "asset_id": "VP-PAR-05-STOP01-21LOUIS-2011-REAL-PLAQUE-001",
+        "subject": "Louis Dumas, FFI, âgé de 19 ans selon plaque au 21 rue Louis-le-Grand, tombé sous les balles ennemies le 20 août 1944",
+        "proposed_use": "Brief mention as a retrospective link; do not substitute this visual for 1860s Appert studio, or secretly overwrite locked WAV",
+        "cross_reference": "STOP-03",
+        "anchor": "docs/production/PARIS05-1944-LOUIS-DUMAS-CROSSSTOP-2026-10-25.md",
+        "audio_FR_insert": "PENDING_EDITORIAL_APPROVAL_AND_RECORDING",
+        "audio_EN_insert": "PENDING_EDITORIAL_APPROVAL_AND_RECORDING"
       }
     },
     {
@@ -209,7 +218,36 @@
         "authenticated 25 Aug surrender/white flag at correct site",
         "current matching angle"
       ],
-      "status": "CRITICAL_GAP"
+      "status": "CRITICAL_GAP",
+      "louis_dumas_1944_microhistory": {
+        "source_asset_id": "VP-PAR-05-STOP01-21LOUIS-2011-REAL-PLAQUE-001",
+        "material": "On-site plaque photographed 2011, 21 rue Louis-le-Grand, Paris",
+        "historical_detail": "20 August 1944 — Louis Dumas, FFI, age 19, according to inscription",
+        "intended_use": "Dedicated historical aside inside 1944 liberation stop, as a cross-reference back to Stop01",
+        "picture_verified_at_location": true,
+        "picture_public_domain_declared": true,
+        "new_narration_wav_required": true,
+        "new_visual_FR_EN_sync_required": true,
+        "no_implied_same_location_as_opera_corner": true
+      },
+      "new_documentary_candidates": [
+        {
+          "location": "avenue de l'Opéra / rue Louis-le-Grand corner, NOT 21 Louis-le-Grand",
+          "date": "1944-08-25",
+          "subject": "German prisoners escorted by FFI and 2e DB",
+          "url": "https://parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/avenue-de-l-opera-angle-rue-louis-le-grand-prisonniers-allemands-venant-de",
+          "artist": "Agence Presse Libération FFI",
+          "rights": "PENDING"
+        },
+        {
+          "location": "43 avenue de l'Opéra / rue Louis-le-Grand corner, NOT 21 Louis-le-Grand",
+          "date": "1944-08-25",
+          "subject": "Police FFI holding Wehrmacht flag",
+          "url": "https://parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/les-policiers-ffi-de-la-pp-se-sont-empares-d-un-drapeau-de-la-wehrmacht-43",
+          "artist": "Attribué à René Zuber",
+          "rights": "PENDING"
+        }
+      ]
     },
     {
       "id": "TRANSITION-03-04",
