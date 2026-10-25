@@ -6,11 +6,13 @@ import pathlib,hashlib,urllib.parse,urllib.request,time,json
 from PIL import Image,ImageOps,ImageDraw
 out=pathlib.Path("dist/paris05-wikimedia-date-identity-check")
 out.mkdir(parents=True,exist_ok=True)
-dates=["2021-06-14"]
+candidates=[
+ ("Rue 4 Septembre - Paris II (FR75) - 2025-10-05 - 1.jpg","2025-10-05",1),
+ ("Rue 4 Septembre - Paris II (FR75) - 2025-10-05 - 2.jpg","2025-10-05",2),
+ ("Rue Quatre Septembre - Paris II (FR75) - 2026-04-18 - 1.jpg","2026-04-18",1),
+]
 results=[]
-for date in dates:
- for n in [1,2]:
-  name=f"Rue Quatre Septembre - Paris II (FR75) - {date} - {n}.jpg"
+for name,date,n in candidates:
   media=name.replace(" ","_")
   h=hashlib.md5(media.encode()).hexdigest()
   url=f"https://upload.wikimedia.org/wikipedia/commons/{h[0]}/{h[:2]}/{urllib.parse.quote(media)}"
