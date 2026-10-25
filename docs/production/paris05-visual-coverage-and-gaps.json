@@ -49,7 +49,8 @@
         "RP-F-2007-161 exact nine-person montage",
         "Rijksmuseum second Appert montage",
         "accurate precise crop",
-        "Photographie numérique du verso de la carte exacte du Rijksmuseum RP-F-2007-161 ; le verso alternatif Carnavalet PH19727-150 n'est pas le même objet"
+        "Photographie numérique du verso de la carte exacte du Rijksmuseum RP-F-2007-161 ; le verso alternatif Carnavalet PH19727-150 n'est pas le même objet",
+        "Exact current wide facade and original entrance of 21 rue Louis-le-Grand: still not photographed with approved licence"
       ],
       "status": "PARTIAL",
       "verified_documentary_candidate_found": {
@@ -64,6 +65,25 @@
         "storyboard_023_024_025": "HOLD: spoken text names Rijksmuseum card; this is another authentic Appert carte; no false provenance",
         "drive_backup_verified": true,
         "mastodon_receipt_pending": true
+      },
+      "exact_address_photo_recovered": {
+        "asset_id": "VP-PAR-05-STOP01-21LOUIS-2011-REAL-PLAQUE-001",
+        "sha256": "b1f10530aa7623e41d57b858cfcec6f4a7c95d6520d23dc1773e6db57c919edb",
+        "dimensions": [
+          3312,
+          4416
+        ],
+        "actual_address": "21 rue Louis-le-Grand, Paris",
+        "subject": "Actual wall with street-name inscription + Louis Dumas resistance plaque at n°21; NOT full facade or entry",
+        "capture_date": "2011-07-13",
+        "author": "Tangopaso",
+        "Wikimedia_public_domain_declaration": true,
+        "image_original_recovered": true,
+        "independent_drive_backup_verified": true,
+        "verified_commercial_licence": "AUTHOR_DEDICATED_PUBLIC_DOMAIN",
+        "mastodon_receipt_verified": false,
+        "story_candidate": "P05-VIS-015: 'Regardez cette adresse' — under editorial and synchronization review",
+        "never_call_original_19th_century_building": true
       }
     },
     {
