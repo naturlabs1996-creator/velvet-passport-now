@@ -6,27 +6,27 @@ import pathlib,hashlib,urllib.parse,urllib.request,time,json
 from PIL import Image,ImageOps,ImageDraw
 out=pathlib.Path("dist/paris05-wikimedia-date-identity-check")
 out.mkdir(parents=True,exist_ok=True)
-dates=["2021-06-14","2023-06-21","2025-04-21","2026-01-12"]
+dates=["2023-06-21","2025-04-21"]
 results=[]
 for date in dates:
  for n in [1,2]:
   name=f"Rue Quatre Septembre - Paris II (FR75) - {date} - {n}.jpg"
   media=name.replace(" ","_")
   h=hashlib.md5(media.encode()).hexdigest()
-  url=f"https://upload.wikimedia.org/wikipedia/commons/thumb/{h[0]}/{h[:2]}/{urllib.parse.quote(media)}/640px-{urllib.parse.quote(media)}"
+  url=f"https://upload.wikimedia.org/wikipedia/commons/{h[0]}/{h[:2]}/{urllib.parse.quote(media)}"
   dest=out/f"{date}-{n}.jpg"
   issue=None
-  for retry in range(3):
+  for retry in range(2):
    try:
     req=urllib.request.Request(url,headers={"User-Agent":"VelvetPassport/1.0 (historical archival imagery comparison; see GitHub)"})
     with urllib.request.urlopen(req,timeout=28) as r:b=r.read()
     if not b.startswith(bytes.fromhex("ffd8ff")):raise ValueError("Not a JPG")
     dest.write_bytes(b);issue=None;break
    except Exception as ex:
-    issue=str(ex);time.sleep(4*(retry+1))
+    issue=str(ex);time.sleep(5*(retry+1))
   results.append({"date":date,"num":n,"source_page":"https://commons.wikimedia.org/wiki/File:"+urllib.parse.quote(media),"thumbnail_url":url,"local":dest.name if dest.exists() else None,"error":issue})
   print(date,n,"OK" if dest.exists() else issue,flush=True)
-  time.sleep(2)
+  time.sleep(1)
 photos=[r for r in results if r["local"]]
 if photos:
  cols=2;width=740;height=650
