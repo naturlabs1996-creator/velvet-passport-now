@@ -121,5 +121,18 @@
     "screenplay_relation": "STOP-01 Appert address -> STOP-03 Paris insurrection 1944",
     "identification_final": "SAME_LOUIS_DUMAS_MEMORIAL_PLAQUE_AT_21_CONFIRMED_BY_USER_COMPARISON",
     "production_action": "Reference April 2026 screenshot for current location only; use earlier legible public-domain original for narrative visual, with licensed media QA."
+  },
+  "user_wikimedia_general_facade_2026_10_25": {
+    "user_uploaded_screenshot": "1000013403.png",
+    "source_host_visible": "upload.wikimedia.org",
+    "filename_visible_partial": "Rue_Quatre_Septe...",
+    "exact_wikimedia_page_and_date": "NOT_YET_AUTHENTICATED",
+    "matched_site": "Corner property 21 rue Louis-le-Grand / 28 rue du Quatre-Septembre",
+    "photographed_condition": "Stonework visibly darker than in user's April 2026 Google Street View screenshot; user reports facade has since been cleaned",
+    "historical_interpretation": "Shows an earlier visible condition of the present building, NOT the 1860s Appert workshop facade",
+    "confidence": "Architecture match strong; facade cleaning date unknown, original capture date unconfirmed",
+    "Wikimedia_photo_license": "UNVERIFIED_FOR_THIS_EXACT_FILE; do not apply license of different Wikimedia source",
+    "use_in_kdenlive": "EDITORIAL_CANDIDATE ONLY — recover original Commons file and verify image credit/license before use",
+    "opposite_corner_distinction": "Do not confuse 21/28 PMU building with BNP building across the intersection"
   }
 }
