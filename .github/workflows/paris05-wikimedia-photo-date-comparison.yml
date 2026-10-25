@@ -1,0 +1,29 @@
+name: Paris05 Wikimedia dated street photo comparison
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-wikimedia-photo-date-comparison.yml'
+      - 'scripts/production/paris05_wikimedia_date_identity_contact_sheet.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install PIL
+        run: python3 -m pip install Pillow
+      - name: Build 2021/2023/2025/2026 Wikimedia photographic contact sheet
+        run: python3 scripts/production/paris05_wikimedia_date_identity_contact_sheet.py
+      - name: Retain date/identity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-WIKIMEDIA-DATED-FAÇADE-PHOTO-COMPARISON
+          path: dist/paris05-wikimedia-date-identity-check/
+          retention-days: 90
