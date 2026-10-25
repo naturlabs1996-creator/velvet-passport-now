@@ -207,6 +207,29 @@
       "drive_backup_verification_sha256": "895636b1da197ffaea51756568c27ed56a06eb1d3072d2569ee813e17c207eee",
       "mastodon_receipt_verified": false,
       "notes": "Recto EXACT official digital image. Catalog verifies reverse inscriptions but no actual reverse photograph returned by museum IIIF; NEVER portray front as reverse."
+    },
+    {
+      "id": "VP-PAR-05-SEBAI-VIS-COLT1911-001",
+      "route_id": "VP-PAR-05",
+      "stop_id": "STOP-SEBAI-1977",
+      "institution": "USER_UPLOADED",
+      "original_filename": "VP-PAR-05-SEBAI-VIS-COLT1911-001.jpg",
+      "type": "ILLUSTRATIVE_HISTORICAL_WEAPON_TYPE_CANDIDATE",
+      "user_identification": "Colt 1911 calibre 11.43mm",
+      "evidence_of_exact_crime_weapon": "NOT_PROVEN",
+      "sha256": "be57e092583f59eee6db9d9fd761bf92d2b90b4260435054929258d1ac4a7662",
+      "bytes": 157862,
+      "width": 1536,
+      "height": 1047,
+      "source": "user upload 2026-10-24",
+      "status": "DRIVE_BACKUP_VERIFIED_MASTODON_PENDING",
+      "original_backup_zip": "LAID_SEBAI_COLT1911_PACKAGE_2026-10-24.zip",
+      "backup_zip_sha256": "facb0ca05dcfe6d240e60754046e34da3747d44b7b5249001f8f50bd70585cbf",
+      "rights": "UNKNOWN",
+      "rights_review": "PENDING",
+      "mastodon_receipt_verified": false,
+      "commercial_approval": false,
+      "caption_warning": "DO NOT CLAIM this was the weapon used in either murder; typological illustration only, subject to research and commercial rights."
     }
   ],
   "pending_exact_source": [
