@@ -1,0 +1,50 @@
+name: Paris05 Appert Carnavalet genuine reverse candidate
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-appert-carnavalet-verso-original.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fetch-curated-verso:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Retrieve exact Paris Musees original archive image
+        run: |
+          python3 - <<'PY'
+          import pathlib,urllib.request,json,hashlib
+          out=pathlib.Path('dist/paris05-carnavalet-appert-verso');out.mkdir(parents=True,exist_ok=True)
+          links=[
+            'https://www.parismuseescollections.paris.fr/sites/default/files/atoms/images/CAR/carph019727-150_2.jpg',
+            'https://www.parismuseescollections.paris.fr/sites/default/files/styles/pm_diaporama_zoom/public/atoms/images/CAR/carph019727-150_2.jpg?itok=hPsnlLzz'
+          ]
+          issues=[]
+          for url in links:
+            try:
+              request=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (VelvetPassport archival reference collection)'})
+              with urllib.request.urlopen(request,timeout=35) as response:
+                data=response.read()
+                mime=response.headers.get('content-type','')
+              if not data.startswith(bytes.fromhex('ffd8ff')) or len(data)<20000:
+                raise RuntimeError('not a qualifying JPEG; size='+str(len(data))+'; type='+mime)
+              path=out/'APPERT-VERSO-CARNAVALET-PH19727-150-CANDIDATE.jpg'
+              path.write_bytes(data)
+              metadata={'source_page':'https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/portrait-de-marie-jeanne-moussu-pris-a-la-prison-des-chantiers-a-versailles','source_image_url':url,'inventory':'PH19727-150','institution':'Musée Carnavalet / Paris Musées','work_subject':'Marie Jeanne Moussu (1871)','image_role':'Recto/verso archive candidate; visual QA to confirm verso content','copyright_on_page':'CC0 Paris Musées','state':'FILE_DOWNLOADED_REVIEW_ONLY_NOT_RIJKSMUSEUM_RP-F-2007-161','sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'reproduction_use':'Not yet commercially signed off; provenance and interpretation review required','not_same_as':'Rijksmuseum RP-F-2007-161'}
+              (out/'provenance.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n')
+              print('DOWNLOADED',len(data),metadata['sha256'],url)
+              break
+            except Exception as e:
+              issues.append(f'{url}: {e}')
+          else:
+            raise RuntimeError('Both authentic source download URLs failed: '+'; '.join(issues))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-APPERT-VERSO-CARNAVALET-SOURCE-REVIEW
+          path: dist/paris05-carnavalet-appert-verso/
+          retention-days: 90
