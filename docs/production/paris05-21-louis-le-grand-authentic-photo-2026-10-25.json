@@ -20,7 +20,16 @@
     "frame_number_21_written": "NO",
     "candidate_use": "STOP-01 introduction 'Regardez cette adresse' — only a short honest close-up of the wall/plaque if appropriate to timing; no title falsely saying former original Appert structure",
     "qa_status": "SOURCE_FILE_VERIFIED_EDITS_NOT_APPROVED",
-    "mastodon_live_verified": false
+    "mastodon_live_verified": false,
+    "independent_drive_backup": {
+      "status": "VERIFIED_UPLOAD_AND_READBACK_SHA256_MATCH",
+      "archive": "VELVET_PARIS05_21_LOUIS_LE_GRAND_REAL_PHOTO_2026-10-25.zip",
+      "archive_sha256": "d6b97d4cc8dffe7fb8882acf455344b857d018edfb25503eda33f7af378cc444",
+      "path": "/Google Drive/Velvet Passport NOW/MASTODON — Sauvetage provisoire des archives 2026-10-24/",
+      "bytes": 824713,
+      "contains": "Original JPEG, metadata and README",
+      "mastodon_live_verified": false
+    }
   },
   "building_context": {
     "street_alias": "28 rue du Quatre-Septembre (same property per Bercail)",
@@ -43,5 +52,7 @@
     "status_exact_entrance": "STILL_MISSING",
     "image_at_exact_site": "FOUND_UNDER_PD",
     "mastodon_state": "INGEST_BLOCKED_SUPABASE_SQL"
-  }
+  },
+  "additional_identification": "Fondation de la Résistance (AERI) identifies Louis Dumas plaque at 21 rue Louis-le-Grand, angle rue du IV-Septembre — independently corroborates location.",
+  "additional_source": "https://www.museedelaresistanceenligne.org/musee/mediatheque/mediatheque.php?r_Tri=1&r_texte=louis+coquillet"
 }
