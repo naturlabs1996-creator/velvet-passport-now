@@ -1,0 +1,25 @@
+.shell{min-height:100svh;background:#171512;color:#efe7d8;padding:24px max(20px,calc((100vw - 920px)/2));font-family:Arial,Helvetica,sans-serif}
+.back{display:inline-block;color:#c9ac68;text-decoration:none;margin:8px 0 34px;font-size:13px;letter-spacing:.02em}
+.back:hover{text-decoration:underline}
+.kicker{font-size:10px;letter-spacing:.19em;color:#bda16a;font-weight:700}
+.shell h1{font:normal clamp(32px,5vw,56px)/1.04 Georgia,serif;letter-spacing:-.03em;margin:15px 0}
+.subtitle{color:#bdb5a7;font-size:14px;line-height:1.65;max-width:620px;margin:0 0 32px}
+.hold{border:1px solid #4a4335;background:#211d18;padding:22px 24px;max-width:700px}
+.hold h2{font:normal 25px/1.2 Georgia,serif;margin:0 0 16px}
+.hold p{color:#ccc1b0;line-height:1.7;font-size:14px}
+.hold .internal{border-top:1px solid #40382b;padding-top:18px;color:#b9984e;font-size:10px;letter-spacing:.08em}
+.player{max-width:920px}
+.language{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.language span{color:#ad9470;font-size:10px;letter-spacing:.18em;margin-right:9px}
+.language button{background:transparent;color:#eee3d0;border:1px solid #544a3b;padding:9px 18px;cursor:pointer}
+.language button[aria-pressed=true]{background:#b08a47;border-color:#b08a47;color:#16130f;font-weight:800}
+.video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#090806;border:1px solid #3a352c}
+.chapters{margin:26px 0 70px}
+.chapters h2{font:normal 24px/1.2 Georgia,serif;margin-bottom:16px}
+.chapters ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.chapters li{min-width:0}
+.chapters button{display:flex;width:100%;min-height:52px;align-items:center;text-align:left;gap:12px;background:#24201b;border:1px solid #36302a;padding:12px;color:#e7dfd1;cursor:pointer}
+.chapters button:hover,.chapters .active{border-color:#bd9a5d;background:#30271c}
+.chapters button span{color:#c3a06b;flex:none;font:11px/1.2 ui-monospace,monospace}
+.chapters button b{font:normal 13px/1.35 Georgia,serif}
+@media(max-width:610px){.chapters ol{grid-template-columns:1fr}.shell{padding:18px 20px}.back{margin-bottom:22px}}
