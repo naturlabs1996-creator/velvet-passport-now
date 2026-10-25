@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import LiveNeedChoices, { type LiveNeedChoice } from "./LiveNeedChoices";
+import NowFilmShelfLink from "./NowFilmShelfLink";
 import styles from "./page.module.css";
 
 type Need = "route" | "rain" | "heat" | "cold" | "snow" | "blocked" | "food" | "water" | "restroom" | "energy" | "pharmacy" | "sitdown" | "battery" | "medication" | "glucose" | "transport" | "guardian";
@@ -701,6 +702,7 @@ export default function ParisNowApp() {
       {passStatus.state === "inactive" && (
         <div className={styles.inactiveBanner}>A valid Paris NOW Pass is required to calculate routes.</div>
       )}
+      {(passStatus.state === "active" || passStatus.state === "preview") && <NowFilmShelfLink preview={passStatus.state === "preview"} />}
       {(!networkOnline || routeError) && (
         <div className={styles.inactiveBanner}>{!networkOnline ? "Network connection lost. Live recalculation is paused; NOW will verify everything again automatically when you reconnect." : routeError}</div>
       )}
