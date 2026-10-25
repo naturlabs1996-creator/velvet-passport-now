@@ -111,13 +111,15 @@
     "location_label": "21 Rue Louis le Grand",
     "visually_confirmed": "Rue Louis-le-Grand official sign above rectangular memorial-sized plaque on the corner wall, near PMU entrance",
     "historical_attribution": "Position and shape consistent with Louis Dumas memorial documented independently in 2011 Wikimedia Commons photo",
-    "legibility": "Text on 2026 street-view screenshot is NOT reliably readable; do not transcribe from screenshot",
-    "condition_claim": "Uncertain: near-illegibility may be caused by glare, compression or actual surface condition; no conclusion about vandalism/removal/restoration",
+    "legibility": "Glare and magnification/compression in cropped 2026 Street View image obscure text; do not infer deterioration or altered plaque",
+    "condition_claim": "Do not open condition investigation based on this screenshot. Same plaque, same location and format. Editorial identification LOCKED.",
     "earlier_documentary_source": "https://commons.wikimedia.org/wiki/File:Plaque_Louis_Dumas_21,_rue_Louis-le-Grand.jpg",
     "earlier_source_text": "Ici tombait le 20 août 1944 sous les balles ennemies Louis Dumas FFI 19 ans. Français n'oubliez pas.",
     "audiovisual_use": "Google screenshot location QA only; reuse older Commons original for legible readable plaque, if production plan calls for it. Do not reproduce Google Street View screenshot in commercial film without authorization.",
     "rights": "Google street imagery NOT cleared; Commons older photo reported PD",
     "direct_mastodon_catalog_mutation": "NOT_VERIFIED_SQL_UNAVAILABLE",
-    "screenplay_relation": "STOP-01 Appert address -> STOP-03 Paris insurrection 1944"
+    "screenplay_relation": "STOP-01 Appert address -> STOP-03 Paris insurrection 1944",
+    "identification_final": "SAME_LOUIS_DUMAS_MEMORIAL_PLAQUE_AT_21_CONFIRMED_BY_USER_COMPARISON",
+    "production_action": "Reference April 2026 screenshot for current location only; use earlier legible public-domain original for narrative visual, with licensed media QA."
   }
 }
