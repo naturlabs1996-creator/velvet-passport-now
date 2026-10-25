@@ -1,0 +1,23 @@
+name: Paris05 NOW bilingual film integration QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/production/paris05-now-integrated-film-manifest.json'
+      - 'docs/production/paris05-commercial-release-evidence.json'
+      - 'docs/production/paris05-measured-master-chapter-timecodes.json'
+      - 'scripts/production/paris05_now_chapter_contract.py'
+      - 'lib/now-films.ts'
+      - 'app/api/now/films/**'
+      - 'app/app/films/**'
+      - '.github/workflows/paris05-now-film-integration-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  timeline-and-release-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce chapter times and fail-closed commercial hold
+        run: python3 scripts/production/paris05_now_chapter_contract.py
