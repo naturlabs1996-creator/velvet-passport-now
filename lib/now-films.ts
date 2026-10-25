@@ -57,9 +57,9 @@ export function getNowFilm(routeId: string) {
     fr: safeMediaUrl(process.env.NOW_FILM_PAR05_FR_VTT_URL),
     en: safeMediaUrl(process.env.NOW_FILM_PAR05_EN_VTT_URL),
   };
-  const approved = releaseEvidence.commercial_release_allowed === true
-    && master.releaseApproved === true
-    && master.mediaAssetsApproved === true
+  const approved = Boolean(releaseEvidence.commercial_release_allowed)
+    && Boolean(master.releaseApproved)
+    && Boolean(master.mediaAssetsApproved)
     && chapters.length === 11
     && chapters.every((chapter) => chapter.visualQAApproved && chapter.rightsQAApproved)
     && failed.length === 0;
