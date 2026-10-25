@@ -599,8 +599,8 @@
       "phrase_FR": "Regardez maintenant cette photographie.",
       "source_char_offset": 3303,
       "script_quote_verified": true,
-      "archive_id": "APPERT-NEUF-1867",
-      "local_media_filename": "APPERT-NEUF-1867.jpg",
+      "archive_id": "RIJKSMUSEUM-RP-F-2007-161-RECTO-MAX",
+      "local_media_filename": "RIJKSMUSEUM-RP-F-2007-161-VIS01-DIG01-MEDIA01.jpg",
       "archive_candidate_known": true,
       "visual_direction": "Photomontage EXACT à neuf personnalités politiques Rijksmuseum RP-F-2007-161",
       "asset_source": "https://id.rijksmuseum.nl/200489498",
@@ -612,7 +612,13 @@
       "voice_time_EN_in": null,
       "voice_time_EN_out": null,
       "media_alignment_approved": false,
-      "STATUS": "BLOCKED_REQUIRE_LICENSE_TIMING_AND_MASTODON"
+      "STATUS": "DRIVE_ASSET_RECOVERED_FR_ASR_CUE_PROVISIONAL_MASTODON_RIGHTS_EN_PENDING",
+      "original_master_sha256": "c7c545a7117f6442c385adb1ab57a6a86dfe9ebde7e20c6da5354eb83a142258",
+      "drive_backup_verified": true,
+      "audio_cue_FR_asr_anchor_global": 326.9,
+      "audio_cue_FR_asr_match_score": 0.962,
+      "audio_cue_FR_asr_human_qa": false,
+      "narration_alignment_note": "ASR 2026-10-23 cue at stop01 source_char_index=3318 (near spoken quote source_char_offset=3303), human listening still required; neither approval nor exact shot boundary."
     },
     {
       "shot_id": "P05-VIS-028",
