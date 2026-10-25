@@ -48,9 +48,23 @@
         "19th-century cartes-de-visite + reverse",
         "RP-F-2007-161 exact nine-person montage",
         "Rijksmuseum second Appert montage",
-        "accurate precise crop"
+        "accurate precise crop",
+        "Photographie numérique du verso de la carte exacte du Rijksmuseum RP-F-2007-161 ; le verso alternatif Carnavalet PH19727-150 n'est pas le même objet"
       ],
-      "status": "PARTIAL"
+      "status": "PARTIAL",
+      "verified_documentary_candidate_found": {
+        "asset_id": "APPERT-VERSO-CARNAVALET-PH19727-150",
+        "original_jpeg_recovered": true,
+        "sha256": "0060eea66dc1258de4c22f6c9ad5f25083394c3ab61da8b878be1382366be7ab",
+        "source": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/portrait-de-marie-jeanne-moussu-pris-a-la-prison-des-chantiers-a-versailles",
+        "subject": "Verso de carte d'Ernest Appert, Marie Jeanne Moussu, Musée Carnavalet PH19727-150",
+        "printed_addresses_visible": true,
+        "source_page_reports_CC0": true,
+        "commercial_signoff": false,
+        "storyboard_023_024_025": "HOLD: spoken text names Rijksmuseum card; this is another authentic Appert carte; no false provenance",
+        "drive_backup_verified": true,
+        "mastodon_receipt_pending": true
+      }
     },
     {
       "id": "TRANSITION-01-SEBAI",
