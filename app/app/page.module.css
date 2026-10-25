@@ -195,3 +195,12 @@
 .storyAudio p{margin:0;color:#e7e0d2;font-size:12px;line-height:1.62}
 .storyAudio small{display:block;margin-top:9px;color:#918a7d;font-size:8px;letter-spacing:.06em}
 @media(max-width:520px){.storyLanguage{padding:8px}.storyAudio{padding:11px}.storyAudio p{font-size:11px}}
+
+/* Velvet Cinema: unpublished titles appear only to internal preview users. */
+.cinemaLink{display:flex;align-items:center;gap:13px;padding:18px 20px;margin:16px 0;background:#1c1a17;border:1px solid #77613c;color:#e6d7b6;text-decoration:none}
+.cinemaLink:hover{border-color:#d2b16e}
+.cinemaLink .cinemaIcon{color:#d2b16e;font-size:24px}
+.cinemaLink span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:6px}
+.cinemaLink strong{font-size:11px;letter-spacing:.14em}
+.cinemaLink small{font-size:10px;color:#b7a180;letter-spacing:.04em}
+.cinemaLink>b{font-size:20px;font-weight:400;color:#d2b16e}
