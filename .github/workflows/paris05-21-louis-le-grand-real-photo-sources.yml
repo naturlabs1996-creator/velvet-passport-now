@@ -1,0 +1,29 @@
+name: Paris05 Appert real 21 rue Louis-le-Grand photos
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/paris05-21-louis-le-grand-real-photo-sources.yml"
+      - "scripts/production/paris05_find_21_louis_le_grand_street_photos.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install image QC
+        run: python3 -m pip install --disable-pip-version-check "Pillow>=10,<13"
+      - name: Retrieve actual free-licensed photographic evidence from Wikimedia Commons
+        run: python3 scripts/production/paris05_find_21_louis_le_grand_street_photos.py
+      - name: Retain source originals and audit metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-21-RUE-LOUIS-LE-GRAND-SOURCE-REVIEW
+          path: dist/paris05-21-louis-le-grand-review/
+          retention-days: 90
