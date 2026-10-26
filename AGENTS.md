@@ -1,4 +1,8 @@
 # Velvet Passport — règles obligatoires pour les agents de recherche et de production
+
+## Prévol obligatoire du banc audiovisuel — Atelier Roger (26 octobre 2026)
+**Avant toute session de fabrication** d'un parcours : vérifier réellement la disponibilité des logiciels (Kdenlive, MLT, FFmpeg, Python), des masters FR/EN, des médias originaux avec SHA-256, des licences, du catalogue Mastodon et des contrôles QA/NOW. Ne jamais chercher les outils au milieu du montage. Utiliser le paquet `VELVET_ATELIER_ROGER_PREFLIGHT_66_PARCOURS_2026-10-26.zip` sauvegardé dans l'espace Drive Velvet et la fiche `docs/production/VELVET-ATELIER-ROGER-PREFLIGHT-66-2026-10-26.md`. Le résultat doit rester **BLOCKED** si un élément obligatoire manque; l'absence de Kdenlive/MLT n'interdit pas des workprints privés FFmpeg, mais interdit de déclarer la QA native Kdenlive terminée. Suivre les minutes réellement validées et les parcours complets, pas les recherches ou les prototypes.
+
 **LOCK 2026-10-24 — portée : Paris, Montréal, Québec et toutes futures villes / tous les 66 parcours.**
 
 ## Règle numéro 1 : la bibliothèque MASTODON
