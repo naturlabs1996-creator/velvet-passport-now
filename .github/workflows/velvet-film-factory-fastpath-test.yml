@@ -15,8 +15,10 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Check FFmpeg and FFprobe
+      - name: Install FFmpeg and verify tools
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
           ffmpeg -version | head -1
           ffprobe -version | head -1
       - name: Test real engine with synthetic (nonhistorical) CI media
