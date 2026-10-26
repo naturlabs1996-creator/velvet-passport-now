@@ -1,0 +1,23 @@
+name: Velvet Film Factory fastpath smoke and release gate
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production/velvet_film_factory_fastpath.py'
+      - 'tests/test_velvet_factory_fastpath.py'
+      - '.github/workflows/velvet-film-factory-fastpath-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproducible-private-edit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check FFmpeg and FFprobe
+        run: |
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+      - name: Test real engine with synthetic (nonhistorical) CI media
+        run: python3 tests/test_velvet_factory_fastpath.py
