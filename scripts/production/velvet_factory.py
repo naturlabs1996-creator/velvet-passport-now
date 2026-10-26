@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import zipfile
+from xml.etree import ElementTree as ET
 
 DEFAULT_SPEC = {
     'route_id': 'VP-PAR-05', 'chapter_id': 'STOP-01', 'language': 'fr',
@@ -119,6 +120,14 @@ def validate_timeline(extract: Path, spec: dict):
     projects = list(extract.glob('*.kdenlive'))
     if len(projects) != 1:
         raise ValueError('ONE_EDITABLE_KDENLIVE_PROJECT_REQUIRED')
+    try:
+        root=ET.parse(projects[0]).getroot()
+        if root.tag != 'mlt': raise ValueError('INVALID_KDENLIVE_XML_ROOT')
+        resources=[e.text for e in root.findall('.//property[@name="resource"]') if e.text]
+        for required in [str(Path(p).as_posix()) for p in spec['clips']] + [spec['voice']]:
+            if required not in resources: raise ValueError('PROJECT_MISSING_MEDIA_REFERENCE: '+required)
+    except ET.ParseError as e:
+        raise ValueError('INVALID_KDENLIVE_XML: '+str(e)) from e
     return clip_info, seconds_audio, projects[0]
 
 
