@@ -1,6 +1,6 @@
 {
   "routeId": "VP-PAR-05",
-  "stage": "PREPRODUCTION_NOT_RELEASED",
+  "stage": "PRODUCTION_PRIVATE_WORKPRINT_3MIN16_NOT_RELEASED",
   "source": "Integrated FR/EN final master WAV with Sebaï insert (NOT the pre-insert chapter map)",
   "releaseApproved": false,
   "mediaAssetsApproved": false,
@@ -215,5 +215,23 @@
     "chapterBoundaryInterpretation": "Chapter after splice shift by actual net inserted duration; chapter containing splice expands. Original EN 1.2s inter-chapter gaps preserved.",
     "sourceRunFr": "39954802793",
     "sourceRunEn": "39954802793"
-  }
+  },
+  "productionWorkprints": [
+    {
+      "chapter": "STOP-01",
+      "language": "fr",
+      "durationSeconds": 195.76,
+      "masterOffsetSeconds": 326.9,
+      "stage": "PRIVATE_EDITORIAL_REVIEW_ONLY_NOT_PUBLISHED",
+      "file": "VELVET_PARIS05_APPERT_3MIN16_WORKPRINT_FR_2026-10-25.mp4",
+      "sha256": "f6f10867be26250948f360d93f4f9acfc12855d7b9ea4a3e7793bc72113358db",
+      "editorProject": "VELVET_PARIS05_APPERT_3MIN16_KDENLIVE_EDITABLE_FR_2026-10-25.zip",
+      "editorSha256": "27526f6fff7e788837750d0854936144d6be9067c1c1ad051a54ba4e653fc198",
+      "backupGoogleDriveVerified": true,
+      "licenseApproved": false,
+      "mastodonVerified": false,
+      "editorialQAApproved": false,
+      "kdenliveRuntimeOpenVerified": false
+    }
+  ]
 }
