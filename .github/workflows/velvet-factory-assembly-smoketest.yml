@@ -1,0 +1,25 @@
+name: Velvet Factory reliable audiovisual assembly — smoke test
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production/velvet_factory.py'
+      - 'scripts/production/velvet_factory_smoketest.py'
+      - '.github/workflows/velvet-factory-assembly-smoketest.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reconstruct-and-hard-stop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Confirm FFmpeg available for actual A/V reconstruction
+        run: |
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+      - name: Build mini-film, test spoken audio continuity and missing-file hard-stops
+        run: python3 scripts/production/velvet_factory_smoketest.py
