@@ -550,10 +550,7 @@ export async function collectWikidataVenuePool(theme: string, maxSeeds = 18): Pr
       parisDataSeeds(spec, officialCap),
       directSeeds(spec, directCap),
     ]);
-    const emptyCategoryDiagnostic: VenuePoolDiagnostic["category"] = { ...EMPTY_CATEGORY_DIAGNOSTIC, roots: [], categories: [] };
-    const categoryResult = directResult.seeds.length >= 2
-      ? { seeds: [] as VenuePoolSeed[], diagnostic: emptyCategoryDiagnostic }
-      : await categorySeeds(spec, Math.max(2, Math.min(3, categoryCap)));
+    const categoryResult = await categorySeeds(spec, Math.max(2, Math.min(3, categoryCap)));
     const official = await enrichOfficialSeeds(strictOfficial);
     const merged = uniqueSeeds([official, directResult.seeds, categoryResult.seeds], cap);
     return {
