@@ -1,0 +1,41 @@
+name: Red Elephant - free Chatterbox English voice trial
+on:
+  push:
+    branches: [experiment/red-elephant-voice-free]
+    paths:
+      - .github/workflows/red-elephant-voice-free.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  voice-trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the already proven Velvet Passport CPU stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Generate a real English Red Elephant greeting
+        run: |
+          mkdir -p red-elephant-voice-output
+          python - <<'PY'
+          import json, torch, torchaudio
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          model = ChatterboxMultilingualTTS.from_pretrained(device="cpu", t3_model="v3")
+          sentence = "Thank you for calling Red Elephant. I'm the virtual assistant. How can I help you today?"
+          audio = model.generate(sentence, language_id="en", exaggeration=0.52, cfg_weight=0.35, temperature=0.75)
+          torchaudio.save("red-elephant-voice-output/hello-red-elephant.wav", audio.cpu(), model.sr)
+          print(json.dumps({"status":"audio_generated","sample_rate":model.sr,"text":sentence,"note":"Recorded test only; not live telephony."}))
+          PY
+      - name: Preserve the audio even when reviewed later
+        uses: actions/upload-artifact@v4
+        with:
+          name: red-elephant-chatterbox-english-voice
+          path: red-elephant-voice-output/*.wav
+          retention-days: 7
