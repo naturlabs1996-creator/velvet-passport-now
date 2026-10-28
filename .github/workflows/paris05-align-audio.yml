@@ -15,6 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
+      - name: Verify private Drive credential is configured
+        env:
+          DRIVE_JSON: ${{ secrets.DRIVE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$DRIVE_JSON" ]; then
+            echo "::error::DRIVE_SERVICE_ACCOUNT_JSON is missing; private Drive authorization is required."
+            exit 1
+          fi
+          echo "Private Drive credential present (content not displayed)."
       - uses: actions/checkout@v4
       - name: Prepare Python and ffmpeg
         uses: actions/setup-python@v5
