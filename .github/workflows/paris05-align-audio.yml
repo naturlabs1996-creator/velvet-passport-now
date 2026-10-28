@@ -1,0 +1,65 @@
+name: Paris 05 - audio subtitle alignment
+on:
+  workflow_dispatch:
+    inputs:
+      audio_url:
+        description: "Direct HTTPS download URL for the authorized French WAV (do NOT put private tokens in the URL)"
+        required: true
+        type: string
+      model:
+        description: "Whisper model (small or medium)"
+        required: true
+        default: small
+        type: choice
+        options: [small, medium]
+permissions:
+  contents: read
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Python and ffmpeg
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m pip install --disable-pip-version-check 'faster-whisper==1.1.1'
+      - name: Download audio, with restricted URL
+        env:
+          AUDIO_URL: ${{ inputs.audio_url }}
+        run: |
+          python - <<'PY'
+          import os, urllib.request, urllib.parse
+          url=os.environ['AUDIO_URL']
+          p=urllib.parse.urlparse(url)
+          if p.scheme!='https' or not p.hostname:
+              raise SystemExit('An HTTPS URL is required')
+          req=urllib.request.Request(url,headers={'User-Agent':'velvet-passport-build/1.0'})
+          with urllib.request.urlopen(req,timeout=180) as r, open('narration.wav','wb') as f:
+              while True:
+                  data=r.read(1024*1024)
+                  if not data: break
+                  f.write(data)
+          PY
+      - name: Verify the WAV before alignment
+        run: |
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 narration.wav
+          python - <<'PY'
+          import wave
+          with wave.open('narration.wav','rb') as w:
+              dur=w.getnframes()/w.getframerate()
+          if not 3600 < dur < 3800: raise SystemExit(f'Unexpected master duration: {dur}')
+          PY
+      - name: Produce word timestamp candidates
+        run: |
+          python tools/paris05_align_audio.py --audio narration.wav --script docs/pilots/paris-05-fr-v4-tts-and-cues.json --model "${{ inputs.model }}" --output alignment
+      - name: Preserve QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05_FR_ALIGNMENT_CANDIDATES
+          path: alignment/
+          if-no-files-found: warn
+          retention-days: 14
