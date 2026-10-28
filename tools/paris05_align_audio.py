@@ -34,8 +34,9 @@ for seg in segments:
 script=json.loads(Path(a.script).read_text(encoding="utf-8"))
 expected=" ".join(s.get("text","") for s in script["segments"])
 actual=" ".join(c["text"] for c in chunks)
-ratio=SequenceMatcher(None,norm(expected),norm(actual),autojunk=False).ratio()
+ratio=SequenceMatcher(None,norm(expected),norm(actual),autojunk=True).ratio()
 report={"audio":a.audio,"model":a.model,"word_count":len(words),"segment_count":len(chunks),"script_transcript_similarity":round(ratio,3),"status":"REVIEW_REQUIRED","warning":"Automatic timestamps are candidates, NOT certified; listen, correct transcript and run editorial image/cue QC."}
 (out/"QA.json").write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding="utf-8")
 print(json.dumps(report,ensure_ascii=False))
 if len(words)<50: raise SystemExit("FAIL: too few recognized words")
+if ratio < 0.60: raise SystemExit("FAIL: script/transcript mismatch — do not export subtitles")
