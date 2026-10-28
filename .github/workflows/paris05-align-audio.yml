@@ -22,23 +22,32 @@ jobs:
           python-version: '3.11'
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: python -m pip install --disable-pip-version-check 'faster-whisper==1.1.1'
-      - name: Download authorized private audio
+      - name: Install Google Drive private client
+        run: python -m pip install --disable-pip-version-check 'google-auth==2.38.0' 'requests==2.32.3'
+      - name: Fetch private narration from Google Drive
         env:
-          AUDIO_URL: ${{ secrets.PARIS05_AUDIO_URL }}
+          DRIVE_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.DRIVE_SERVICE_ACCOUNT_JSON_B64 }}
+          DRIVE_FILE_ID: 1wlDHR96DnQpnJszyv0VSMLsJa2NwopgI
         run: |
           python - <<'PY'
-          import os, urllib.request, urllib.parse
-          url=os.environ['AUDIO_URL']
-          p=urllib.parse.urlparse(url)
-          if not url: raise SystemExit('Missing repository secret PARIS05_AUDIO_URL')
-          if p.scheme!='https' or not p.hostname:
-              raise SystemExit('An HTTPS URL is required')
-          req=urllib.request.Request(url,headers={'User-Agent':'velvet-passport-build/1.0'})
-          with urllib.request.urlopen(req,timeout=180) as r, open('narration_download','wb') as f:
-              while True:
-                  data=r.read(1024*1024)
-                  if not data: break
-                  f.write(data)
+          import os, json, base64
+          from google.oauth2 import service_account
+          from google.auth.transport.requests import AuthorizedSession
+          encoded=os.environ.get('DRIVE_SERVICE_ACCOUNT_JSON_B64','')
+          if not encoded: raise SystemExit('Missing GitHub secret DRIVE_SERVICE_ACCOUNT_JSON_B64')
+          details=json.loads(base64.b64decode(encoded,validate=True))
+          if details.get('type')!='service_account': raise SystemExit('A Google service account JSON key is required')
+          creds=service_account.Credentials.from_service_account_info(details,scopes=['https://www.googleapis.com/auth/drive.readonly'])
+          session=AuthorizedSession(creds)
+          url='https://www.googleapis.com/drive/v3/files/'+os.environ['DRIVE_FILE_ID']
+          with session.get(url,params={'alt':'media'},stream=True,timeout=180) as response:
+              response.raise_for_status()
+              with open('narration_download','wb') as output:
+                  for part in response.iter_content(1024*1024):
+                      if part: output.write(part)
+          if os.path.getsize('narration_download') < 10000000:
+              raise SystemExit('Downloaded recording too small')
+          print('Private recording downloaded; size:',os.path.getsize('narration_download'))
           PY
       - name: Decode source to PCM WAV and verify duration
         run: |
