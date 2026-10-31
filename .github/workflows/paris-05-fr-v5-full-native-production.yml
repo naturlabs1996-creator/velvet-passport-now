@@ -1,0 +1,54 @@
+name: Paris 05 FR V5 full native-tempo production QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris-05-fr-v5-full-native-production.yml'
+  workflow_dispatch:
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        segment:
+          - INTRO
+          - STOP-01
+          - TRANSITION-01-SEBAI
+          - STOP-SEBAI-1977
+          - TRANSITION-01-02
+          - STOP-02
+          - TRANSITION-02-03
+          - STOP-03
+          - TRANSITION-03-04
+          - STOP-04
+          - OUTRO
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox CPU V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch artistically approved French narrator reference
+        run: |
+          mkdir -p references
+          curl -fL --retry 3 -o references/developer-1.mp3 "https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developer-1.mp3?download=true"
+      - name: Render corrected V5 French GPS narration at native tempo
+        env:
+          SEGMENT: ${{ matrix.segment }}
+        run: |
+          python scripts/audio/render_paris05_fr_v4_native.py docs/pilots/paris-05-fr-v5-gps-arrivals-tts-candidate.json output --segment-id "$SEGMENT" --reference references/developer-1.mp3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paris05-fr-v5-native-${{ matrix.segment }}
+          path: output/*
+          retention-days: 14
