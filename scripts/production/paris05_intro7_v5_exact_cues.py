@@ -16,7 +16,7 @@ src = Path("intro-source/INTRO-FR-NATIVE-100.wav")
 approved = Path("intro-approved/INTRO-Louis-le-Grand-LAST-CHECK.wav")
 manifest = json.loads(Path("docs/pilots/paris-05-fr-v5-gps-arrivals-tts-candidate.json").read_text())
 text = next(s["text"] for s in manifest["segments"] if s["id"] == "INTRO")
-sentences = [s.strip() for s in re.split(r"(?<=[.!?])\\s+", text.strip()) if s.strip()]
+sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
 with sf.SoundFile(src) as f:
     assert f.channels == 1 and f.samplerate == 24000 and f.subtype == "FLOAT"
     audio = f.read(dtype="float32")
