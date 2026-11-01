@@ -1,0 +1,36 @@
+name: Paris 05 V5 — diagnose reusable V4 pronunciation cuts
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-v5-pronunciation-diagnostic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download previously corrected V4 audio
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 39605629084 -n paris05-fr-six-pronunciation-splices-REVIEW-only -D approved-v4
+      - name: Download selected V5 finished audio
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for id in INTRO STOP-01 STOP-SEBAI-1977 TRANSITION-03-04 STOP-04; do
+            mkdir -p "downloaded/$id"
+            gh run download 41238865083 -n "paris05-fr-v5-native-$id" -D "downloaded/$id"
+          done
+      - name: Detect original 420ms boundaries without modifying any audio
+        run: |
+          python -m pip install soundfile==0.13.1 numpy==2.2.6
+          python scripts/audio/paris05_v5_pause_diagnostic.py
