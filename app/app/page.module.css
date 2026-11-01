@@ -204,3 +204,56 @@
 .cinemaLink strong{font-size:11px;letter-spacing:.14em}
 .cinemaLink small{font-size:10px;color:#b7a180;letter-spacing:.04em}
 .cinemaLink>b{font-size:20px;font-weight:400;color:#d2b16e}
+
+
+/* Unified Velvet Passport navy + gold app theme.
+   Covers desktop and mobile through CSS modules without changing runtime logic. */
+:global(body){background:var(--vp-navy);color:var(--vp-text)}
+.shell{background:var(--vp-navy);color:var(--vp-text)}
+.header,.bottomNav{background:var(--vp-navy-deep);border-color:var(--vp-border);color:var(--vp-text)}
+.brand b,.quickHeading>span,.routeHeading>span,.myDayKicker,.transportHeading>span,
+.catalogHeading>span,.kicker,.routeIntro>span,.sectionTitle>span,.why>span{
+  color:var(--vp-gold-highlight)
+}
+.rings i{border-color:var(--vp-gold)}
+.context{background:linear-gradient(145deg,var(--vp-navy-surface),var(--vp-navy-deep));color:var(--vp-text)}
+.context p,.contextContent p,.pass,.weather span,.weather span:last-child{color:var(--vp-muted)}
+.weather{border-color:var(--vp-border)}
+.previewBanner{background:var(--vp-navy-surface);color:var(--vp-gold-highlight);border-color:var(--vp-border)}
+.journeyContext,.liveCard,.quickGrid button,.needRail button,.routeCard,
+.confidentialCatalog,.myDayPanel,.transportPanel,.why,.guardianPanel,
+.routeList button,.zoneRail button,.transportModes button,.transportOrigin input,
+.transportResults>button,.transportOrigin>button,.routeImages,
+.storyBody,.storyLayer,.storyAudio{
+  background:var(--vp-navy-surface);
+  color:var(--vp-text);
+  border-color:var(--vp-border);
+}
+.journeyContext>div>span,.quickGrid button>small,.quickGrid button>span,.myDayStats article>span,
+.routeList button>span,.transportHeading p,.transportResultHeading>span,
+.transportResults>button>span>small,.storyMeta{color:var(--vp-muted)}
+.journeyContext>div>strong,.quickGrid button>strong,.routeIntro h2,
+.quickHeading h2,.routeHeading h2,.routeList strong,.catalogHeading h2,
+.myDayPanel h2,.myDayStats article>strong,.transportHeading h2,
+.transportResultHeading>strong,.transportResults>button>span>strong,
+.stopText h3,.storyTitle,.storyBody h4,.why p{
+  color:var(--vp-text)
+}
+.journeyContext>button,.transportOrigin>button{background:var(--vp-navy-raised);color:var(--vp-gold-highlight);border-color:var(--vp-border)}
+.quickGrid button:hover,.needRail button:hover,.zoneRail button:hover,
+.routeList button:hover,.transportResults>button:hover{border-color:var(--vp-gold)}
+.myDayPanel>p,.catalogHeading p,.transportDisclaimer,.routeIntro p,.stopText p{color:var(--vp-muted)}
+.myDayStats,.myDayStats article,.transportResults{border-color:var(--vp-border)}
+.myDayPanel>button,.zoneRail button.selectedZone,.transportModes .transportModeActive,
+.bottomNav .navActive{background:var(--vp-navy-raised);color:var(--vp-gold-highlight);border-color:var(--vp-gold)}
+.routeList button.selectedRoute,.transportResults .transportOptionApplied,
+.transportResults .transportOptionPreferred{background:var(--vp-navy-raised);border-color:var(--vp-gold)}
+.transportOrigin input:focus{outline:2px solid var(--vp-gold);outline-offset:1px}
+.transportSearch{background:var(--vp-gold);color:var(--vp-ink)}
+.ticketProtection,.cinemaLink{background:linear-gradient(145deg,var(--vp-navy-raised),var(--vp-navy-deep));border-color:var(--vp-gold)}
+.cinemaLink,.cinemaLink strong{color:var(--vp-text)}
+.cinemaLink .cinemaIcon,.cinemaLink>b,.cinemaLink small{color:var(--vp-gold-highlight)}
+.routeHeading h2,.quickHeading h2,.context h1{color:var(--vp-text)}
+.routeImages figcaption{color:var(--vp-text)}
+.bottomNav button{color:var(--vp-muted)}
+.bottomNav button.navActive{background:transparent;color:var(--vp-gold-highlight)}

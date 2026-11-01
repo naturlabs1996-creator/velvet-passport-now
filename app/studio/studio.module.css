@@ -2,3 +2,13 @@
 .runsHeader{display:flex;gap:12px;justify-content:space-between;align-items:center}.runsHeader h3{margin:0}.runsHeader button{background:#d5ae6b;border:0;border-radius:7px;padding:9px 14px;color:#17212c;font-weight:700;cursor:pointer}.runsHeader button:disabled{opacity:.6;cursor:default}.runs{list-style:none;padding:0;margin:12px 0}.runs li{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #34465d;padding:10px 0}.runs li span{display:flex;flex-direction:column;gap:2px}.runs small{color:#bfd0df}@media(max-width:600px){.runs li{align-items:flex-start;flex-direction:column}}
 
 .actionButtons{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.actionButtons button{padding:10px 14px;border-radius:7px;border:1px solid #9badc1;background:#263b53;color:white;cursor:pointer}.actionButtons button:disabled{opacity:.45;cursor:not-allowed}.commandResult{padding:14px;border:1px solid #576c81;border-radius:8px;background:#142132}.commandResult li{padding:3px 0}
+
+/* Studio already used blue; unify its tokens with the site and viewer. */
+.main{background:var(--vp-navy-deep);color:var(--vp-text)}
+.main a{color:var(--vp-gold-highlight)}
+.eyebrow{color:var(--vp-gold-highlight)!important}
+.intro,.card{background:var(--vp-navy-surface);border-color:var(--vp-border)}
+.top p,.intro p{color:var(--vp-muted)}
+.runsHeader button{background:var(--vp-gold);color:var(--vp-ink)}
+.card li{border-color:var(--vp-border)}
+.actionButtons button{background:var(--vp-navy-raised);border-color:var(--vp-gold);color:var(--vp-text)}
