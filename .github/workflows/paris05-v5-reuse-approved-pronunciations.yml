@@ -1,0 +1,50 @@
+name: Paris 05 V5 — restore approved French pronunciation audio
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-v5-reuse-approved-pronunciations.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download eleven unchanged V5 narration WAVs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for id in INTRO STOP-01 TRANSITION-01-SEBAI STOP-SEBAI-1977 TRANSITION-01-02 STOP-02 TRANSITION-02-03 STOP-03 TRANSITION-03-04 STOP-04 OUTRO; do
+            mkdir -p "downloaded/$id"
+            gh run download 41238865083 --repo "$GITHUB_REPOSITORY" --name "paris05-fr-v5-native-$id" --dir "downloaded/$id"
+            test -s "downloaded/$id/$id-FR-NATIVE-100.wav"
+          done
+      - name: Fetch previously approved corrected voices (never run Chatterbox)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 39605629084 --repo "$GITHUB_REPOSITORY" --name paris05-fr-six-pronunciation-splices-REVIEW-only --dir approved-v4
+          gh run download 39531710824 --repo "$GITHUB_REPOSITORY" --name paris05-fr-pronunciation-five-candidates --dir approved-candidates
+          gh run download 39597674565 --repo "$GITHUB_REPOSITORY" --name paris05-fr-intro-Louis-le-Grand-LAST-CHECK --dir approved-intro
+          gh run download 39612853502 --repo "$GITHUB_REPOSITORY" --name paris05-duel-transition-corrected-listening --dir approved-duel
+      - name: Install lightweight WAV tools
+        run: python -m pip install soundfile==0.13.1 numpy==2.2.6
+      - name: Transfer only previously approved audio and verify full eleven-segment result
+        run: python scripts/audio/paris05_v5_reuse_approved_audio.py
+      - name: Save corrected private master and exact splice report
+        uses: actions/upload-artifact@v4
+        with:
+          name: PARIS05-FR-V5-APPROVED-PRONUNCIATIONS-PRIVATE-QA
+          path: v5-repaired-qa/*
+          retention-days: 14
