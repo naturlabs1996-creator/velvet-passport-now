@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/paris05-fr-v5-join-completed-qa.yml'
+      - 'scripts/audio/assemble_paris05_fr_v5_from_artifacts.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +30,8 @@ jobs:
             gh run download 41238865083 --repo "$GITHUB_REPOSITORY" --name "paris05-fr-v5-native-$id" --dir "downloaded/$id"
             test -s "downloaded/$id/$id-FR-NATIVE-100.wav"
           done
+      - name: Install lightweight float32 WAV reader
+        run: python -m pip install soundfile==0.13.1
       - name: Join audio losslessly in script and verify eleven distinct segments
         run: |
           python scripts/audio/assemble_paris05_fr_v5_from_artifacts.py --input-root downloaded --output-dir assembled-v5-qa
