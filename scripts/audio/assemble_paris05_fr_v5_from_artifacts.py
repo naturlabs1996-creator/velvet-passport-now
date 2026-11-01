@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Join a pre-existing Chatterbox 11-segment WAV set without rerendering voices.
+"""Concatenate Paris 05 V5 native Chatterbox WAVs as a private QA master.
 
-This is a QA-only concatenation of the exact source WAV bytes (headers excluded).
-No resampling, retiming, compression, narration edits, or invented silence.
+Handles the source IEEE float32 WAV encoding. No re-generation, tempo
+stretching, resampling, loudness normalization or speech edits.
 """
 import argparse
 import hashlib
 import json
 from pathlib import Path
-import wave
+import soundfile as sf
 
 IDS = [
     "INTRO", "STOP-01", "TRANSITION-01-SEBAI", "STOP-SEBAI-1977",
@@ -18,8 +18,8 @@ IDS = [
 
 def checksum(path):
     h = hashlib.sha256()
-    with path.open("rb") as f:
-        for block in iter(lambda: f.read(1048576), b""):
+    with path.open("rb") as file:
+        for block in iter(lambda: file.read(1048576), b""):
             h.update(block)
     return h.hexdigest()
 
@@ -30,72 +30,76 @@ def main():
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     master = args.output_dir / "PARIS05-FR-V5-11SEG-QA.wav"
-    metadata = None
-    records = []
+    info = None
+    chapters = []
     total_frames = 0
-    with wave.open(str(master), "wb") as dst:
+    output = None
+    try:
         for segment in IDS:
-            srcfile = args.input_root / segment / f"{segment}-FR-NATIVE-100.wav"
-            if not srcfile.is_file():
-                raise FileNotFoundError(f"Missing source WAV for {segment}: {srcfile}")
-            with wave.open(str(srcfile), "rb") as src:
-                params = (src.getnchannels(), src.getsampwidth(),
-                          src.getframerate(), src.getcomptype())
-                if metadata is None:
-                    metadata = params
-                    if metadata[3] != "NONE":
-                        raise ValueError("Only uncompressed PCM WAV is supported")
-                    dst.setparams((params[0], params[1], params[2], 0,
-                                   params[3], "not compressed"))
-                elif params != metadata:
-                    raise ValueError(f"Incompatible WAV format in {segment}: {params} vs {metadata}")
-                nframes = src.getnframes()
-                seconds = nframes / params[2]
-                position = 0
-                while position < nframes:
-                    block = src.readframes(min(262144, nframes - position))
-                    if not block:
-                        raise EOFError(f"Truncated WAV: {srcfile}")
-                    frame_count = len(block) // (params[0] * params[1])
-                    if frame_count == 0 or len(block) % (params[0] * params[1]):
-                        raise ValueError(f"Bad PCM data: {srcfile}")
-                    dst.writeframesraw(block)
-                    position += frame_count
-                if position != nframes:
-                    raise ValueError(f"Frame mismatch in {segment}")
-                records.append({
+            source_path = args.input_root / segment / f"{segment}-FR-NATIVE-100.wav"
+            if not source_path.is_file():
+                raise FileNotFoundError(f"Missing WAV for {segment}: {source_path}")
+            with sf.SoundFile(source_path, "r") as source:
+                params = (source.samplerate, source.channels, source.subtype)
+                if info is None:
+                    info = params
+                    if source.format != "WAV" or source.subtype != "FLOAT":
+                        raise ValueError(f"Expected Chatterbox WAV FLOAT, got {source.format} {source.subtype}")
+                    output = sf.SoundFile(
+                        master, mode="w", samplerate=source.samplerate,
+                        channels=source.channels, format="WAV", subtype="FLOAT"
+                    )
+                elif params != info:
+                    raise ValueError(f"Incompatible WAV params for {segment}: {params} != {info}")
+                frame_count = source.frames
+                written = 0
+                while written < frame_count:
+                    block = source.read(min(262144, frame_count - written),
+                                        dtype="float32", always_2d=True)
+                    if block.shape[0] == 0:
+                        raise EOFError(f"Truncated source WAV for {segment}")
+                    output.write(block)
+                    written += block.shape[0]
+                if written != frame_count:
+                    raise RuntimeError(f"Frame mismatch for {segment}")
+                chapters.append({
                     "id": segment,
-                    "source_file": srcfile.name,
-                    "duration_seconds": round(seconds, 3),
-                    "start_seconds": round(total_frames / params[2], 3),
-                    "end_seconds": round((total_frames + nframes) / params[2], 3),
-                    "sha256": checksum(srcfile),
+                    "start_seconds": round(total_frames / info[0], 3),
+                    "duration_seconds": round(frame_count / info[0], 3),
+                    "end_seconds": round((total_frames + frame_count) / info[0], 3),
+                    "source_file": source_path.name,
+                    "source_sha256": checksum(source_path),
                 })
-                total_frames += nframes
-        dst.writeframes(b"")
-    with wave.open(str(master), "rb") as verify:
-        if verify.getnframes() != total_frames:
-            raise RuntimeError("Joined WAV frame count does not equal segment frame sum")
+                total_frames += frame_count
+    finally:
+        if output is not None:
+            output.close()
+
+    with sf.SoundFile(master, "r") as verify:
+        if (verify.frames, verify.samplerate, verify.channels, verify.subtype) != (
+            total_frames, info[0], info[1], "FLOAT"
+        ):
+            raise RuntimeError("Final WAV readback did not match source frame total")
     report = {
         "route": "VP-PAR-NOW-05",
         "origin_github_run": 41238865083,
         "status": "PRIVATE_AUDIO_QA_ONLY_NOT_COMMERCIAL_RELEASE",
-        "source_voice": "Chatterbox Multilingual V3; same French reference and settings",
-        "spoken_years_and_centuries_qa": "PENDING — V5 WAV sources may pronounce numeral/century strings incorrectly; words-only text manifest added separately; no rerender in this assembly",
-        "edits": "None; exact ordered PCM concatenation",
-        "chapters": records,
-        "sample_rate": metadata[2],
-        "channels": metadata[0],
-        "sample_width_bytes": metadata[1],
+        "source_voice": "Chatterbox Multilingual V3; original French reference",
+        "spoken_years_and_centuries_qa": "PENDING — V5 WAV sources may pronounce numerals incorrectly; separate normalized TTS manifest exists; no rerender here",
+        "edits": "None; native float32 audio concatenation without resampling",
+        "chapters": chapters,
+        "sample_rate": info[0],
+        "channels": info[1],
+        "format": "WAV IEEE float32",
         "total_frames": total_frames,
-        "duration_seconds": round(total_frames / metadata[2], 3),
+        "duration_seconds": round(total_frames / info[0], 3),
         "master_wav": master.name,
         "master_sha256": checksum(master),
     }
     (args.output_dir / "PARIS05-FR-V5-11SEG-QA.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    print(json.dumps({"status": report["status"], "segments": len(records),
+    print(json.dumps({"status": report["status"], "segments": len(chapters),
                       "duration_seconds": report["duration_seconds"],
                       "master_sha256": report["master_sha256"]}, ensure_ascii=False))
 
