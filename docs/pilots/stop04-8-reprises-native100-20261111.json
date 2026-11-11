@@ -1,0 +1,51 @@
+{
+  "id": "PARIS05-STOP04-REPRISES-2026-11-11",
+  "origin": "GitHub previously generated QA source manifest; editorial LOCK text, numbers written for speech",
+  "status": "SOURCE_TEXT_LOCK_AUDIO_QA",
+  "voice_reference": "developer-1.mp3",
+  "tts": {
+    "engine": "ChatterboxMultilingualTTS",
+    "t3_model": "v3",
+    "language_id": "fr",
+    "exaggeration": 0.72,
+    "cfg_weight": 0.3,
+    "temperature": 0.8,
+    "pause_ms": 420,
+    "tempo": 1,
+    "digital_time_stretch": false
+  },
+  "scenes": [
+    {
+      "id": "S07",
+      "text": "Selon le témoignage familial, un officier allemand aurait ordonné à une sentinelle postée sur un balcon du trente-huit avenue de l’Opéra de tirer en direction de la voiture des deux policiers. Cette précision sur l’ordre donné et les circonstances du tir provient de ce témoignage familial."
+    },
+    {
+      "id": "S12",
+      "text": "Devant le Palais Garnier, des soldats français escortent des prisonniers allemands. Les positions allemandes ne se rendent pas toutes au même moment."
+    },
+    {
+      "id": "S14",
+      "text": "Pour mesurer l’intensité de ces journées, regardons maintenant ces images tournées pendant la Libération de Paris."
+    },
+    {
+      "id": "S18",
+      "text": "Place de l’Opéra, à l’angle du boulevard des Capucines, des soldats allemands lèvent les mains. Désormais prisonniers, ils sont encadrés par les résistants français."
+    },
+    {
+      "id": "S20",
+      "text": "Mais la Libération a un prix. Ces images d’archives parlent d’elles-mêmes."
+    },
+    {
+      "id": "S21",
+      "text": "Devant le Palais Garnier, la foule se rassemble. Après les combats et les sacrifices… « Paris ! Paris outragé ! Paris brisé ! Paris martyrisé ! Mais Paris libéré ! »"
+    },
+    {
+      "id": "S23",
+      "text": "Regardez ces images du vingt-cinq août mille neuf cent quarante-quatre. Les soldats allemands se rendent. Devant le Palais Garnier, la foule déploie le drapeau du Reich récupéré à la Kommandantur. Plus loin, les Parisiens démontent les panneaux de direction allemands. En quelques instants, les symboles de l’Occupation disparaissent du paysage de l’Opéra."
+    },
+    {
+      "id": "S24",
+      "text": "L'image ancienne et le lieu que vous regardez aujourd'hui ne sont pas identiques. Pourtant, cette histoire s'est déroulée ici, dans le quartier de l'Opéra. Nous allons maintenant accomplir un saut beaucoup plus lointain. L'Opéra va disparaître de notre paysage mental. Les grandes avenues aussi. Car notre dernier arrêt se déroule en mille six cent cinquante-deux, lorsque Paris est déchiré par la Fronde, et que deux beaux-frères décident de régler une querelle par les armes."
+    }
+  ]
+}
