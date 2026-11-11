@@ -45,7 +45,7 @@ jobs:
           reference = pathlib.Path("references/developer-1.mp3")
           assert reference.stat().st_size > 10000, "Reference file empty"
           parts = []
-          sentences = [x.strip() for x in re.split(r'(?<=[.!?])\\s+', text) if x.strip()]
+          sentences = [x.strip() for x in re.split(r'(?<=[.!?])\s+', text) if x.strip()]
           for i, sentence in enumerate(sentences):
               wav = model.generate(sentence, language_id="fr", audio_prompt_path=str(reference), exaggeration=0.72, cfg_weight=0.30, temperature=0.80).squeeze(0).cpu().float()
               wave = librosa.effects.time_stretch(wav.numpy(), rate=0.96)
