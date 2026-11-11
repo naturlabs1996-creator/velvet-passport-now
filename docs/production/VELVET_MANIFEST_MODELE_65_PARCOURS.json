@@ -1,0 +1,36 @@
+{
+  "schema": "velvet-master-frame/v1",
+  "route_id": "ROUTE_ID_A_RENSEIGNER",
+  "stop_id": "STOP_ID_A_RENSEIGNER",
+  "global_template_version": "1.0.0",
+  "policies": {
+    "no_previous_QA_mp4_sources": true,
+    "no_recrop": true,
+    "no_estimated_subtitle_timecodes": true,
+    "documentary_original_sound_only": true,
+    "final_export_requires_every_plan_verified": true
+  },
+  "scenes": [
+    {
+      "scene_id": "SCENE_ID_A_RENSEIGNER",
+      "title": "TITRE_A_RENSEIGNER",
+      "deleted": false,
+      "plans": [
+        {
+          "plan_id": "PLAN_ID_A_RENSEIGNER",
+          "kind": "photo",
+          "source_path": null,
+          "source_sha256": null,
+          "mode": "spoken",
+          "voice_wav_path": null,
+          "voice_sha256": null,
+          "real_audio_lock": false,
+          "verified_subtitle_file": null,
+          "subtitle_audio_alignment_reviewed": false,
+          "timing_verified": false,
+          "commercial_rights_verified": false
+        }
+      ]
+    }
+  ]
+}
