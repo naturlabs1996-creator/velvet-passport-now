@@ -7,6 +7,9 @@ on:
       - '.github/workflows/paris05-stop04-eight-voice-reprises-20261111.yml'
 permissions:
   contents: read
+concurrency:
+  group: stop04-eight-voices-single-active
+  cancel-in-progress: true
 jobs:
   render-reprise:
     runs-on: ubuntu-latest
@@ -34,6 +37,7 @@ jobs:
         env:
           SCENE: ${{ matrix.scene }}
         run: |
+          python - <<'PY'
           import os, re, json, hashlib, pathlib
           import numpy as np, torch, torchaudio, librosa
           from chatterbox.mtl_tts import ChatterboxMultilingualTTS
@@ -61,6 +65,7 @@ jobs:
           info={"scene":scene,"wav":out.name,"sample_rate":model.sr,"duration_seconds":len(final)/model.sr,"text_sha256":hashlib.sha256(text.encode()).hexdigest(),"reference":"kyutai/tts-voices developer-1.mp3","parameters":{"exaggeration":0.72,"cfg_weight":0.30,"temperature":0.80,"pause_ms":420,"tempo":0.96},"status":"GENERATED_QA_NOT_YET_APPROVED","words_source":"approved LOCK text; numeric expansions only"}
           (out_dir/(scene+"_QA.json")).write_text(json.dumps(info,ensure_ascii=False,indent=2),encoding="utf-8")
           print(json.dumps(info,ensure_ascii=False))
+          PY
       - name: Archive unmodified source voice and QA metadata
         if: always()
         uses: actions/upload-artifact@v4
