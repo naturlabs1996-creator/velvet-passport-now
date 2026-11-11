@@ -1,0 +1,50 @@
+name: Paris 05 STOP 04 - eight Chatterbox native 1.00 corrective takes
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-stop04-eight-voice-native100-repair.yml'
+permissions:
+  contents: read
+concurrency:
+  group: stop04-chatterbox-native100-repair
+  cancel-in-progress: true
+jobs:
+  render-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        scene: [S07, S12, S14, S18, S20, S21, S23, S24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned Chatterbox V3 (no audio time stretch)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile
+      - name: Fetch same previously used French narrator reference
+        run: |
+          mkdir -p references
+          curl -fL --retry 3 --connect-timeout 20 -o references/developer-1.mp3 "https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developer-1.mp3?download=true"
+      - name: Generate natural-tempo WAV and acoustic QA
+        run: |
+          python scripts/audio/render_stop04_chatterbox_native100.py \
+            --manifest docs/pilots/stop04-8-reprises-native100-20261111.json \
+            --scene "${{ matrix.scene }}" \
+            --reference references/developer-1.mp3 \
+            --output output
+      - name: Retain originals separately from rejected 0.96 takes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stop04-native100-${{ matrix.scene }}-20261111
+          path: output/*
+          if-no-files-found: warn
+          retention-days: 21
