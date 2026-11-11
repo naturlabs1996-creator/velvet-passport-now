@@ -1,0 +1,71 @@
+name: Paris 05 STOP 04 - eight approved Chatterbox V3 voice takes
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paris05-stop04-eight-voice-reprises-20261111.yml'
+permissions:
+  contents: read
+jobs:
+  render-reprise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        scene: [S07, S12, S14, S18, S20, S21, S23, S24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned French Chatterbox V3
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile librosa
+      - name: Fetch artistically approved narrator reference
+        run: |
+          mkdir -p references
+          curl -fL --retry 3 --connect-timeout 20 -o references/developer-1.mp3 "https://huggingface.co/kyutai/tts-voices/resolve/main/unmute-prod-website/developer-1.mp3?download=true"
+      - name: Generate exact approved scene narration
+        env:
+          SCENE: ${{ matrix.scene }}
+        run: |
+          import os, re, json, hashlib, pathlib
+          import numpy as np, torch, torchaudio, librosa
+          from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+          texts = json.loads("{\"S07\":\"Selon le témoignage familial, un officier allemand aurait ordonné à une sentinelle postée sur un balcon du trente-huit avenue de l’Opéra de tirer en direction de la voiture des deux policiers. Cette précision sur l’ordre donné et les circonstances du tir provient de ce témoignage familial.\",\"S12\":\"Devant le Palais Garnier, des soldats français escortent des prisonniers allemands. Les positions allemandes ne se rendent pas toutes au même moment.\",\"S14\":\"Pour mesurer l’intensité de ces journées, regardons maintenant ces images tournées pendant la Libération de Paris.\",\"S18\":\"Place de l’Opéra, à l’angle du boulevard des Capucines, des soldats allemands lèvent les mains. Désormais prisonniers, ils sont encadrés par les résistants français.\",\"S20\":\"Mais la Libération a un prix. Ces images d’archives parlent d’elles-mêmes.\",\"S21\":\"Devant le Palais Garnier, la foule se rassemble. Après les combats et les sacrifices… « Paris ! Paris outragé ! Paris brisé ! Paris martyrisé ! Mais Paris libéré ! »\",\"S23\":\"Regardez ces images du vingt-cinq août mille neuf cent quarante-quatre. Les soldats allemands se rendent. Devant le Palais Garnier, la foule déploie le drapeau du Reich récupéré à la Kommandantur. Plus loin, les Parisiens démontent les panneaux de direction allemands. En quelques instants, les symboles de l’Occupation disparaissent du paysage de l’Opéra.\",\"S24\":\"L'image ancienne et le lieu que vous regardez aujourd'hui ne sont pas identiques. Pourtant, cette histoire s'est déroulée ici, dans le quartier de l'Opéra. Nous allons maintenant accomplir un saut beaucoup plus lointain. L'Opéra va disparaître de notre paysage mental. Les grandes avenues aussi. Car notre dernier arrêt se déroule en mille six cent cinquante-deux, lorsque Paris est déchiré par la Fronde, et que deux beaux-frères décident de régler une querelle par les armes.\"}")
+          scene = os.environ["SCENE"]
+          text = texts[scene]
+          torch.set_num_threads(2)
+          model = ChatterboxMultilingualTTS.from_pretrained(device="cpu", t3_model="v3")
+          reference = pathlib.Path("references/developer-1.mp3")
+          assert reference.stat().st_size > 10000, "Reference file empty"
+          parts = []
+          sentences = [x.strip() for x in re.split(r'(?<=[.!?])\\s+', text) if x.strip()]
+          for i, sentence in enumerate(sentences):
+              wav = model.generate(sentence, language_id="fr", audio_prompt_path=str(reference), exaggeration=0.72, cfg_weight=0.30, temperature=0.80).squeeze(0).cpu().float()
+              wave = librosa.effects.time_stretch(wav.numpy(), rate=0.96)
+              parts.append(torch.from_numpy(np.asarray(wave, dtype=np.float32)))
+              if i < len(sentences) - 1:
+                  parts.append(torch.zeros(round(model.sr * 0.420), dtype=torch.float32))
+          out_dir = pathlib.Path("output")
+          out_dir.mkdir(exist_ok=True)
+          out = out_dir / (scene + "_CHATTERBOX_V3_096_DEVELOPER1_QA.wav")
+          final = torch.cat(parts)
+          assert len(final)>model.sr*3 and torch.isfinite(final).all()
+          torchaudio.save(str(out), final.unsqueeze(0), model.sr)
+          info={"scene":scene,"wav":out.name,"sample_rate":model.sr,"duration_seconds":len(final)/model.sr,"text_sha256":hashlib.sha256(text.encode()).hexdigest(),"reference":"kyutai/tts-voices developer-1.mp3","parameters":{"exaggeration":0.72,"cfg_weight":0.30,"temperature":0.80,"pause_ms":420,"tempo":0.96},"status":"GENERATED_QA_NOT_YET_APPROVED","words_source":"approved LOCK text; numeric expansions only"}
+          (out_dir/(scene+"_QA.json")).write_text(json.dumps(info,ensure_ascii=False,indent=2),encoding="utf-8")
+          print(json.dumps(info,ensure_ascii=False))
+      - name: Archive unmodified source voice and QA metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stop04-voice-${{ matrix.scene }}-chatterbox-v3-20261111
+          path: output/*
+          if-no-files-found: warn
+          retention-days: 21
