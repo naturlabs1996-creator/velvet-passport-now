@@ -1,0 +1,362 @@
+{
+  "template": "velvet-master-frame/v1",
+  "route_id": "VP-PAR-NOW-05",
+  "stop_id": "STOP04",
+  "status": "PRIVATE_QA_PARTIAL_NO_FULL_EXPORT",
+  "source_policy": "never_use_rejected_v6_v7",
+  "scenes": [
+    {
+      "scene_id": "S01",
+      "title": "Palais Garnier — ouverture",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S02",
+      "title": "Kommandantur — occupation du quartier",
+      "deleted": false,
+      "expected_plans": 2,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S03",
+      "title": "19 août — insurrection parisienne",
+      "deleted": false,
+      "expected_plans": 2,
+      "plans": [
+        {
+          "plan_id": "S03-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S03-P01__S03_COMBATTANT_BARRICADE_ORIGINAL_UTILISATEUR.jpg",
+          "sha256": "7437c6b41a9dce88a689e71ffefd4c89226c997fe322aaf8bd016dce7f3b8f3a",
+          "duration": null,
+          "subtitle_status": "MISSING"
+        },
+        {
+          "plan_id": "S03-P02",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S03-P02__1000014207.jpg",
+          "sha256": "e8e25a00dd5c87abf001f4a869701b56f69a7084fdb8659216ee8deb97c511d3",
+          "duration": null,
+          "subtitle_status": "MISSING"
+        }
+      ],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S04",
+      "title": "Soldats et véhicules allemands — contexte",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S05",
+      "title": "Reconnaissance des façades et de la perspective",
+      "deleted": false,
+      "expected_plans": 2,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S06",
+      "title": "Guillois et Gormond — contexte de la trêve",
+      "deleted": false,
+      "expected_plans": 2,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S07",
+      "title": "Tirs dans le secteur",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false,
+      "pending_voice": {
+        "path": "VOIX_CHATTERBOX_NATIVE100/S07_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+        "sha256": "ef4f8bd803ed009576b72f038be0a0d0ecf0bee0e0a336653c04e131ddad8243"
+      }
+    },
+    {
+      "scene_id": "S08",
+      "title": "Mort de Guillois, blessure de Gormond",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [
+        {
+          "plan_id": "S08-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S08-P01__1000014088.png",
+          "sha256": "df3213bb1d93014b0749e9984a4c4ede5a4a90c8a1402d45b8b6e278189fbb90",
+          "duration": null,
+          "subtitle_status": "MISSING"
+        }
+      ],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S09",
+      "title": "Le danger avant le 25 août",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S10",
+      "title": "24–25 août — entrée et progression des Français",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [
+        {
+          "plan_id": "S10-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S10-P01__1000014203.jpg",
+          "sha256": "24c41c25aba5af112740034b5a5bf7364558b3d4e14f67885536b74d9f0393df",
+          "duration": null,
+          "subtitle_status": "MISSING"
+        }
+      ],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S11",
+      "title": "25 août — résistance allemande dans le secteur",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S12",
+      "title": "11e compagnie III/RMT — attaque",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false,
+      "pending_voice": {
+        "path": "VOIX_CHATTERBOX_NATIVE100/S12_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+        "sha256": "e75438f52af8b894fe8d0bb4a5452ba749fde8a93c930c7dba69cdd51f5ead2c"
+      }
+    },
+    {
+      "scene_id": "S13",
+      "title": "Progression française dans la fumée",
+      "deleted": true,
+      "expected_plans": 0,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S14",
+      "title": "Fumée et façades de l’avenue",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [
+        {
+          "plan_id": "S14-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S14-P01__1000014201.jpg",
+          "sha256": "c9d8f5b8772bb17a31460bc78a341437df677620047eea38adae365025312656",
+          "duration": 6.15,
+          "subtitle_status": "MISSING",
+          "voice": "VOIX_CHATTERBOX_NATIVE100/S14_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+          "voice_sha256": "266aa3231c2f1024b4ec30add1d3182537d2734818126aa031ba6a6e80648e20",
+          "voice_delay": 0.35
+        }
+      ],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S15",
+      "title": "Commerces, fenêtres et combat urbain",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [
+        {
+          "plan_id": "S15-FILM",
+          "kind": "archive_film",
+          "source": "FILMS_1944_SOURCE/S15_ARCHIVE_1944_SOURCE_19m20_19m50_AUDIO_ORIGINAL.mp4",
+          "sha256": "63c49f0dc5b61f97f869f5d6f55c20abb11e05e7d4ab1750b1bfde5c705ae0ae",
+          "subtitle_status": "MISSING"
+        }
+      ],
+      "audio_editorial_lock": true,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S16",
+      "title": "Progression française et reddition annoncée",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S17",
+      "title": "Drapeau blanc — reddition",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S18",
+      "title": "Les soldats allemands deviennent prisonniers",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false,
+      "pending_voice": {
+        "path": "VOIX_CHATTERBOX_NATIVE100/S18_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+        "sha256": "c28a90243e9f32e91fa6ed7bda8dafc00d83928c022d2c46c65f315dae28e7c1"
+      }
+    },
+    {
+      "scene_id": "S19",
+      "title": "Ce que la photographie ne montre pas",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S20",
+      "title": "Mémoire des journées d’août 1944",
+      "deleted": false,
+      "expected_plans": 2,
+      "plans": [
+        {
+          "plan_id": "S20-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S20-P01__1000014089.jpg",
+          "sha256": "7981ea61c7ecfd35afa30cb2741006e1e72facd6a403fab10d2d9c58f5980dc3",
+          "duration": 5.4,
+          "subtitle_status": "MISSING",
+          "voice": "VOIX_CHATTERBOX_NATIVE100/S20_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+          "voice_sha256": "c2b5d27c5097b0ccd1eb8bf37da0154e99bdf954961e12c0c38fbd8e20e567ac",
+          "voice_delay": 0.35
+        },
+        {
+          "plan_id": "S20-FILM",
+          "kind": "archive_film",
+          "source": "FILMS_1944_SOURCE/S20_ARCHIVE_1944_SOURCE_12m36_12m52_AUDIO_ORIGINAL.mp4",
+          "sha256": "93446737938ec3547e242bd0379db69df01d0d5b198d75818d85ac1722f4cd75",
+          "subtitle_status": "MISSING"
+        }
+      ],
+      "audio_editorial_lock": true,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S21",
+      "title": "Retour vers le Palais Garnier",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [
+        {
+          "plan_id": "S21-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S21-P01__1000014107.jpg",
+          "sha256": "f65142bf6974c5a2a908614d206772306783474ac1a8c9c3cd735c4ec3d67ebc",
+          "duration": 19.4,
+          "subtitle_status": "MISSING",
+          "voice": "VOIX_CHATTERBOX_NATIVE100/S21_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+          "voice_sha256": "f014f9999b1ab3af3f0de47adcacaf829bde46b9265b45cfde7d6661744e22cb",
+          "voice_delay": 1.35
+        }
+      ],
+      "audio_editorial_lock": false,
+      "rights_verified": false,
+      "transition_from_previous": {
+        "type": "crossfade",
+        "duration": 1.2,
+        "editorial_status": "LOCK_S20_TO_S21"
+      }
+    },
+    {
+      "scene_id": "S22",
+      "title": "Architecture de l’Opéra et temps long",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false
+    },
+    {
+      "scene_id": "S23",
+      "title": "Comparer l’archive de 1944 au lieu réel",
+      "deleted": false,
+      "expected_plans": 3,
+      "plans": [
+        {
+          "plan_id": "S23-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S23-P01__1000014111.jpg",
+          "sha256": "03529bb5c86c4aae0abbfe5d7248fb179f3f77ef854325152abedd771043bbb7",
+          "duration": null,
+          "subtitle_status": "MISSING"
+        },
+        {
+          "plan_id": "S23-P02",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S23-P02__1000014110.jpg",
+          "sha256": "b92d7ef5e52a711ca1bb2d2e4d55d39bf570e709fadced4d125681f703745008",
+          "duration": null,
+          "subtitle_status": "MISSING"
+        },
+        {
+          "plan_id": "S23-P03",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S23-P03__1000014113.jpg",
+          "sha256": "652eb5a9ecc7a74ff84decfb0b53c61627496efe2f849684969fcac4f59d7981",
+          "duration": null,
+          "subtitle_status": "MISSING"
+        }
+      ],
+      "audio_editorial_lock": false,
+      "rights_verified": false,
+      "pending_voice": {
+        "path": "VOIX_CHATTERBOX_NATIVE100/S23_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+        "sha256": "5c0056af18c0b84840efad0352d1584168e6548f0c18aad31ffc6341bfe19512"
+      }
+    },
+    {
+      "scene_id": "S24",
+      "title": "Clôture et transition vers 1652",
+      "deleted": false,
+      "expected_plans": 1,
+      "plans": [],
+      "audio_editorial_lock": false,
+      "rights_verified": false,
+      "pending_voice": {
+        "path": "VOIX_CHATTERBOX_NATIVE100/S24_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+        "sha256": "c9823f85fc6e813184c378ebf9c7023dd1c0268bf0b39aaeb123cfe99b107e3a"
+      }
+    }
+  ],
+  "master_ref": "https://drive.google.com/file/d/1kim5eBSjCNNUnXjG4MszMySEsbT5LJfb/view"
+}
