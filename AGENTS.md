@@ -1,3 +1,15 @@
+# AUTOMATISATION VIDÉO MASTER — TOUS LES 66 PARCOURS (11 novembre 2026)
+
+**LIRE AVANT TOUT MONTAGE, Y COMPRIS DANS UNE NOUVELLE CONVERSATION OU PAR UN NOUVEL AGENT :** [contrat de production automatique](docs/production/VELVET_AUTOMATISATION_DE_PRODUCTION_MASTER.md) et [gabarit maître vidéo](docs/production/VELVET_MASTER_GABARIT_VIDEO_V1.md). Le gabarit **velvet-master-frame/v1** est obligatoire pour STOP 04, STOP 05 et les 65 parcours suivants. Il ne peut jamais être remplacé par une description vague dans un chat.
+
+- **Source-first obligatoire :** images/films originaux vérifiés par SHA-256, jamais les MP4 V6/V7 rejetés, aucun crop ni allongement artificiel.
+- **Image parlée :** 1920×860 + 220 px de sous-titres réels synchronisés; **sans paroles :** 1920×1080, aucune bande vide. Format 4:3 intégral avec bandes latérales.
+- **Audio :** les voix Chatterbox WAV approuvées; film documentaire avec son original seul si LOCK. Pas de sous-titres à durées estimées, ni de voix de substitution.
+- **À chaque modification de parcours dans GitHub :** le workflow [velvet-master-contract-ci.yml](.github/workflows/velvet-master-contract-ci.yml) doit passer. Le contrôle statique ne remplace pas la QA sur les vrais médias; toute publication reste interdite tant que droits, audit source, synchronisation et approbation humaine ne sont pas tous positifs.
+- **État actuel :** seul le socle photo + cache + audit et un ancien assembleur de workprint existent. Leur intégration audiovisuelle complète reste à fabriquer et à mesurer. Pas d'export final revendiqué pour STOP 04.
+
+---
+
 # Velvet Passport — règles obligatoires pour les agents de recherche et de production
 
 ## Prévol obligatoire du banc audiovisuel — Atelier Roger (26 octobre 2026)
