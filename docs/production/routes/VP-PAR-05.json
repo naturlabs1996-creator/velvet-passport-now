@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0",
   "route_id": "VP-PAR-05",
+  "global_video_template": "velvet-master-frame/v1",
   "title": "Opéra Back Streets",
   "release_requested": false,
   "rights_signoff": false,
