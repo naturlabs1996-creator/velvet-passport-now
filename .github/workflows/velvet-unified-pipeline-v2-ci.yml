@@ -1,0 +1,42 @@
+name: Velvet Passport — unified production pipeline V2 (mandatory tests)
+on:
+  push:
+    paths:
+      - 'AGENTS.md'
+      - 'scripts/production/velvet_unified_pipeline.py'
+      - 'scripts/production/velvet_gabarit_maitre.py'
+      - 'scripts/production/draft_subtitles.py'
+      - 'scripts/production/test_velvet_unified_pipeline.py'
+      - 'docs/production/VELVET_UNIFIED_PIPELINE_V2.md'
+      - 'docs/production/routes/**'
+      - '.github/workflows/velvet-unified-pipeline-v2-ci.yml'
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'scripts/production/**'
+      - 'docs/production/routes/**'
+      - 'docs/production/VELVET_UNIFIED_PIPELINE_V2.md'
+      - '.github/workflows/velvet-unified-pipeline-v2-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-first-and-geometry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install FFmpeg and Pillow
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          python -m pip install Pillow
+      - name: Check single master geometry and no crop
+        run: python scripts/production/test_gabarit_repo.py
+      - name: Test complete audiovisual pipeline and fail-closed export
+        run: python scripts/production/test_velvet_unified_pipeline.py
+      - name: Enforce route manifest master contract
+        run: python scripts/production/velvet_master_contract.py --routes-dir docs/production/routes
