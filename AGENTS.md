@@ -1,3 +1,9 @@
+# MISE À JOUR — 12 novembre 2026 — ASSEMBLEUR INTÉGRÉ TESTÉ SUR S20
+
+**Source de fabrication obligatoire avant tout nouveau rendu QA :** `scripts/production/velvet_integrated_factory.py`, sous contrôle de `.github/workflows/velvet-integrated-factory-ci.yml` et `tests/test_velvet_integrated_factory.py`. Le prototype a construit un bloc S20 source-first de 21,421 s à 1920×1080, avec photo approuvée, WAV Chatterbox S20 T1 et 16 s de documentaire au son original; cache testé. Ce test local n'est **ni un STOP 04 complet ni une validation commerciale**. La génération finale doit rester BLOQUÉE tant que source originale, droits, voix, sous-titres réellement alignés, QA mobile et approbation humaine manquent. Les V6/V7 restent rejetées et ne doivent jamais être utilisées comme images sources. **Workflow GitHub CI ajouté mais exécution GitHub non encore vérifiée.** Le cadrage maître 860+220 s'applique lorsque des sous-titres réellement vérifiés existent; sans sous-titres en QA, aucun bandeau vide. Reste à mettre à niveau les manifestes des 23 scènes actives et leurs transitions.
+
+---
+
 ## CHAÎNE AUDIOVISUELLE UNIQUE V2 — IMPÉRATIF DE FABRICATION (12 NOVEMBRE 2026)
 
 **NOUVEAU POINT D'ENTRÉE TECHNIQUE À UTILISER AVANT TOUT MONTAGE :** [Velvet Unified Pipeline V2](docs/production/VELVET_UNIFIED_PIPELINE_V2.md) et `scripts/production/velvet_unified_pipeline.py`. Le gabarit maître vidéo V1 demeure la référence de cadrage, importée par ce script. Cette règle s'applique à STOP 04, STOP 05, puis à TOUS les 65 autres parcours, même après changement de conversation ou d'agent.
