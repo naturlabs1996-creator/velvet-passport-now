@@ -1,0 +1,29 @@
+name: Velvet integrated source-first video factory — smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/production/velvet_integrated_factory.py'
+      - 'tests/test_velvet_integrated_factory.py'
+      - '.github/workflows/velvet-integrated-factory-ci.yml'
+  pull_request:
+    paths:
+      - 'scripts/production/velvet_integrated_factory.py'
+      - 'tests/test_velvet_integrated_factory.py'
+      - '.github/workflows/velvet-integrated-factory-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Verify assembly and fail-closed gate with synthetic test-only media
+        run: python tests/test_velvet_integrated_factory.py
