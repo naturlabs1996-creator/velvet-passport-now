@@ -1,0 +1,346 @@
+{
+  "schema_version": "vp-now-factory-v1",
+  "route_id": "VP-PAR-NOW-05-STOP-04",
+  "product": "Velvet Passport NOW",
+  "asset_policy": "SOURCE_FIRST_ONLY",
+  "production_approved": false,
+  "subtitles_synced": false,
+  "human_qa_complete": false,
+  "render_standard": {
+    "size": [
+      1920,
+      1080
+    ],
+    "fps": 25,
+    "caption_band_px": 220,
+    "speech_layout": "1920x860 + 1920x220",
+    "silent_layout": "1920x1080",
+    "fitting": "contain",
+    "allow_crop": false
+  },
+  "scenes": [
+    {
+      "id": "S01",
+      "title": "Palais Garnier — ouverture",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S02",
+      "title": "Kommandantur — occupation du quartier",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S03",
+      "title": "19 août — insurrection parisienne",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S03-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S03-P01__S03_COMBATTANT_BARRICADE_ORIGINAL_UTILISATEUR.jpg",
+          "sha256": "7437c6b41a9dce88a689e71ffefd4c89226c997fe322aaf8bd016dce7f3b8f3a",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Combattant derrière barricade, original utilisateur"
+        },
+        {
+          "id": "S03-P02",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S03-P02__1000014207.jpg",
+          "sha256": "e8e25a00dd5c87abf001f4a869701b56f69a7084fdb8659216ee8deb97c511d3",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Barricade place de Châteaudun"
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Soldats et véhicules allemands — contexte",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S05",
+      "title": "Reconnaissance des façades et de la perspective",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S06",
+      "title": "Guillois et Gormond — contexte de la trêve",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S07",
+      "title": "Tirs dans le secteur",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S08",
+      "title": "Mort de Guillois, blessure de Gormond",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S08-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S08-P01__1000014088.png",
+          "sha256": "df3213bb1d93014b0749e9984a4c4ede5a4a90c8a1402d45b8b6e278189fbb90",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Plaque Michel Guillois seule"
+        }
+      ]
+    },
+    {
+      "id": "S09",
+      "title": "Le danger avant le 25 août",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S10",
+      "title": "24–25 août — entrée et progression des Français",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S10-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S10-P01__1000014203.jpg",
+          "sha256": "24c41c25aba5af112740034b5a5bf7364558b3d4e14f67885536b74d9f0393df",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Résistants derrière Jeep"
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "title": "25 août — résistance allemande dans le secteur",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S12",
+      "title": "11e compagnie III/RMT — attaque",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S13",
+      "title": "Progression française dans la fumée",
+      "editorial_lock": false,
+      "plans": [],
+      "deleted": true,
+      "reason": "Séquence La Revanche 39-40 supprimée (LOCK)"
+    },
+    {
+      "id": "S14",
+      "title": "Fumée et façades de l’avenue",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S14-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S14-P01__1000014201.jpg",
+          "sha256": "c9d8f5b8772bb17a31460bc78a341437df677620047eea38adae365025312656",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Fumée devant Perrin et Opéra"
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "title": "Commerces, fenêtres et combat urbain",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S15-FILM-1944",
+          "kind": "film",
+          "source": "FILMS_1944_SOURCE/S15_ARCHIVE_1944_SOURCE_19m20_19m50_AUDIO_ORIGINAL.mp4",
+          "sha256": "63c49f0dc5b61f97f869f5d6f55c20abb11e05e7d4ab1750b1bfde5c705ae0ae",
+          "source_start_seconds": 0,
+          "source_end_seconds": 30.0,
+          "origin_movie_source_timecode": "1160.0-1190.0",
+          "duration_seconds": 30.0,
+          "sound_mode": "archive_original_only",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false
+        }
+      ]
+    },
+    {
+      "id": "S16",
+      "title": "Progression française et reddition annoncée",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S17",
+      "title": "Drapeau blanc — reddition",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S18",
+      "title": "Les soldats allemands deviennent prisonniers",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S19",
+      "title": "Ce que la photographie ne montre pas",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S20",
+      "title": "Mémoire des journées d’août 1944",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S20-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S20-P01__1000014089.jpg",
+          "sha256": "7981ea61c7ecfd35afa30cb2741006e1e72facd6a403fab10d2d9c58f5980dc3",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "FFI tombé – photo QA approuvée à rapprocher"
+        },
+        {
+          "id": "S20-FILM-1944",
+          "kind": "film",
+          "source": "FILMS_1944_SOURCE/S20_ARCHIVE_1944_SOURCE_12m36_12m52_AUDIO_ORIGINAL.mp4",
+          "sha256": "93446737938ec3547e242bd0379db69df01d0d5b198d75818d85ac1722f4cd75",
+          "source_start_seconds": 0,
+          "source_end_seconds": 16.0,
+          "origin_movie_source_timecode": "756.0-772.0",
+          "duration_seconds": 16.0,
+          "sound_mode": "archive_original_only",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false
+        }
+      ]
+    },
+    {
+      "id": "S21",
+      "title": "Retour vers le Palais Garnier",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S21-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S21-P01__1000014107.jpg",
+          "sha256": "f65142bf6974c5a2a908614d206772306783474ac1a8c9c3cd735c4ec3d67ebc",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Foule devant Palais Garnier"
+        }
+      ]
+    },
+    {
+      "id": "S22",
+      "title": "Architecture de l’Opéra et temps long",
+      "editorial_lock": false,
+      "plans": []
+    },
+    {
+      "id": "S23",
+      "title": "Comparer l’archive de 1944 au lieu réel",
+      "editorial_lock": false,
+      "plans": [
+        {
+          "id": "S23-P01",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S23-P01__1000014111.jpg",
+          "sha256": "03529bb5c86c4aae0abbfe5d7248fb179f3f77ef854325152abedd771043bbb7",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Prisonniers allemands devant l’Opéra — même fichier que S12"
+        },
+        {
+          "id": "S23-P02",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S23-P02__1000014110.jpg",
+          "sha256": "b92d7ef5e52a711ca1bb2d2e4d55d39bf570e709fadced4d125681f703745008",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Drapeau nazi devant Opéra"
+        },
+        {
+          "id": "S23-P03",
+          "kind": "photo",
+          "source": "PHOTOS_ORIGINALES/S23-P03__1000014113.jpg",
+          "sha256": "652eb5a9ecc7a74ff84decfb0b53c61627496efe2f849684969fcac4f59d7981",
+          "media_lock": false,
+          "commercial_rights": "not_checked",
+          "speech": null,
+          "caption_lock": false,
+          "timecodes_verified": false,
+          "duration_seconds": null,
+          "historical_source_note": "Retrait panneaux directionnels allemands"
+        }
+      ]
+    },
+    {
+      "id": "S24",
+      "title": "Clôture et transition vers 1652",
+      "editorial_lock": false,
+      "plans": []
+    }
+  ],
+  "notes": [
+    "SOURCE-FIRST package, pas d’images V6/V7",
+    "Scène S13 supprimée",
+    "Nombre de scènes à numéro conservé: 24; actives: 23",
+    "S20 T1 voix déjà LOCK mais non intégrée à ce registre incomplet",
+    "Les métadonnées de durée d’une photo sont délibérément vides sans preuve audio"
+  ]
+}
