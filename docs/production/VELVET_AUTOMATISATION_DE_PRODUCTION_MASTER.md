@@ -1,3 +1,13 @@
+## 12 NOVEMBRE 2026 — ASSEMBLAGE MULTI-SCÈNES VÉRIFIÉ, PAS DE FINAL STOP04
+
+**Une seule chaîne source-first à utiliser désormais :** [moteur de gabarit](scripts/production/velvet_gabarit_maitre.py) → [assembleur image/son](scripts/production/velvet_integrated_factory.py) → [orchestrateur multi-scènes](scripts/production/velvet_scene_batch.py) → [test CI obligatoire](.github/workflows/velvet-integrated-factory-ci.yml). Pour le STOP 04, lire [le manifeste réel des 23 scènes actives et 30 plans](docs/production/workprints/STOP04_SOURCE_FIRST_23_SCENES_20261112.json). **V6/V7 rejetées et S13 supprimée**, ne pas les utiliser comme médias.
+
+**Preuves de production :** S14→S15 = 36,218 s et S20→S21 = 39,696 s, en 1920×1080, photo originale+voix Chatterbox et documentaire 1944 avec son propre son. Le fondu S20→S21 est 1,2 s. Contrôle audio documentaire après réencodage : corrélation interne S15=0,99606, S20=0,98261 ; deux décodages vidéo complets réussis. Les deux MP4 de contrôle sont dans Drive : [S14-S15](https://drive.google.com/file/d/1aujDB7B4Y02QihtHn0CRjgJ6tar6neyz/view) et [S20-S21](https://drive.google.com/file/d/1gAKNseojLG9bH2IsDxghH-g3gi4zgIaZ/view). **Sous-titres incomplets, pas de PASS_LOCK.**
+
+**Goulot :** sur 30 plans attendus, 12 sources originales locales (10 photos+2 extraits filmés) et 8 WAV Chatterbox natifs existent, mais seulement S14/S15/S20/S21 sont montables en QA avec source+son. Les photos S23×3 sont retrouvées mais cues exacts non minutés ; aucune génération de faux timings. Les 18 plans absents doivent être récupérés en lot, les autres voix auditées, puis les sous-titres alignés sur les WAV avant export complet. Aucune diffusion publique automatique. **Le batch QA ne produit jamais le final** : production bloque avant qu'une scène soit omise. Le gain de temps reste à mesurer sur le premier STOP complet.
+
+---
+
 ## CHAÎNE AUDIOVISUELLE UNIQUE V2 — IMPÉRATIF DE FABRICATION (12 NOVEMBRE 2026)
 
 **NOUVEAU POINT D'ENTRÉE TECHNIQUE À UTILISER AVANT TOUT MONTAGE :** [Velvet Unified Pipeline V2](docs/production/VELVET_UNIFIED_PIPELINE_V2.md) et `scripts/production/velvet_unified_pipeline.py`. Le gabarit maître vidéo V1 demeure la référence de cadrage, importée par ce script. Cette règle s'applique à STOP 04, STOP 05, puis à TOUS les 65 autres parcours, même après changement de conversation ou d'agent.
