@@ -1,3 +1,17 @@
+## CHAÎNE AUDIOVISUELLE UNIQUE V2 — IMPÉRATIF DE FABRICATION (12 NOVEMBRE 2026)
+
+**NOUVEAU POINT D'ENTRÉE TECHNIQUE À UTILISER AVANT TOUT MONTAGE :** [Velvet Unified Pipeline V2](docs/production/VELVET_UNIFIED_PIPELINE_V2.md) et `scripts/production/velvet_unified_pipeline.py`. Le gabarit maître vidéo V1 demeure la référence de cadrage, importée par ce script. Cette règle s'applique à STOP 04, STOP 05, puis à TOUS les 65 autres parcours, même après changement de conversation ou d'agent.
+
+- **Commande pilote :** `python scripts/production/velvet_unified_pipeline.py audit --manifest <manifest> --root <media_root> --out <report_dir>`. Dans le même programme : `draft-subs` sur WAV réel (brouillons NON approuvés) et `render` des plans originaux à 1080p avec cache SHA, voix et archives sonores distinctes, fondus approuvés.
+- **Source-first sans exception :** ne jamais prendre les MP4 STOP04 V6/V7 rejetés comme visuels; jamais de crop, sous-titres minutés par estimation, bande vide pendant un commentaire ou son d'archives remplacé. 1920×860 + bande 220 px quand paroles; 1920×1080 sans bande seulement si plan réellement sans paroles.
+- **Barrière finale :** refus automatique pour source/SHA/voix/durée/droits/synchronisation/plan/QA/approbation absents. Un MP4 `PRIVATE_QA_NOT_RELEASE` n'est PAS un film final. Aucun téléchargement, classement Mastodon, feu vert juridique ni diffusion publique ne peut être inféré de l'exécution du script.
+- **Contrôle obligatoire dans GitHub :** `.github/workflows/velvet-unified-pipeline-v2-ci.yml` et `velvet-master-contract-ci.yml`. Les deux surveillent le code/manifeste et protègent le contrat; **seul l'audit physique des vrais originaux dans leur stockage permet le PASS réel**.
+- **STOP04 test réel :** 24 numéros de scènes dont S13 supprimée, 23 actives/30 plans, 12 sources SHA vérifiées, 18 fichiers originaux absents du paquet local; scène S20 QA 21,42 s depuis photo réelle + Chatterbox native100 T1 + archive 16 s au vrai son. Tests logiciels passés; **film final toujours REFUSÉ** tant que les sources restantes et sous-titres/droits/QA ne sont pas vérifiés.
+
+**La production à l'échelle des 65 parcours doit être pilotée par CE programme et non les anciens assembleurs 1280p/2 ips, réservés au maintien de compatibilité.**
+
+---
+
 # VELVET PASSPORT — RÈGLE AUTOMATIQUE DE PRODUCTION (66 PARCOURS)
 
 **Référence permanente pour tous les agents et pour les 65 parcours après Paris 05.** Source de vérité technique : `docs/production/VELVET_MASTER_GABARIT_VIDEO_V1.md`. Un seul code de gabarit partagé, pas 66 copies. Les décisions éditoriales restent propres au MASTER de chaque parcours.
