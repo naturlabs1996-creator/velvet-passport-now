@@ -2,7 +2,7 @@
 import sys
 import unittest
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts' / 'production'))
 from velvet_master_contract import inspect, MASTER
 
 class ContractTests(unittest.TestCase):
