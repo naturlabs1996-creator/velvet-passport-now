@@ -1,0 +1,54 @@
+name: Velvet MASTER — automatic production contract gate
+
+on:
+  push:
+    paths:
+      - 'AGENTS.md'
+      - 'docs/production/routes/**'
+      - 'docs/production/VELVET_MASTER_GABARIT_VIDEO_V1.md'
+      - 'docs/production/VELVET_AUTOMATISATION_DE_PRODUCTION_MASTER.md'
+      - 'scripts/production/velvet_master_contract.py'
+      - 'scripts/production/velvet_gabarit_maitre.py'
+      - 'scripts/production/build_route.py'
+      - 'scripts/production/velvet_film_factory_fastpath.py'
+      - 'tests/test_velvet_master_contract.py'
+      - '.github/workflows/velvet-master-contract-ci.yml'
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'docs/production/routes/**'
+      - 'docs/production/VELVET_MASTER_GABARIT_VIDEO_V1.md'
+      - 'docs/production/VELVET_AUTOMATISATION_DE_PRODUCTION_MASTER.md'
+      - 'scripts/production/**'
+      - 'tests/test_velvet_master_contract.py'
+      - '.github/workflows/velvet-master-contract-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install lightweight frame-test dependency
+        run: python -m pip install Pillow
+      - name: Test universal image geometry, including no crop
+        run: python scripts/production/test_gabarit_repo.py
+      - name: Test fail-closed production contract
+        run: python tests/test_velvet_master_contract.py
+      - name: Automatically check every route manifest
+        run: python scripts/production/velvet_master_contract.py --routes-dir docs/production/routes --json-out master-contract-report.json
+      - name: Keep tiny contract report for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: velvet-master-contract-report
+          path: master-contract-report.json
+          retention-days: 7
+          if-no-files-found: ignore
