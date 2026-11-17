@@ -60,4 +60,55 @@ class Tests(unittest.TestCase):
   dest=self.root/'joined.mp4';concat_with_transitions([a,b],c,dest)
   q=probe(dest);self.assertAlmostEqual(float(q['format']['duration']),1.6,delta=.19)
   self.assertEqual({s['codec_type'] for s in q['streams']},{'video','audio'})
+
+ def test_archive_first_plan_checks_its_own_window(self):
+  """Regression: an archive film as first plan must not reuse undefined d."""
+  film=self.root/'archive1s.mp4'
+  subprocess.run(['ffmpeg','-v','error','-y','-f','lavfi','-i','color=c=black:s=64x64:r=25:d=1',
+                  '-f','lavfi','-i','sine=frequency=450:duration=1','-shortest',
+                  '-c:v','mpeg4','-c:a','aac',str(film)],check=True)
+  m=self.basic();shot=m['scenes'][0]['plans'][0]
+  shot.update({'kind':'archive_film','source':film.name,'sha256':checksum(film),
+               'duration':1.4,'spoken':False,'captions':[],'audio':{'mode':'archive_original_only'},
+               'sound_mode':'archive_original_only'})
+  report=inspect(m,self.root)
+  self.assertIn('S01-P01:SOURCE_WINDOW_OUT_OF_RANGE',report['issues'])
+
+ def test_qa_reference_never_accepted_as_historical_original(self):
+  folder=self.root/'references_QA';folder.mkdir(exist_ok=True)
+  img=folder/'copie_QA.jpg';img.write_bytes((self.root/'testimage.jpg').read_bytes())
+  m=self.basic();shot=m['scenes'][0]['plans'][0]
+  shot['source']='references_QA/copie_QA.jpg';shot['sha256']=checksum(img)
+  self.assertIn('S01-P01:UNTRUSTED_OR_REJECTED_SOURCE',inspect(m,self.root)['issues'])
+
+ def test_full_private_qa_rejects_incomplete_plan_set(self):
+  m=self.basic();m['expected_plan_ids']=['S01-P01','S01-P02']
+  self.assertIn('EXPECTED_PLANS_INCOMPLETE',inspect(m,self.root)['issues'])
+  self.assertNotIn('EXPECTED_PLANS_INCOMPLETE',inspect(m,self.root,scope='S01')['issues'])
+
+ def test_exact_reuse_of_photo_requires_explicit_authorization(self):
+  m=self.basic();other=copy.deepcopy(m['scenes'][0]['plans'][0])
+  other['id']='S01-P02';m['scenes'][0]['plans'].append(other)
+  m['expected_plan_ids'].append('S01-P02')
+  self.assertIn('S01-P02:DUPLICATE_PHOTO_UNAUTHORIZED:S01-P01',inspect(m,self.root)['issues'])
+
+
+ def test_stop04_canonical_manifest_never_loses_plan_or_approved_audio(self):
+  path=Path(__file__).resolve().parents[2]/'docs/production/routes/VP-PAR-05-STOP04.unified-v2.json'
+  manifest=json.loads(path.read_text(encoding='utf-8'))
+  self.assertEqual(manifest['schema'],SCHEMA)
+  self.assertEqual(len(manifest['expected_plan_ids']),30)
+  plans=[p for scene in manifest['scenes'] if not scene.get('deleted') for p in scene.get('plans',[])]
+  self.assertEqual(len(plans),30)
+  self.assertEqual(sorted(p['id'] for p in plans),sorted(manifest['expected_plan_ids']))
+  self.assertFalse(manifest.get('final_human_approval'))
+  by_id={p['id']:p for p in plans}
+  self.assertEqual(by_id['S15-P01']['audio']['mode'],'archive_original_only')
+  self.assertEqual(by_id['S20-P02']['audio']['mode'],'archive_original_only')
+  self.assertEqual(by_id['S20-P02']['transition_out']['seconds'],1.2)
+  self.assertEqual(by_id['S07-P01']['production_blocker'],'QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED')
+  self.assertEqual(by_id['S16-P01']['production_blocker'],'QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED')
+  self.assertEqual(by_id['S12-P01']['sha256'],by_id['S23-P01']['sha256'])
+  self.assertTrue(manifest['scenes'][22]['narration_voice_pending_three_plan_sync']['path'].startswith('audio/S23_'))
+
 if __name__=='__main__':unittest.main(verbosity=2)

@@ -1,3 +1,13 @@
+## PRIORITÉ ACTIVE — STOP 04 / MISE EN SERVICE DE L'ASSEMBLEUR (16 NOVEMBRE 2026)
+
+**L'ASSEMBLEUR EXISTE : UTILISER UNIQUEMENT** `scripts/production/velvet_unified_pipeline.py` et son [contrat V2](docs/production/VELVET_UNIFIED_PIPELINE_V2.md). Interdiction de fabriquer un MP4 alternatif condensé ou de poser des sous-titres à des temps estimés. Les versions QA 1280×720 précédentes sont du diagnostic, non des bases de production. Ne pas substituer une image QA à une photographie originale.
+
+**SOURCE ACTIVE DU STOP04 :** `docs/production/routes/VP-PAR-05-STOP04.unified-v2.json`, adossée au ZIP privé Drive `STOP04_PRODUCTION_UNIFIED_V2_SOURCES_20261116.zip`. 30 plans (S13 supprimée), SHA-256 vérifiés, deux films d'époque avec audio original, huit WAV disponibles; S20→S21 = fondu approuvé de 1,2 s. Les copies S07/S16 et le doublon S12/S23 bloquent la validation de la sélection physique; 26 durées, 21 modes audio et tous les sous-titres restent à synchroniser/valider. **Jamais de déclaration FINAL sans `audit --final` et contrôle mobile réussis.**
+
+**Prochaine opération :** importer le ZIP entier dans l'espace de médias privé, remplacer exclusivement les 2 références QA, supprimer le réemploi photographique non autorisé (sans écraser les sources), compléter les durées réelles à partir des enregistrements et décisions éditoriales, aligner les sous-titres depuis les WAV approuvés, exécuter l'audit et rendre le film via V2. Ne pas demander à l'utilisateur de retrouver les 30 images. Mastodon bloqué = spool Drive conservé, pas de fausse confirmation d'ingestion.
+
+---
+
 ## 12 NOVEMBRE 2026 — ASSEMBLAGE MULTI-SCÈNES VÉRIFIÉ, PAS DE FINAL STOP04
 
 **Une seule chaîne source-first à utiliser désormais :** [moteur de gabarit](scripts/production/velvet_gabarit_maitre.py) → [assembleur image/son](scripts/production/velvet_integrated_factory.py) → [orchestrateur multi-scènes](scripts/production/velvet_scene_batch.py) → [test CI obligatoire](.github/workflows/velvet-integrated-factory-ci.yml). Pour le STOP 04, lire [le manifeste réel des 23 scènes actives et 30 plans](docs/production/workprints/STOP04_SOURCE_FIRST_23_SCENES_20261112.json). **V6/V7 rejetées et S13 supprimée**, ne pas les utiliser comme médias.
