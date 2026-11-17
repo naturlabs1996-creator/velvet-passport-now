@@ -60,4 +60,36 @@ class Tests(unittest.TestCase):
   dest=self.root/'joined.mp4';concat_with_transitions([a,b],c,dest)
   q=probe(dest);self.assertAlmostEqual(float(q['format']['duration']),1.6,delta=.19)
   self.assertEqual({s['codec_type'] for s in q['streams']},{'video','audio'})
+
+ def test_archive_first_plan_checks_its_own_window(self):
+  """Regression: an archive film as first plan must not reuse undefined d."""
+  film=self.root/'archive1s.mp4'
+  subprocess.run(['ffmpeg','-v','error','-y','-f','lavfi','-i','color=c=black:s=64x64:r=25:d=1',
+                  '-f','lavfi','-i','sine=frequency=450:duration=1','-shortest',
+                  '-c:v','mpeg4','-c:a','aac',str(film)],check=True)
+  m=self.basic();shot=m['scenes'][0]['plans'][0]
+  shot.update({'kind':'archive_film','source':film.name,'sha256':checksum(film),
+               'duration':1.4,'spoken':False,'captions':[],'audio':{'mode':'archive_original_only'},
+               'sound_mode':'archive_original_only'})
+  report=inspect(m,self.root)
+  self.assertIn('S01-P01:SOURCE_WINDOW_OUT_OF_RANGE',report['issues'])
+
+ def test_qa_reference_never_accepted_as_historical_original(self):
+  folder=self.root/'references_QA';folder.mkdir(exist_ok=True)
+  img=folder/'copie_QA.jpg';img.write_bytes((self.root/'testimage.jpg').read_bytes())
+  m=self.basic();shot=m['scenes'][0]['plans'][0]
+  shot['source']='references_QA/copie_QA.jpg';shot['sha256']=checksum(img)
+  self.assertIn('S01-P01:UNTRUSTED_OR_REJECTED_SOURCE',inspect(m,self.root)['issues'])
+
+ def test_full_private_qa_rejects_incomplete_plan_set(self):
+  m=self.basic();m['expected_plan_ids']=['S01-P01','S01-P02']
+  self.assertIn('EXPECTED_PLANS_INCOMPLETE',inspect(m,self.root)['issues'])
+  self.assertNotIn('EXPECTED_PLANS_INCOMPLETE',inspect(m,self.root,scope='S01')['issues'])
+
+ def test_exact_reuse_of_photo_requires_explicit_authorization(self):
+  m=self.basic();other=copy.deepcopy(m['scenes'][0]['plans'][0])
+  other['id']='S01-P02';m['scenes'][0]['plans'].append(other)
+  m['expected_plan_ids'].append('S01-P02')
+  self.assertIn('S01-P02:DUPLICATE_PHOTO_UNAUTHORIZED:S01-P01',inspect(m,self.root)['issues'])
+
 if __name__=='__main__':unittest.main(verbosity=2)
