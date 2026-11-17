@@ -323,14 +323,14 @@
         {
           "id": "S07-P01",
           "kind": "photo",
-          "source": "references_QA/PARIS05_STOP04_SCENE07_DEUX_PHOTOS_NOUVELLE_ARCHIVE_QA.jpg",
-          "sha256": "abe9532d85c4cb2e3420714caeeee68fbc934dca2eb2e5ad0a3b7120c1397d2c",
+          "source": "ORIGINAUX/S07-P01__INVENTAIRE_PH20748__ORIGINAL.jpg",
+          "sha256": "97851d77d35f81e44ee2ed40bd251a86b935e3ab0ed77d00aa6323f24ed8f44d",
           "spoken": true,
           "captions": [],
           "subtitle_human_verified": false,
           "timing_verified": false,
           "visual_approved": true,
-          "rights": "not_verified",
+          "rights": "cc0_verified",
           "plan_qa_pass": false,
           "duration": null,
           "audio": {
@@ -340,12 +340,31 @@
             "editorial_lock": false
           },
           "editorial_choice": "Facade et balcons du 38 avenue de l Opera",
-          "source_notice": null,
-          "source_reconciliation_status": "QA_DERIVED_REFERENCE_NOT_ARCHIVAL_ORIGINAL",
-          "file_recovery_note": "Montage de deux photographies déjà approuvé, visuel QA à remplacer seulement si original accessible",
+          "source_notice": "https://commons.wikimedia.org/wiki/File:38,_avenue_de_l%27Op%C3%A9ra,_1er_arrondissement,_Paris._PH20748.jpg",
+          "source_reconciliation_status": "MATCHED_CATALOGUE_ORIGINAL_WEB_IMAGE_RECOVERED_20261117",
+          "file_recovery_note": "Source originale telle que servie par l'institution; copie nettoyée séparée; cadrage et synchronisation non approuvés",
           "measured_voice_duration_seconds": 14.74,
           "timing_status": "VOICE_DURATION_MEASURED_BUT_PLAN_DURATION_NOT_EDITORIALLY_APPROVED",
-          "production_blocker": "QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED"
+          "production_blocker": "CADRAGE_AUDIO_SYNC_AND_RIGHTS_SIGNOFF_PENDING",
+          "source_dimensions_px": [
+            3144,
+            2098
+          ],
+          "photo_catalogue_ref": "PH20748",
+          "file_recovery_status": "RECOVERED_IN_SOURCE_PACKAGE",
+          "supplementary_original_photo": {
+            "subslot": "S07-P02",
+            "source": "ORIGINAUX/S07-P02__INVENTAIRE_1992_266__ORIGINAL.jpg",
+            "sha256": "f185b9eb3db667f0ce2a152fb9e42362d811fe1e5071b49d5f0b65c491d98e81",
+            "source_dimensions_px": [
+              1507,
+              1080
+            ],
+            "inventory_ref": "1992.266",
+            "rights": "not_verified",
+            "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/vehicules-allemands-a-gazogene-et-camoufles-gares-avenue-de-l-opera-pres"
+          },
+          "source_date": 1916
         }
       ]
     },
@@ -467,8 +486,8 @@
         {
           "id": "S12-P01",
           "kind": "photo",
-          "source": "original_package/PHOTOS_ORIGINALES/S12-P01__1000014111.jpg",
-          "sha256": "03529bb5c86c4aae0abbfe5d7248fb179f3f77ef854325152abedd771043bbb7",
+          "source": "ORIGINAUX/S12-P01__INVENTAIRE_1994_681_2__ORIGINAL.jpg",
+          "sha256": "15f790c155ddc5c750492f668e400cb405b6d060613ddb1feec0e0ea9cb9e659",
           "spoken": true,
           "captions": [],
           "subtitle_human_verified": false,
@@ -485,17 +504,18 @@
           },
           "editorial_choice": "2e DB escortant prisonniers allemands avenue Opera",
           "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/soldats-de-la-2e-division-blindee-1-ou-311iii-rmt-et-leurs-prisonniers-0",
-          "file_recovery_status": "PHYSICAL_ARCHIVE_FILE_CONFIRMED_LEGACY_REUSE_INSTITUTIONAL_MATCH_UNRESOLVED",
-          "file_recovery_note": "Source S12 physiquement presente et precedemment affectee dans archive du 10 nov, photo 1000014111 egalement utilisee pour S23. Identite institutionnelle cible Paris Musees 1994.681.2 NON demontree. Aucun LOCK final, aucun droit publie.",
+          "file_recovery_status": "RECOVERED_IN_SOURCE_PACKAGE",
+          "file_recovery_note": "Source originale telle que servie par l'institution; copie nettoyée séparée; cadrage et synchronisation non approuvés",
           "source_dimensions_px": [
-            1536,
-            1147
+            808,
+            1080
           ],
           "source_reconciliation_date": "2026-11-16",
-          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "source_reconciliation_status": "MATCHED_CATALOGUE_ORIGINAL_WEB_IMAGE_RECOVERED_20261117",
           "measured_voice_duration_seconds": 8.62,
           "timing_status": "VOICE_DURATION_MEASURED_BUT_PLAN_DURATION_NOT_EDITORIALLY_APPROVED",
-          "production_blocker": "DUPLICATE_OF_S23_P01_REQUIRES_DISTINCT_EDITORIAL_IMAGE"
+          "production_blocker": "CADRAGE_AUDIO_SYNC_AND_RIGHTS_SIGNOFF_PENDING",
+          "photo_catalogue_ref": "1994.681.2"
         }
       ]
     },
@@ -573,8 +593,8 @@
         {
           "id": "S16-P01",
           "kind": "photo",
-          "source": "references_QA/PARIS05_STOP04_SCENE16_REDDITION_PH11026_QA.jpg",
-          "sha256": "fd6ffce3aaa373ad73507f26d0bf6a71cbec5674d5f344529d1bda8cf2e764e5",
+          "source": "ORIGINAUX/S16-P01__INVENTAIRE_PH11026__ORIGINAL.jpg",
+          "sha256": "18e62232654befcf14216a1d63d181565dc2632a119a2fe2d95e1c640ba04872",
           "spoken": true,
           "captions": [],
           "subtitle_human_verified": false,
@@ -588,9 +608,15 @@
           },
           "editorial_choice": "Soldats allemands avec drapeau blanc, rue Opera",
           "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-militaires-allemands-se-rendant-avenue-et",
-          "source_reconciliation_status": "QA_DERIVED_REFERENCE_NOT_ARCHIVAL_ORIGINAL",
-          "file_recovery_note": "Image de reddition déjà retenue, fichier QA présent ; original non confirmé",
-          "production_blocker": "QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED"
+          "source_reconciliation_status": "MATCHED_CATALOGUE_ORIGINAL_WEB_IMAGE_RECOVERED_20261117",
+          "file_recovery_note": "Source originale telle que servie par l'institution; copie nettoyée séparée; cadrage et synchronisation non approuvés",
+          "production_blocker": "CADRAGE_AUDIO_SYNC_AND_RIGHTS_SIGNOFF_PENDING",
+          "source_dimensions_px": [
+            1453,
+            1080
+          ],
+          "photo_catalogue_ref": "PH11026",
+          "file_recovery_status": "RECOVERED_IN_SOURCE_PACKAGE"
         }
       ]
     },
@@ -833,8 +859,7 @@
           },
           "editorial_choice": "Soldats allemands se rendant devant Opera",
           "source_notice": null,
-          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
-          "production_blocker": "DUPLICATE_OF_S12_P01_REQUIRES_DISTINCT_EDITORIAL_IMAGE"
+          "source_reconciliation_status": "PRESERVED_DISTINCT_FROM_NEW_S12_SOURCE"
         },
         {
           "id": "S23-P02",
@@ -921,41 +946,30 @@
     }
   ],
   "master_drive_url": "https://drive.google.com/file/d/1kim5eBSjCNNUnXjG4MszMySEsbT5LJfb/view",
-  "status_note": "PRIVATE_ROUGHCUT_30_VISUAL_SLOTS_PRESENT_TWO_QA_DERIVATIVES_NOT_FINAL",
+  "status_note": "30_PLAN_SLOTS_HAVE_REAL_SOURCES; S07_HAS_TWO_PHOTOS; NO_QA_PLACEHOLDERS; FRAMING_RIGHTS_AND_SYNCHRONIZATION_PENDING",
   "reconciliation_summary": {
-    "date": "2026-11-16",
-    "plan_slots_with_source": 23,
-    "source_files_different": 22,
-    "reuse_exact_same_bytes": [
-      "S12-P01",
-      "S23-P01"
-    ],
-    "missing_source_plan_ids": [
-      "S02-P02",
-      "S06-P01",
-      "S06-P02",
-      "S07-P01",
-      "S09-P01",
-      "S16-P01",
-      "S17-P01"
-    ],
-    "photo_s12_notice_match_verified": false,
+    "date": "2026-11-17",
+    "plan_slots_with_source": 30,
+    "source_files_different": 31,
+    "reuse_exact_same_bytes": [],
+    "missing_source_plan_ids": [],
+    "photo_s12_notice_match_verified": true,
     "commercial_rights_verified": false,
     "mastodon_ingestion_verified": false,
     "final_montage_verified": false,
-    "comment": "Les 11 photos déjà reçues ne sont pas 11 sources manquantes indépendantes. Plusieurs étaient déjà dans le paquet. Les nouveaux uploads 15 novembre ont ajouté S05-P02 et une candidate S06-P02. Aucune modification des choix LOCK."
+    "comment": "Quatre images d'inventaire téléchargées: S07 deux originaux séparés, S12 Pierre Vals différent de S23, S16 LAPI. Chaque image a SHA-256, original conservé et recadrage proposé non approuvé. Pas de montage ni de publication."
   },
   "plan_slots_with_source": 30,
-  "physical_sources_unique_sha256": 23,
+  "physical_sources_unique_sha256": 31,
   "reconciliation_updated_utc": "2026-11-16",
   "substitution_notes": {
     "S06-P02": "1000014468.jpg provided by user and assigned as illustrative replacement; not the museum photograph; audio/narration must not identify unsupported exact locale or institution.",
     "S09-P01": "1000014199.jpg candidate shows half-track at Hotel de Ville, NOT confirmed Nancy on rue Saint-Jacques; not assigned.",
     "S12-P01": "1000014111.jpg reused from S23-P01, not source Pierre Vals museum artwork; do not attribute as such."
   },
-  "manifest_revision": "STOP04 production V2 — source-first reconciliation, 2026-11-16",
-  "status": "NOT_FINAL_MISSING_TIMINGS_CAPTIONS_ORIGINALS",
-  "source_package_reference": "PARIS05_STOP04_SOURCES_30_PLANS_RECONCILIES_20261116.zip",
+  "manifest_revision": "STOP04 verified archival source recovery 2026-11-17 (no video build)",
+  "status": "SOURCES_COMPLETE_PRIVATE_PREPRODUCTION_NOT_RELEASED",
+  "source_package_reference": "STOP04_SOURCES_4_PHOTOS_INTEGREES_SOURCE_FIRST_20261117.zip",
   "editorial_policies": {
     "no_new_historical_images": true,
     "preserve_originals_and_all_locked_transitions": true,
@@ -1107,5 +1121,6 @@
       "expected_plans": 1,
       "editorial_source": "STOP04_MANIFEST_UNIFIED_V2.json"
     }
-  ]
+  ],
+  "source_package_drive_url": "https://drive.google.com/file/d/1Gnn4CmHIISaJ4QnnpM3CqBe4TscwWNLS/view"
 }
