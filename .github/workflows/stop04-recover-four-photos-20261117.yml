@@ -1,0 +1,32 @@
+name: STOP04 recover four exact identified museum photos (source QA only)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - work/stop04-recover-four-exact-photos-20261117
+    paths:
+      - .github/workflows/stop04-recover-four-photos-20261117.yml
+      - scripts/production/stop04_retrieve_four_exact_photos_20261117.py
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install image QA libraries
+        run: python -m pip install requests pillow beautifulsoup4
+      - name: Fetch only museum photos with known inventory numbers
+        run: python scripts/production/stop04_retrieve_four_exact_photos_20261117.py
+      - name: Retain originals and independent clean derivatives
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stop04-four-originals-verified-20261117
+          path: output/*
+          if-no-files-found: warn
+          retention-days: 21
