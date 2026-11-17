@@ -1,0 +1,67 @@
+{
+  "id": "PARIS05-STOP04-EIGHT-EDL-VOICES-2026-11-17",
+  "source": "PARIS05_STOP04_ETAPE_01_TEXTES_NARRATION_20261116.zip — eight original EDL .txt documents",
+  "status": "SOURCE_TEXT_EXACT_TTS_PENDING_HUMAN_LISTENING",
+  "voice_reference": "developer-1.mp3",
+  "tts": {
+    "engine": "ChatterboxMultilingualTTS",
+    "t3_model": "v3",
+    "language_id": "fr",
+    "exaggeration": 0.72,
+    "cfg_weight": 0.3,
+    "temperature": 0.8,
+    "pause_ms": 420,
+    "tempo": 1,
+    "digital_time_stretch": false
+  },
+  "scenes": [
+    {
+      "id": "S05",
+      "text": "La perspective d'une avenue. C'est exactement le même quartier. Mais ce n'est plus le même monde. Le lendemain, le 20 août, la tension se traduit par une mort. Deux policiers français se trouvent dans le secteur. Ils s'appellent Michel Guillois et Pierre Gormond. Guillois participe à la diffusion d'un ordre ou d'un message concernant un cessez-le-feu.",
+      "original_source": "S05_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    },
+    {
+      "id": "S06",
+      "text": "Le contexte est confus. Dans Paris insurgé, plusieurs tentatives de trêve ou d'arrangement cherchent à éviter des combats supplémentaires, mais elles ne rendent pas toutes les positions sûres. Au voisinage de la Kommandantur, des coups de feu éclatent.",
+      "original_source": "S06_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    },
+    {
+      "id": "S08",
+      "text": "Michel Guillois est atteint. Il meurt. Pierre Gormond est blessé à la jambe par deux balles, selon le récit conservé. Cela se passe cinq jours avant la Libération de Paris. Regardez les fenêtres autour de vous. Pour les policiers qui circulaient ici, cette architecture monumentale n'offrait aucune protection particulière. Une position allemande pouvait encore ouvrir le feu. Un trajet dans une rue connue pouvait devenir mortel.",
+      "original_source": "S08_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    },
+    {
+      "id": "S09",
+      "text": "Ces événements expliquent pourquoi il serait trompeur de raconter uniquement la prise de la Kommandantur du 25 août. Le combat final a été précédé de journées d'affrontements, d'incertitudes et de victimes. Le Palais Garnier n'a pas attendu l'arrivée des blindés français pour se retrouver au cœur de la guerre. Nous avançons maintenant de quelques jours. Le 24 août au soir, des éléments avancés de la 2e Division blindée, commandée par le Général Philippe Leclerc, entrent dans Paris.",
+      "original_source": "S09_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    },
+    {
+      "id": "S10",
+      "text": "Le 25 août, d'autres unités progressent dans la capitale. Les résistants, les policiers insurgés et les soldats français reprennent différentes positions. Mais la présence de forces allemandes n'a pas disparu d'un coup. Chaque point de résistance peut nécessiter une intervention. Le secteur de l'Opéra en fait partie. Nous sommes le 25 août.",
+      "original_source": "S10_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    },
+    {
+      "id": "S11",
+      "text": "Au milieu de l'après-midi, des éléments français passent à l'attaque contre la Kommandantur. Parmi les unités engagées se trouve la 11e compagnie du troisième bataillon du Régiment de marche du Tchad. Ce nom peut sembler technique. Mais le Régiment de marche du Tchad fait partie des formations qui accompagnent la 2e Division blindée dans sa progression.",
+      "original_source": "S11_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    },
+    {
+      "id": "S17",
+      "text": "Autour d'eux se mêlent soldats français, résistants et civils. Quelques instants ou quelques heures plus tôt, les hommes de cette position représentaient une force d'occupation encore armée.",
+      "original_source": "S17_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    },
+    {
+      "id": "S22",
+      "text": "Prenez quelques secondes pour regarder l'Opéra. Son architecture semble faite pour durer. Elle avait survécu à la chute du Second Empire, sous lequel le chantier avait été lancé. Elle avait vu défiler les transformations du quartier. Puis l'Occupation. Et enfin ces journées d'août 1944. Il y a une dernière chose à faire ici.",
+      "original_source": "S22_TEXTE_SOURCE_EDL_NON_REENREGISTRE.txt",
+      "quality": "EDL_TEXT_UNALTERED_VOICE_NEEDS_LISTENING"
+    }
+  ]
+}
