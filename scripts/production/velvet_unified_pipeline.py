@@ -21,7 +21,7 @@ W,H,FPS=1920,1080,25
 BAND=220
 SCHEMA='velvet-unified-av/v2'
 TEMPLATE='velvet-master-frame/v1'
-BANNED=re.compile(r'(?:rejete|rejeté|_v6_qa|_v7_qa|stop04[_-]v[67]|assemblage_qa|sous_titres_grands_v7)',re.I)
+BANNED=re.compile(r'(?:rejete|rejeté|_v6_qa|_v7_qa|stop04[_-]v[67]|assemblage_qa|sous_titres_grands_v7|(?:^|[\\/])references_QA[\\/])',re.I)
 
 
 def sha(path):
@@ -64,6 +64,7 @@ def inspect(manifest,root,final=False,scope=None):
  for scene,shot in entries(manifest):
   if scope and scene['id']!=scope:continue
   sid=shot.get('id','?');ids.append(sid);problems=[]
+  d=shot.get('duration') # Read THIS plan's duration before probing archive footage
   kind=shot.get('kind')
   if kind not in ('photo','archive_film'):problems.append('INVALID_MEDIA_TYPE')
   src=shot.get('source')
@@ -82,7 +83,7 @@ def inspect(manifest,root,final=False,scope=None):
      if kind=='archive_film':
       q=probe(p)
       if not any(s['codec_type']=='video' for s in q['streams']):problems.append('NO_ARCHIVE_VIDEO')
-      if shot.get('sound_mode')=='archive_original_only' and not any(s['codec_type']=='audio' for s in q['streams']):problems.append('NO_ARCHIVE_AUDIO')
+      if (shot.get('sound_mode')=='archive_original_only' or (shot.get('audio') or {}).get('mode')=='archive_original_only') and not any(s['codec_type']=='audio' for s in q['streams']):problems.append('NO_ARCHIVE_AUDIO')
       if d is not None and float(shot.get('source_in',0))+float(d)>float(q['format']['duration'])+.10:problems.append('SOURCE_WINDOW_OUT_OF_RANGE')
    except (ValueError,RuntimeError) as e:problems.append('SOURCE_ERROR:'+str(e)[:90])
   if final and shot.get('rights')!='cleared_commercial':problems.append('RIGHTS_NOT_CLEARED')
@@ -137,6 +138,9 @@ def inspect(manifest,root,final=False,scope=None):
    else:warnings.append(sid+':'+x)
  if scope and not visible:issues.append('SCENE_NOT_FOUND:'+scope)
  if len(ids)!=len(set(ids)):issues.append('DUPLICATE_PLAN_IDS')
+ # A full private QA must never silently omit plans. Scoped scene previews are allowed.
+ if not scope and manifest.get('expected_plan_ids') and sorted(ids)!=sorted(manifest['expected_plan_ids']):
+  issues.append('EXPECTED_PLANS_INCOMPLETE')
  if final:
   exp=manifest.get('expected_plan_ids',[])
   if scope:issues.append('FINAL_MUST_BE_COMPLETE_ROUTE')
