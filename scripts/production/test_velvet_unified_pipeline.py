@@ -106,9 +106,17 @@ class Tests(unittest.TestCase):
   self.assertEqual(by_id['S15-P01']['audio']['mode'],'archive_original_only')
   self.assertEqual(by_id['S20-P02']['audio']['mode'],'archive_original_only')
   self.assertEqual(by_id['S20-P02']['transition_out']['seconds'],1.2)
-  self.assertEqual(by_id['S07-P01']['production_blocker'],'QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED')
-  self.assertEqual(by_id['S16-P01']['production_blocker'],'QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED')
-  self.assertEqual(by_id['S12-P01']['sha256'],by_id['S23-P01']['sha256'])
+  # A recovered source must replace old QA imagery and the old S12/S23 duplicate.
+  for plan_id in ('S07-P01','S12-P01','S16-P01'):
+   self.assertEqual(by_id[plan_id]['source_reconciliation_status'],'MATCHED_CATALOGUE_ORIGINAL_WEB_IMAGE_RECOVERED_20261117')
+   self.assertNotIn('QA',by_id[plan_id]['source'].upper())
+   self.assertFalse(by_id[plan_id]['plan_qa_pass'])
+  self.assertNotEqual(by_id['S12-P01']['sha256'],by_id['S23-P01']['sha256'])
+  s07extra=by_id['S07-P01']['supplementary_original_photo']
+  self.assertEqual(s07extra['subslot'],'S07-P02')
+  self.assertNotEqual(s07extra['sha256'],by_id['S07-P01']['sha256'])
+  self.assertFalse(manifest['release_requested'])
+  self.assertFalse(manifest['rights_signoff'])
   self.assertTrue(manifest['scenes'][22]['narration_voice_pending_three_plan_sync']['path'].startswith('audio/S23_'))
 
 if __name__=='__main__':unittest.main(verbosity=2)
