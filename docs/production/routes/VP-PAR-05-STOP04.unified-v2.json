@@ -1,0 +1,971 @@
+{
+  "schema": "velvet-unified-av/v2",
+  "global_video_template": "velvet-master-frame/v1",
+  "route_id": "VP-PAR-05-STOP04",
+  "stop_id": "STOP04",
+  "pilot": "SOURCE_FIRST_PRIVATE_EDIT_NO_FINAL_QA",
+  "expected_plan_ids": [
+    "S01-P01",
+    "S02-P01",
+    "S02-P02",
+    "S03-P01",
+    "S03-P02",
+    "S04-P01",
+    "S05-P01",
+    "S05-P02",
+    "S06-P01",
+    "S06-P02",
+    "S07-P01",
+    "S08-P01",
+    "S09-P01",
+    "S10-P01",
+    "S11-P01",
+    "S12-P01",
+    "S14-P01",
+    "S15-P01",
+    "S16-P01",
+    "S17-P01",
+    "S18-P01",
+    "S19-P01",
+    "S20-P01",
+    "S20-P02",
+    "S21-P01",
+    "S22-P01",
+    "S23-P01",
+    "S23-P02",
+    "S23-P03",
+    "S24-P01"
+  ],
+  "release_requested": false,
+  "final_human_approval": false,
+  "rights_signoff": false,
+  "mobile_qa_passed": false,
+  "full_narration_qc_passed": false,
+  "subtitle_qa_passed": false,
+  "scenes": [
+    {
+      "id": "S01",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S01-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S01-P01__1000013608.jpg",
+          "sha256": "203dc2806f9af436c25cb40a14aebc7b7ab4a3b3332376148a7a2fc01220ce9c",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Palais Garnier, ouverture",
+          "source_notice": "Historical photochrome Palais Garnier (Paris, L’Opéra); institution attribution to be rechecked from exact user file; do not claim licensing",
+          "source_dimensions_px": [
+            1536,
+            1122
+          ],
+          "source_reconciliation_date": "2026-11-15",
+          "source_provenance": "User-provided photochrome photographed Palais Garnier, file 1000013608.jpg",
+          "file_recovery_status": "USER_UPLOADED_BYTES_VERIFIED",
+          "file_recovery_note": "User explicitly identifies this image as S01. Preserved full image, no crop or transform.",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S02-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S02-P01__1000014015.jpg",
+          "sha256": "c1c317088ebd488326c7725c87585bf8e02b2adec5c2039c331512d45224917e",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Kommandantur 1, AP vers 1940",
+          "source_notice": null,
+          "file_recovery_status": "SOURCE_BYTES_RECOVERED_VISUAL_MATCH_TO_PREVIOUS_QA",
+          "file_recovery_note": "Correspondance visuelle avec PARIS05_STOP04_SCENE02_IMAGE.jpg; image rights & final visual approval not independently completed",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        },
+        {
+          "id": "S02-P02",
+          "kind": "photo",
+          "source": "AJOUTS_ORIGINAUX_UTILISATEUR/S02-P02__STOP04_S02-P02_defile_Garnier_sans_cadre_original.jpg",
+          "sha256": "a5e17e9fc075dc86babb6e18cc707fa5fe66b137be4bc13380b4ad95dd73d339",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Défilé allemand devant le Palais Garnier",
+          "source_notice": null,
+          "source_reconciliation_status": "SOURCE_UTILISATEUR_RECADRAGE_CADRE_SUPPRIME"
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S03-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S03-P01__S03_COMBATTANT_BARRICADE_ORIGINAL_UTILISATEUR.jpg",
+          "sha256": "7437c6b41a9dce88a689e71ffefd4c89226c997fe322aaf8bd016dce7f3b8f3a",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Combattant derriere barricade, photo de l utilisateur",
+          "source_notice": null,
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        },
+        {
+          "id": "S03-P02",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S03-P02__1000014207.jpg",
+          "sha256": "e8e25a00dd5c87abf001f4a869701b56f69a7084fdb8659216ee8deb97c511d3",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Barricade place de Chateaudun, LAPI PH25214",
+          "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-22-25-aout-1944-barricade-devant-le-siege-social-du",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S04-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S04-P01__1000014206.jpg",
+          "sha256": "3b0d2c0869b3fa0e4a2f10960820490e5c873b207a59ae146107c71539152adf",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Soldats/vehicules allemands place de l Opera, Andre Gandner 1992.124",
+          "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/place-de-l-opera-passants-soldats-et-vehicules-allemands-camoufles-devant",
+          "source_ingested": true,
+          "source_reconciliation_date": "2026-11-13",
+          "source_provenance": "user_2026-11-10_original_upload",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S05-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S05-P01__1000014205.jpg",
+          "sha256": "3b5e247deea5402ebce6d5db80e95b32acabf2f030489f2315965dafa82710b2",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "source_provenance_and_commercial_rights_not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Avenue Opera 21 aout, voiture avec haut-parleur",
+          "source_notice": null,
+          "source_reconciliation_date": "2026-11-15",
+          "source_dimensions_px": [
+            1536,
+            1521
+          ],
+          "source_provenance": "original_user_upload_1000014205.jpg",
+          "file_recovery_status": "USER_SUPPLIED_MATCHES_LOCKED_VISUAL_DESCRIPTION",
+          "file_recovery_note": "La voiture avec dispositif de haut-parleur, passants et Palais Garnier en arrière-plan correspond aux détails du choix LOCK dans MASTER éditorial. Date précise du 21 août et provenance AFP non vérifiées indépendamment; QA de diffusion et droits en attente.",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        },
+        {
+          "id": "S05-P02",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S05-P02__1000014470.jpg",
+          "sha256": "d557039addef2fbde86bdea48235c65bffa1bf89336f329c2fb197fed670bd2e",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Renault Defense passive avec haut-parleur rue Saint-Martin",
+          "source_notice": null,
+          "source_dimensions_px": [
+            1536,
+            1100
+          ],
+          "source_reconciliation_date": "2026-11-15",
+          "source_provenance": "Photo directement transmise par l'utilisateur 1000014470.jpg, Renault de Défense passive avec haut-parleur",
+          "file_recovery_status": "USER_SUPPLIED_SUBJECT_MATCH_PENDING_LOCALIZATION_AND_RIGHTS",
+          "file_recovery_note": "Visuel correspond au choix éditorial Renault Défense passive avec haut-parleur. Emplacement rue Saint-Martin, attribution, date et droits commerciaux à confirmer. Fichier original non modifié.",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S06-P01",
+          "kind": "photo",
+          "source": "AJOUTS_ORIGINAUX_UTILISATEUR/S06-P01__1000014491.jpg",
+          "sha256": "a6c2cb9bb3b2439481928f164e0c8b9e98980e8479cecaa1d6d91dcabc754ecd",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Barricade, portrait d'Hitler, emplacement non confirmé",
+          "source_notice": "https://www.galerie-roger-viollet.fr/en/photo-world-war-ii-liberation-of-paris-barricades-1014671-774238414",
+          "source_reconciliation_status": "SOURCE_UTILISATEUR_SUBSTITUTION_APPROUVEE_LIEU_NON_CONFIRME"
+        },
+        {
+          "id": "S06-P02",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S06-P02__1000014468_SUBSTITUTION_UTILISATEUR.jpg",
+          "sha256": "bc3285ecbe98a94b48a2a5b93d9b32892195e92fb762871f9ffb777247a9eb6e",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Hommes en position de tir derrière un parapet (photographie utilisateur de substitution)",
+          "source_notice": "Photographie originale transmise par utilisateur 1000014468.jpg; provenance institutionnelle non établie; image illustrant des hommes en position de tir derrière un parapet; ne pas identifier comme Paris Musées 1990.328",
+          "file_recovery_status": "SUBSTITUTION_PHOTO_UTILISATEUR_INTEGREE_MONTAGE_PRIVE",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S07-P01",
+          "kind": "photo",
+          "source": "references_QA/PARIS05_STOP04_SCENE07_DEUX_PHOTOS_NOUVELLE_ARCHIVE_QA.jpg",
+          "sha256": "abe9532d85c4cb2e3420714caeeee68fbc934dca2eb2e5ad0a3b7120c1397d2c",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": "voice",
+            "path": "audio/S07_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+            "sha256": "ef4f8bd803ed009576b72f038be0a0d0ecf0bee0e0a336653c04e131ddad8243",
+            "editorial_lock": false
+          },
+          "editorial_choice": "Facade et balcons du 38 avenue de l Opera",
+          "source_notice": null,
+          "source_reconciliation_status": "QA_DERIVED_REFERENCE_NOT_ARCHIVAL_ORIGINAL",
+          "file_recovery_note": "Montage de deux photographies déjà approuvé, visuel QA à remplacer seulement si original accessible",
+          "measured_voice_duration_seconds": 14.74,
+          "timing_status": "VOICE_DURATION_MEASURED_BUT_PLAN_DURATION_NOT_EDITORIALLY_APPROVED",
+          "production_blocker": "QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED"
+        }
+      ]
+    },
+    {
+      "id": "S08",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S08-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S08-P01__1000014088.png",
+          "sha256": "df3213bb1d93014b0749e9984a4c4ede5a4a90c8a1402d45b8b6e278189fbb90",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Plaque commemorative de Michel Guillois SEULE",
+          "source_notice": null,
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S09",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S09-P01",
+          "kind": "photo",
+          "source": "AJOUTS_ORIGINAUX_UTILISATEUR/S09-P01__1000014476.jpg",
+          "sha256": "9396c18872873df26f893e4982ad97aae184f388d7483cb4d7c930ce3a74d487",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Véhicule semi-chenillé et fumée près du Palais Garnier",
+          "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/half-track-nancy-de-la-2e-db-suivi-d-un-deuxieme-semi-chenille-et-d-un",
+          "source_reconciliation_status": "SOURCE_UTILISATEUR_APPROUVEE"
+        }
+      ]
+    },
+    {
+      "id": "S10",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S10-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S10-P01__1000014203.jpg",
+          "sha256": "24c41c25aba5af112740034b5a5bf7364558b3d4e14f67885536b74d9f0393df",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Resistance derriere Jeep",
+          "source_notice": "https://www.icp.org/browse/archive/objects/french-civilians-and-members-of-the-resistance-helping-the-french-troops-root",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S11-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S11-P01__1000014065.jpg",
+          "sha256": "25ab3112692161a8b522ec8f7e4550710eb2bd6257094f7db912f0ee2f1dcd05",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Half-track devant Garnier, fumee avenue",
+          "source_notice": "https://parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/photo-lapi-ndeg-28403-attaque-de-la-kommandantur-par-la-11iii-rmt-un-half",
+          "file_recovery_status": "SOURCE_BYTES_RECOVERED_VISUAL_MATCH_TO_PREVIOUS_QA",
+          "file_recovery_note": "Correspondance visuelle avec PARIS05_STOP04_SCENE11_OPERA_ASSAUT_1944_RECADRE_QA.jpg; image rights & final visual approval not independently completed",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S12-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S12-P01__1000014111.jpg",
+          "sha256": "03529bb5c86c4aae0abbfe5d7248fb179f3f77ef854325152abedd771043bbb7",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": "voice",
+            "path": "audio/S12_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+            "sha256": "e75438f52af8b894fe8d0bb4a5452ba749fde8a93c930c7dba69cdd51f5ead2c",
+            "editorial_lock": false
+          },
+          "editorial_choice": "2e DB escortant prisonniers allemands avenue Opera",
+          "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/soldats-de-la-2e-division-blindee-1-ou-311iii-rmt-et-leurs-prisonniers-0",
+          "file_recovery_status": "PHYSICAL_ARCHIVE_FILE_CONFIRMED_LEGACY_REUSE_INSTITUTIONAL_MATCH_UNRESOLVED",
+          "file_recovery_note": "Source S12 physiquement presente et precedemment affectee dans archive du 10 nov, photo 1000014111 egalement utilisee pour S23. Identite institutionnelle cible Paris Musees 1994.681.2 NON demontree. Aucun LOCK final, aucun droit publie.",
+          "source_dimensions_px": [
+            1536,
+            1147
+          ],
+          "source_reconciliation_date": "2026-11-16",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "measured_voice_duration_seconds": 8.62,
+          "timing_status": "VOICE_DURATION_MEASURED_BUT_PLAN_DURATION_NOT_EDITORIALLY_APPROVED",
+          "production_blocker": "DUPLICATE_OF_S23_P01_REQUIRES_DISTINCT_EDITORIAL_IMAGE"
+        }
+      ]
+    },
+    {
+      "id": "S13",
+      "deleted": true,
+      "editorial_status": "SUPPRIMEE_LOCK",
+      "plans": []
+    },
+    {
+      "id": "S14",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S14-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S14-P01__1000014201.jpg",
+          "sha256": "c9d8f5b8772bb17a31460bc78a341437df677620047eea38adae365025312656",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": "voice",
+            "path": "audio/S14_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+            "sha256": "266aa3231c2f1024b4ec30add1d3182537d2734818126aa031ba6a6e80648e20",
+            "editorial_lock": false
+          },
+          "editorial_choice": "Blindes et fumee devant PERRIN, Opera au fond",
+          "source_notice": "https://www.upi.com/Top_News/2024/08/25/On-This-Day-Paris-liberated-from-German-occupation-in-WWII/3321724552476/",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "measured_voice_duration_seconds": 5.36,
+          "timing_status": "VOICE_DURATION_MEASURED_BUT_PLAN_DURATION_NOT_EDITORIALLY_APPROVED"
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "deleted": false,
+      "editorial_status": "FILM_LOCK",
+      "plans": [
+        {
+          "id": "S15-P01",
+          "kind": "archive_film",
+          "source": "original_package/FILMS_1944_SOURCE/S15_ARCHIVE_1944_SOURCE_19m20_19m50_AUDIO_ORIGINAL.mp4",
+          "sha256": "63c49f0dc5b61f97f869f5d6f55c20abb11e05e7d4ab1750b1bfde5c705ae0ae",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": 30.0,
+          "audio": {
+            "mode": "archive_original_only"
+          },
+          "editorial_choice": "La Libération de Paris (1944), 19:20–19:50",
+          "source_notice": "https://commons.wikimedia.org/wiki/File:La_Lib%C3%A9ration_de_Paris,_1944.ogv",
+          "sound_mode": "archive_original_only",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S16",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S16-P01",
+          "kind": "photo",
+          "source": "references_QA/PARIS05_STOP04_SCENE16_REDDITION_PH11026_QA.jpg",
+          "sha256": "fd6ffce3aaa373ad73507f26d0bf6a71cbec5674d5f344529d1bda8cf2e764e5",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Soldats allemands avec drapeau blanc, rue Opera",
+          "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-militaires-allemands-se-rendant-avenue-et",
+          "source_reconciliation_status": "QA_DERIVED_REFERENCE_NOT_ARCHIVAL_ORIGINAL",
+          "file_recovery_note": "Image de reddition déjà retenue, fichier QA présent ; original non confirmé",
+          "production_blocker": "QA_IMAGE_ONLY_ARCHIVAL_ORIGINAL_REQUIRED"
+        }
+      ]
+    },
+    {
+      "id": "S17",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S17-P01",
+          "kind": "photo",
+          "source": "AJOUTS_ORIGINAUX_UTILISATEUR/S17-P01__1000014466.jpg",
+          "sha256": "03f6555c22b8c3b18d35d2eb8f66d98eca4768d63bfe1e67b0d377eaf0a1c2e8",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Prisonniers allemands mains levées",
+          "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/colonne-de-prisonniers-allemands-heer-et-waffen-ss-encadree-par-des",
+          "source_reconciliation_status": "SOURCE_UTILISATEUR_APPROUVEE"
+        }
+      ]
+    },
+    {
+      "id": "S18",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S18-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S18-P01__1000014200.jpg",
+          "sha256": "77b35c2c18399630d48795c39296ea0d17b371e7d8e5d4fb0c2198015c66d541",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": "voice",
+            "path": "audio/S18_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+            "sha256": "c28a90243e9f32e91fa6ed7bda8dafc00d83928c022d2c46c65f315dae28e7c1",
+            "editorial_lock": false
+          },
+          "editorial_choice": "Prisonniers mains levees place Opera et bd Capucines",
+          "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/place-de-l-opera-a-l-angle-avec-le-boulevard-des-capucines-prisonniers",
+          "source_ingested": true,
+          "source_reconciliation_date": "2026-11-13",
+          "source_provenance": "user_2026-11-10_original_upload",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "measured_voice_duration_seconds": 8.9,
+          "timing_status": "VOICE_DURATION_MEASURED_BUT_PLAN_DURATION_NOT_EDITORIALLY_APPROVED"
+        }
+      ]
+    },
+    {
+      "id": "S19",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S19-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S19-P01__1000013520.jpg",
+          "sha256": "9638a8b402e8e80230ca202594e6884b0a4afcf3ec7c818bd343eda651321532",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Retrait banderole Kommandantur balcon",
+          "source_notice": "https://parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-apres-la-capitulation-de-la-kommandantur",
+          "source_file_link": "https://drive.google.com/file/d/14QuRIc5jZshlJ1u4oI7jlahfpOsJTyXg/view",
+          "source_note": "Photo utilisateur complète du même tirage que l’image QA S19; droits de diffusion non validés, Mastodon en attente ingestion.",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S20",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S20-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S20-P01__1000014089.jpg",
+          "sha256": "7981ea61c7ecfd35afa30cb2741006e1e72facd6a403fab10d2d9c58f5980dc3",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": 5.4,
+          "audio": {
+            "mode": "voice",
+            "path": "audio/S20_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+            "sha256": "c2b5d27c5097b0ccd1eb8bf37da0154e99bdf954961e12c0c38fbd8e20e567ac",
+            "offset": 0.35,
+            "editorial_lock": true
+          },
+          "editorial_choice": "FFI tombe, scene initiale",
+          "source_notice": null,
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        },
+        {
+          "id": "S20-P02",
+          "kind": "archive_film",
+          "source": "original_package/FILMS_1944_SOURCE/S20_ARCHIVE_1944_SOURCE_12m36_12m52_AUDIO_ORIGINAL.mp4",
+          "sha256": "93446737938ec3547e242bd0379db69df01d0d5b198d75818d85ac1722f4cd75",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": 16.0,
+          "audio": {
+            "mode": "archive_original_only"
+          },
+          "editorial_choice": "Documentaire S20 16 s",
+          "source_notice": null,
+          "sound_mode": "archive_original_only",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "transition_out": {
+            "type": "crossfade",
+            "seconds": 1.2,
+            "editorial_lock": true,
+            "decision": "Raccord 20→21 approuvé"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S21",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S21-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S21-P01__1000014107.jpg",
+          "sha256": "f65142bf6974c5a2a908614d206772306783474ac1a8c9c3cd735c4ec3d67ebc",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": "voice",
+            "path": "audio/S21_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+            "sha256": "f014f9999b1ab3af3f0de47adcacaf829bde46b9265b45cfde7d6661744e22cb",
+            "editorial_lock": false
+          },
+          "editorial_choice": "Foule devant Palais Garnier et Grand Hotel",
+          "source_notice": null,
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "measured_voice_duration_seconds": 17.6,
+          "timing_status": "VOICE_DURATION_MEASURED_BUT_PLAN_DURATION_NOT_EDITORIALLY_APPROVED"
+        }
+      ]
+    },
+    {
+      "id": "S22",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S22-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S22-P01__1000014367.jpg",
+          "sha256": "e880046c89a0b884ccca92275ecbadb7a21f3fa9adf44775d6e60a224e868326",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "attribution_and_licence_compliance_pending",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Palais Garnier contemporain",
+          "source_notice": null,
+          "source_reconciliation_date": "2026-11-14",
+          "source_provenance": "original_user_upload_1000014367.jpg",
+          "source_dimensions_px": [
+            1536,
+            864
+          ],
+          "file_recovery_status": "USER_UPLOADED_IMAGE_BYTES_VERIFIED",
+          "file_recovery_note": "Cliché identique en contenu au rendu QA S22 2017 comparé; fichier transmis 1536x864, non la version Wikimedia 4128x2322. Conserver intact; vérifier crédits et conditions de licence avant diffusion.",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ]
+    },
+    {
+      "id": "S23",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S23-P01",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S23-P01__1000014111.jpg",
+          "sha256": "03529bb5c86c4aae0abbfe5d7248fb179f3f77ef854325152abedd771043bbb7",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Soldats allemands se rendant devant Opera",
+          "source_notice": null,
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "production_blocker": "DUPLICATE_OF_S12_P01_REQUIRES_DISTINCT_EDITORIAL_IMAGE"
+        },
+        {
+          "id": "S23-P02",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S23-P02__1000014110.jpg",
+          "sha256": "b92d7ef5e52a711ca1bb2d2e4d55d39bf570e709fadced4d125681f703745008",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Foule avec grand drapeau allemand au sol/leve devant Garnier",
+          "source_notice": null,
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        },
+        {
+          "id": "S23-P03",
+          "kind": "photo",
+          "source": "original_package/PHOTOS_ORIGINALES/S23-P03__1000014113.jpg",
+          "sha256": "652eb5a9ecc7a74ff84decfb0b53c61627496efe2f849684969fcac4f59d7981",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": true,
+          "rights": "not_verified",
+          "plan_qa_pass": false,
+          "duration": null,
+          "audio": {
+            "mode": null
+          },
+          "editorial_choice": "Demontage des panneaux allemands devant Garnier",
+          "source_notice": null,
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED"
+        }
+      ],
+      "narration_voice_pending_three_plan_sync": {
+        "mode": "voice",
+        "path": "audio/S23_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+        "sha256": "5c0056af18c0b84840efad0352d1584168e6548f0c18aad31ffc6341bfe19512",
+        "voice_duration_measured_seconds": 20.88,
+        "editorial_lock": false,
+        "status": "WAV_PRESENT_TRANSCRIPT_ALIGNMENT_PENDING"
+      }
+    },
+    {
+      "id": "S24",
+      "deleted": false,
+      "editorial_status": "PHOTO_SELECTION_LOCK_MONTAGE_INCOMPLET",
+      "plans": [
+        {
+          "id": "S24-P01",
+          "kind": "photo",
+          "source": "original_package/GRAPHICS_PRODUCTION/S24-P01_CARTON_TRANSITION_1944_1652_SOURCE_PIL.png",
+          "sha256": "600f8720890396f75e0c010ce7f03a33fec9a571e63812968ab8672e59231bad",
+          "spoken": true,
+          "captions": [],
+          "subtitle_human_verified": false,
+          "timing_verified": false,
+          "visual_approved": false,
+          "rights": "graphic_created_internally",
+          "plan_qa_pass": false,
+          "duration": 27.38,
+          "audio": {
+            "mode": "voice",
+            "path": "audio/S24_CHATTERBOX_V3_NATIVE100_T1_QA.wav",
+            "sha256": "c9823f85fc6e813184c378ebf9c7023dd1c0268bf0b39aaeb123cfe99b107e3a",
+            "editorial_lock": false
+          },
+          "editorial_choice": "Carton DE 1944 A 1652",
+          "source_notice": null,
+          "source_recovery_status": "EDITORIAL_GRAPHIC_RECREATED_USING_PRIOR_APPROVED_QA_REFERENCE_VISUAL_REVIEW_PENDING",
+          "source_recovery_note": "Newly generated graphic from prior QA card, NOT extracted from rejected MP4. No archival photo. Subtitles and voice listening not signed off.",
+          "source_reconciliation_status": "EXISTING_SOURCE_PRESERVED",
+          "measured_voice_duration_seconds": 27.38
+        }
+      ]
+    }
+  ],
+  "master_drive_url": "https://drive.google.com/file/d/1kim5eBSjCNNUnXjG4MszMySEsbT5LJfb/view",
+  "status_note": "PRIVATE_ROUGHCUT_30_VISUAL_SLOTS_PRESENT_TWO_QA_DERIVATIVES_NOT_FINAL",
+  "reconciliation_summary": {
+    "date": "2026-11-16",
+    "plan_slots_with_source": 23,
+    "source_files_different": 22,
+    "reuse_exact_same_bytes": [
+      "S12-P01",
+      "S23-P01"
+    ],
+    "missing_source_plan_ids": [
+      "S02-P02",
+      "S06-P01",
+      "S06-P02",
+      "S07-P01",
+      "S09-P01",
+      "S16-P01",
+      "S17-P01"
+    ],
+    "photo_s12_notice_match_verified": false,
+    "commercial_rights_verified": false,
+    "mastodon_ingestion_verified": false,
+    "final_montage_verified": false,
+    "comment": "Les 11 photos déjà reçues ne sont pas 11 sources manquantes indépendantes. Plusieurs étaient déjà dans le paquet. Les nouveaux uploads 15 novembre ont ajouté S05-P02 et une candidate S06-P02. Aucune modification des choix LOCK."
+  },
+  "plan_slots_with_source": 30,
+  "physical_sources_unique_sha256": 23,
+  "reconciliation_updated_utc": "2026-11-16",
+  "substitution_notes": {
+    "S06-P02": "1000014468.jpg provided by user and assigned as illustrative replacement; not the museum photograph; audio/narration must not identify unsupported exact locale or institution.",
+    "S09-P01": "1000014199.jpg candidate shows half-track at Hotel de Ville, NOT confirmed Nancy on rue Saint-Jacques; not assigned.",
+    "S12-P01": "1000014111.jpg reused from S23-P01, not source Pierre Vals museum artwork; do not attribute as such."
+  },
+  "manifest_revision": "STOP04 production V2 — source-first reconciliation, 2026-11-16",
+  "status": "NOT_FINAL_MISSING_TIMINGS_CAPTIONS_ORIGINALS",
+  "source_package_reference": "PARIS05_STOP04_SOURCES_30_PLANS_RECONCILIES_20261116.zip",
+  "editorial_policies": {
+    "no_new_historical_images": true,
+    "preserve_originals_and_all_locked_transitions": true,
+    "never_use_qa_reference_as_a_source": true,
+    "no_estimated_subtitle_timings": true,
+    "archive_original_audio_only": [
+      "S15-P01",
+      "S20-P02"
+    ],
+    "no_manual_compacted_7_second_timeline": true,
+    "image_selection_approved_not_equivalent_to_visual_quality_control": true
+  }
+}
