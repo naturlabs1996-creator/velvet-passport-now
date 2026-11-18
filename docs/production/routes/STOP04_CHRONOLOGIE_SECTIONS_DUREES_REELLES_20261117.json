@@ -1,0 +1,316 @@
+{
+  "schema": "stop04-voice-anchored-edit-decision-list/v1",
+  "full_film_absolute_timings_approved": false,
+  "absolute_sections_have_unknown_gaps": [
+    "S01-S04 legacy 78.72s combined, no approved scene boundaries",
+    "S16 no approved French voice",
+    "S19 no approved French voice"
+  ],
+  "S20_to_S21_fade_seconds": 1.2,
+  "sections": [
+    {
+      "section": 1,
+      "scene_span": "S05-S15",
+      "known_duration_seconds": 193.1,
+      "offset_origin": "RELATIVE_TO_SECTION_START_NOT_FULL_FILM",
+      "scenes": [
+        {
+          "scene": "S05",
+          "t_start": 0,
+          "t_end": 23.32,
+          "duration_seconds": 23.32,
+          "plans": [
+            {
+              "id": "S05-P01",
+              "t_start": 0,
+              "t_end": 11.42,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            },
+            {
+              "id": "S05-P02",
+              "t_start": 11.42,
+              "t_end": 23.32,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_CUT_CUES_UNVERIFIED"
+        },
+        {
+          "scene": "S06",
+          "t_start": 23.32,
+          "t_end": 37.88,
+          "duration_seconds": 14.56,
+          "plans": [
+            {
+              "id": "S06-P01",
+              "t_start": 23.32,
+              "t_end": 34.04,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            },
+            {
+              "id": "S06-P02",
+              "t_start": 34.04,
+              "t_end": 37.88,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_CUT_CUES_UNVERIFIED"
+        },
+        {
+          "scene": "S07",
+          "t_start": 37.88,
+          "t_end": 52.62,
+          "duration_seconds": 14.74,
+          "plans": [
+            {
+              "id": "S07-P01",
+              "t_start": 37.88,
+              "t_end": 45.08,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            },
+            {
+              "id": "S07-P02",
+              "t_start": 45.08,
+              "t_end": 52.62,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_CUT_CUES_UNVERIFIED"
+        },
+        {
+          "scene": "S08",
+          "t_start": 52.62,
+          "t_end": 78.32,
+          "duration_seconds": 25.7,
+          "plans": [
+            {
+              "id": "S08-P01",
+              "t_start": 52.62,
+              "t_end": 78.32
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S09",
+          "t_start": 78.32,
+          "t_end": 106,
+          "duration_seconds": 27.68,
+          "plans": [
+            {
+              "id": "S09-P01",
+              "t_start": 78.32,
+              "t_end": 106
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S10",
+          "t_start": 106,
+          "t_end": 128.78,
+          "duration_seconds": 22.78,
+          "plans": [
+            {
+              "id": "S10-P01",
+              "t_start": 106,
+              "t_end": 128.78
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S11",
+          "t_start": 128.78,
+          "t_end": 149.12,
+          "duration_seconds": 20.34,
+          "plans": [
+            {
+              "id": "S11-P01",
+              "t_start": 128.78,
+              "t_end": 149.12
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S12",
+          "t_start": 149.12,
+          "t_end": 157.74,
+          "duration_seconds": 8.62,
+          "plans": [
+            {
+              "id": "S12-P01",
+              "t_start": 149.12,
+              "t_end": 157.74
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S14",
+          "t_start": 157.74,
+          "t_end": 163.1,
+          "duration_seconds": 5.36,
+          "plans": [
+            {
+              "id": "S14-P01",
+              "t_start": 157.74,
+              "t_end": 163.1
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S15",
+          "t_start": 163.1,
+          "t_end": 193.1,
+          "duration_seconds": 30,
+          "plans": [
+            {
+              "id": "S15-P01",
+              "t_start": 163.1,
+              "t_end": 193.1
+            }
+          ],
+          "narration_source_status": "ORIGINAL_ARCHIVE_SOUND_ONLY"
+        }
+      ]
+    },
+    {
+      "section": 2,
+      "scene_span": "S17-S18",
+      "known_duration_seconds": 19.56,
+      "offset_origin": "RELATIVE_TO_SECTION_START_NOT_FULL_FILM",
+      "scenes": [
+        {
+          "scene": "S17",
+          "t_start": 0,
+          "t_end": 10.66,
+          "duration_seconds": 10.66,
+          "plans": [
+            {
+              "id": "S17-P01",
+              "t_start": 0,
+              "t_end": 10.66
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S18",
+          "t_start": 10.66,
+          "t_end": 19.56,
+          "duration_seconds": 8.9,
+          "plans": [
+            {
+              "id": "S18-P01",
+              "t_start": 10.66,
+              "t_end": 19.56
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        }
+      ]
+    },
+    {
+      "section": 3,
+      "scene_span": "S20-S24",
+      "known_duration_seconds": 106.24,
+      "offset_origin": "RELATIVE_TO_SECTION_START_NOT_FULL_FILM",
+      "scenes": [
+        {
+          "scene": "S20",
+          "t_start": 0,
+          "t_end": 20.62,
+          "duration_seconds": 20.62,
+          "plans": [
+            {
+              "id": "S20-P01",
+              "t_start": 0,
+              "t_end": 4.62
+            },
+            {
+              "id": "S20-P02",
+              "t_start": 4.62,
+              "t_end": 20.62,
+              "source_audio": "1944_ORIGINAL"
+            }
+          ],
+          "narration_source_status": "VOICE_THEN_ARCHIVAL_FILM_EXACT_BOUNDARY_NEEDS_AUDIO_CHECK"
+        },
+        {
+          "scene": "S21",
+          "t_start": 19.42,
+          "t_end": 37.02,
+          "duration_seconds": 17.6,
+          "plans": [
+            {
+              "id": "S21-P01",
+              "t_start": 19.42,
+              "t_end": 37.02
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S22",
+          "t_start": 37.02,
+          "t_end": 57.98,
+          "duration_seconds": 20.96,
+          "plans": [
+            {
+              "id": "S22-P01",
+              "t_start": 37.02,
+              "t_end": 57.98
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        },
+        {
+          "scene": "S23",
+          "t_start": 57.98,
+          "t_end": 78.86,
+          "duration_seconds": 20.88,
+          "plans": [
+            {
+              "id": "S23-P01",
+              "t_start": 57.98,
+              "t_end": 66.26,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            },
+            {
+              "id": "S23-P02",
+              "t_start": 66.26,
+              "t_end": 70.06,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            },
+            {
+              "id": "S23-P03",
+              "t_start": 70.06,
+              "t_end": 78.86,
+              "timecode_kind": "MEASURED_WAV_WORD_CUE_NOT_HUMAN_VALIDATED"
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_CUT_CUES_UNVERIFIED"
+        },
+        {
+          "scene": "S24",
+          "t_start": 78.86,
+          "t_end": 106.24,
+          "duration_seconds": 27.38,
+          "plans": [
+            {
+              "id": "S24-P01",
+              "t_start": 78.86,
+              "t_end": 106.24
+            }
+          ],
+          "narration_source_status": "VOICE_DURATION_MEASURED_SINGLE_PHOTO"
+        }
+      ]
+    }
+  ],
+  "source_first_no_Mp4_splice": true,
+  "human_word_sync_approved": false
+}
