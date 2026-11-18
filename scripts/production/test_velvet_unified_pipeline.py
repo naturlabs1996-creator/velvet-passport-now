@@ -138,9 +138,9 @@ class Tests(unittest.TestCase):
     'voice_duration_sec':1.0,'all_cues_recognized':True,
     'plan_cues':[
      {'source':'testimage.jpg','source_sha256':checksum(self.root/'testimage.jpg'),
-      'duration_sec':.5,'full_bleed_crop_after_trim':[0,37,400,262],'trim_scan_border':None},
+      'at_sec':0.0,'until_sec':.5,'duration_sec':.5,'full_bleed_crop_after_trim':[0,37,400,262],'trim_scan_border':None},
      {'source':'panorama.jpg','source_sha256':checksum(self.root/'panorama.jpg'),
-      'duration_sec':.5,'full_bleed_crop_after_trim':[80,0,400,180],'trim_scan_border':None}]}}}
+      'at_sec':.5,'until_sec':1.0,'duration_sec':.5,'full_bleed_crop_after_trim':[80,0,400,180],'trim_scan_border':None}]}}}
   cues=self.root/'stop04_onepass_fixture.json';cues.write_text(json.dumps(data))
   out=self.root/'stop04_onepass.mp4'
   p=subprocess.run([sys.executable,str(Path(__file__).with_name('stop04_render_single_source_scene.py')),
