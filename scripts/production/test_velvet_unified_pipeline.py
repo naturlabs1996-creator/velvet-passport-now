@@ -119,4 +119,36 @@ class Tests(unittest.TestCase):
   self.assertFalse(manifest['rights_signoff'])
   self.assertTrue(manifest['scenes'][22]['narration_voice_pending_three_plan_sync']['path'].startswith('audio/S23_'))
 
+
+ def test_stop04_legacy_join_render_is_forbidden(self):
+  m=self.basic();m['route_id']='VP-PAR-05-STOP04-PRIVATE'
+  file=self.root/'stop04_forbidden.json';file.write_text(json.dumps(m))
+  p=subprocess.run([sys.executable,str(Path(__file__).with_name('velvet_unified_pipeline.py')),'render',
+   '--manifest',str(file),'--root',str(self.root),'--out',str(self.root/'legacy_output')],
+   capture_output=True,text=True)
+  self.assertEqual(p.returncode,2,p.stdout+p.stderr)
+  self.assertIn('LEGACY_MP4_RABOUTAGE_REFUSED',p.stdout)
+  self.assertFalse(list((self.root/'legacy_output').glob('*.mp4')) if (self.root/'legacy_output').exists() else False)
+
+ def test_stop04_real_photo_and_wav_onepass_scene(self):
+  # Two independent photographs and ONE original WAV enter a single FFmpeg graph.
+  wav=self.root/'voice.wav'
+  data={'schema':'velvet-passport-stop04-raw-source-word-cues/v1','final_approved':False,'scenes':{
+   'S05':{'voice_source':'voice.wav','voice_sha256':checksum(wav),
+    'voice_duration_sec':1.0,'all_cues_recognized':True,
+    'plan_cues':[
+     {'source':'testimage.jpg','source_sha256':checksum(self.root/'testimage.jpg'),
+      'duration_sec':.5,'full_bleed_crop_after_trim':[0,37,400,262],'trim_scan_border':None},
+     {'source':'panorama.jpg','source_sha256':checksum(self.root/'panorama.jpg'),
+      'duration_sec':.5,'full_bleed_crop_after_trim':[80,0,400,180],'trim_scan_border':None}]}}}
+  cues=self.root/'stop04_onepass_fixture.json';cues.write_text(json.dumps(data))
+  out=self.root/'stop04_onepass.mp4'
+  p=subprocess.run([sys.executable,str(Path(__file__).with_name('stop04_render_single_source_scene.py')),
+    '--root',str(self.root),'--word-cues',str(cues),'--scene','S05','--out',str(out)],
+    capture_output=True,text=True)
+  self.assertEqual(p.returncode,0,p.stdout+p.stderr)
+  info=probe(out)
+  self.assertAlmostEqual(float(info['format']['duration']),1.0,delta=.08)
+  self.assertEqual({s['codec_type'] for s in info['streams']},{'video','audio'})
+
 if __name__=='__main__':unittest.main(verbosity=2)
