@@ -268,10 +268,23 @@ def main():
  p.add_argument('--scope',default=None,help='Render one scene QA only, e.g. S20')
  p.add_argument('--language',choices=['fr','en'],default='fr')
  p.add_argument('--final',action='store_true')
+ p.add_argument('--word-cues',type=Path,default=None,help='STOP04 source-first exact WAV word timing cues')
  p.add_argument('--workers',type=int,default=2)
  p.add_argument('--cache',type=Path,default=Path('.cache/velvet'))
  a=p.parse_args()
  manifest=json.loads(a.manifest.read_text(encoding='utf-8'));root=(a.root or a.manifest.parent).resolve()
+ # STOP04's former per-clip encode+join pipeline caused narrative/visual drift.
+ # Fail closed: never generate another STOP04 MP4 by stitching existing segments.
+ if a.command=='render' and 'STOP04' in str(manifest.get('route_id','')).upper():
+  if (not a.final and a.scope in ('S05','S06','S07','S23') and a.word_cues):
+   dest=a.out/(manifest['route_id']+'_'+a.scope+'_SOURCES_WAV_WORDS_PRIVATE_QA.mp4')
+   a.out.mkdir(parents=True,exist_ok=True)
+   tool=Path(__file__).with_name('stop04_render_single_source_scene.py')
+   run([sys.executable,tool,'--scene',a.scope,'--root',root,'--word-cues',a.word_cues,'--out',dest])
+   print(json.dumps({'status':'PRIVATE_SOURCE_FIRST_WORD_CUT_QA','video':str(dest),'scene':a.scope,'legacy_MP4_reused':False,'word_cues_approved':False},ensure_ascii=False))
+   return 0
+  print(json.dumps({'status':'LEGACY_MP4_RABOUTAGE_REFUSED','route_id':manifest.get('route_id'),'explanation':'STOP04 only accepts a single original-source plus WAV timeline. Full export remains blocked until all voice-word cues and art/rights approvals exist.'},ensure_ascii=False))
+  return 2
  if a.command=='render' and a.final and a.scope:p.error('No partial FINAL exports')
  report=inspect(manifest,root,a.final,a.scope)
  a.out.mkdir(parents=True,exist_ok=True)
