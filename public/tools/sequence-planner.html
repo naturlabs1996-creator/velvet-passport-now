@@ -44,7 +44,7 @@ const $=s=>document.querySelector(s), host=$('#rows'); let rows=[];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function blank(){return {scene:'',id:'',kind:'photo',source:'',sha256:'',duration:'',frText:'',enText:'',frStart:'',frEnd:'',enStart:'',enEnd:'',matchFr:false,matchEn:false,sourceOk:false,rightsOk:false,timingOk:false,transition:'cut',notes:'',preview:''}}
 function check(r){const d=Number(r.duration);const base=r.id&&r.source&&r.sha256&&d>0&&r.sourceOk&&r.rightsOk&&r.matchFr&&r.matchEn&&r.timingOk; const fr=!!r.frText&&r.frStart!==''&&r.frEnd!==''&&Number(r.frEnd)>Number(r.frStart)&&Number(r.frEnd)<=d; const en=!!r.enText&&r.enStart!==''&&r.enEnd!==''&&Number(r.enEnd)>Number(r.enStart)&&Number(r.enEnd)<=d;return !!(base&&fr&&en)}
-function refreshSummary(){refreshSummary()
+function refreshSummary(){refreshSummary()}
 function render(){host.innerHTML='';rows.forEach((r,i)=>{const ok=check(r);const card=document.createElement('article');card.className='card';card.innerHTML=
 '<div class="cardhead"><h2>'+esc(r.scene||'Scène')+' · '+esc(r.id||'Plan sans identifiant')+'</h2><span class="badge '+(ok?'ready':'')+'">'+(ok?'ASSOCIATION VALIDÉE':'À COMPLÉTER')+'</span></div>'+
 '<div class="grid">'+
