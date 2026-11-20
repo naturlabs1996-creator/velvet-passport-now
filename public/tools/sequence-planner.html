@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Velvet Passport — Créateur de plan séquence</title>
+<style>
+:root{--navy:#111827;--ink:#172033;--muted:#657187;--line:#dce2ea;--paper:#f4f6f9;--gold:#c69b4b;--green:#176b52;--red:#a93434}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);font:15px/1.45 Inter,system-ui,Arial,sans-serif;color:var(--ink)}
+header{background:var(--navy);color:white;padding:22px max(20px,calc((100vw - 1180px)/2));border-bottom:4px solid var(--gold)}
+header h1{font-size:24px;margin:0 0 5px}header p{margin:0;color:#d8deea;max-width:850px}
+main{max-width:1180px;margin:24px auto;padding:0 18px}.toolbar,.summary,.card{background:white;border:1px solid var(--line);border-radius:12px}
+.toolbar{padding:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.toolbar label.file{display:inline-flex}
+button,.button{border:0;border-radius:8px;background:var(--navy);color:white;padding:10px 14px;font-weight:650;cursor:pointer;font-size:14px}
+button.secondary,.button.secondary{background:#e8edf4;color:var(--ink)}button.gold{background:#9a7026}button:disabled{opacity:.45;cursor:not-allowed}
+input[type=file]{display:none}.toolbar input[type=text]{padding:10px;border:1px solid var(--line);border-radius:8px}
+.hint{color:var(--muted);font-size:13px;margin:12px 2px}.summary{padding:14px 16px;margin:14px 0;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.kpi{font-weight:700}.status-ready{color:var(--green)}.status-blocked{color:var(--red)}
+.card{margin:14px 0;padding:16px}.cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}.cardhead h2{font-size:18px;margin:0}.badge{font-size:12px;border-radius:99px;padding:4px 9px;background:#fbe8e8;color:var(--red);font-weight:700}.badge.ready{background:#dff3eb;color:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:11px}.field{grid-column:span 3}.field.wide{grid-column:span 6}.field.full{grid-column:1/-1}
+.field label{display:block;font-size:12px;font-weight:750;color:#4d596d;margin:0 0 4px}.field input,.field textarea,.field select{width:100%;border:1px solid #cfd6e0;border-radius:7px;padding:9px 10px;font:inherit;background:#fff;color:var(--ink)}textarea{min-height:74px;resize:vertical}
+.lang{border:1px solid var(--line);border-radius:9px;padding:12px;grid-column:span 6}.lang h3{font-size:14px;margin:0 0 9px;color:#77571e}.lang .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.checks{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}.checks label{display:flex;gap:7px;align-items:center;font-size:13px}.checks input{width:17px;height:17px}
+.preview{max-height:190px;max-width:100%;object-fit:contain;background:#111827;border-radius:7px;display:none;margin-top:8px}.foot{color:var(--muted);font-size:12px;margin:20px 0 35px}
+@media(max-width:760px){.field,.field.wide,.lang{grid-column:1/-1}.lang .grid{grid-template-columns:1fr 1fr}.card{padding:12px}.toolbar>*{flex:1 1 100%}.toolbar button{width:100%}}
+</style>
+</head>
+<body>
+<header><h1>Créateur de plan séquence</h1><p>Associez chaque passage narré à son image source, puis consignez séparément le texte et les repères FR/EN. Aucun montage n’est lancé tant que les associations et les validations éditoriales ne sont pas complètes.</p></header>
+<main>
+<section class="toolbar">
+<input id="route" type="text" value="VP-PAR-05-STOP04" aria-label="Identifiant du parcours">
+<label class="button secondary file" for="manifest">Importer le manifeste V2</label><input id="manifest" type="file" accept=".json,application/json">
+<label class="button secondary file" for="planfile">Reprendre un plan séquence</label><input id="planfile" type="file" accept=".json,application/json">
+<button id="add">Ajouter un plan</button><button id="export" class="gold">Exporter le plan séquence JSON</button>
+</section>
+<p class="hint">Les fichiers restent dans ce navigateur. L’image chargée sert à la prévisualisation; l’export conserve son nom et le chemin source du manifeste, jamais le fichier image lui-même.</p>
+<section class="summary"><span id="progress" class="kpi">Aucun plan chargé</span><span id="ready" class="kpi status-blocked">Prêt à monter : non</span><span id="routeName"></span></section>
+<section id="rows"></section>
+<p class="foot">Le statut « prêt à monter » signifie que chaque association a été renseignée et approuvée dans ce document. Il ne vaut ni autorisation juridique de diffusion, ni contrôle final du montage.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s), host=$('#rows'); let rows=[];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function blank(){return {scene:'',id:'',kind:'photo',source:'',sha256:'',duration:'',frText:'',enText:'',frStart:'',frEnd:'',enStart:'',enEnd:'',matchFr:false,matchEn:false,sourceOk:false,rightsOk:false,timingOk:false,transition:'cut',notes:'',preview:''}}
+function check(r){const base=r.id&&r.source&&r.sha256&&Number(r.duration)>0&&r.sourceOk&&r.rightsOk&&r.matchFr&&r.matchEn&&r.timingOk; const fr=!!r.frText&&r.frStart!==''&&r.frEnd!==''&&Number(r.frEnd)>Number(r.frStart); const en=!!r.enText&&r.enStart!==''&&r.enEnd!==''&&Number(r.enEnd)>Number(r.enStart);return !!(base&&fr&&en)}
+function render(){host.innerHTML='';rows.forEach((r,i)=>{const ok=check(r);const card=document.createElement('article');card.className='card';card.innerHTML=
+'<div class="cardhead"><h2>'+esc(r.scene||'Scène')+' · '+esc(r.id||'Plan sans identifiant')+'</h2><span class="badge '+(ok?'ready':'')+'">'+(ok?'ASSOCIATION VALIDÉE':'À COMPLÉTER')+'</span></div>'+
+'<div class="grid">'+
+field(i,'scene','Scène','text')+field(i,'id','ID du plan','text')+field(i,'kind','Type source','select',['photo','archive_film'])+field(i,'duration','Durée du plan (s)','number')+
+field(i,'source','Chemin / nom du fichier original','text','', 'wide')+field(i,'sha256','SHA-256 source','text','','wide')+
+'<div class="field full"><label>Prévisualiser l’original (facultatif)</label><label class="button secondary file" for="img'+i+'">Choisir une image</label><input id="img'+i+'" data-img="'+i+'" type="file" accept="image/*"><img class="preview" id="preview'+i+'" src="'+esc(r.preview)+'" style="'+(r.preview?'display:block':'')+'"></div>'+
+'<section class="lang"><h3>Français — calé sur la voix FR</h3><div class="grid">'+field(i,'frText','Texte narré associé','textarea','')+field(i,'frStart','Début (s)','number')+field(i,'frEnd','Fin (s)','number')+'</div></section>'+
+'<section class="lang"><h3>English — timed to the EN voice</h3><div class="grid">'+field(i,'enText','Associated spoken text','textarea','')+field(i,'enStart','Start (s)','number')+field(i,'enEnd','End (s)','number')+'</div></section>'+
+'<div class="field full"><label>Transition sortante</label><select data-i="'+i+'" data-k="transition"><option value="cut" '+(r.transition==='cut'?'selected':'')+'>Coupe</option><option value="crossfade" '+(r.transition==='crossfade'?'selected':'')+'>Fondu enchaîné</option></select></div>'+
+'<div class="field full"><label>Notes éditoriales</label><textarea data-i="'+i+'" data-k="notes">'+esc(r.notes)+'</textarea></div>'+
+'</div><div class="checks">'+checkInput(i,'sourceOk','Original vérifié (identité et SHA)')+checkInput(i,'matchFr','Image pertinente pour le passage FR')+checkInput(i,'matchEn','Image pertinente pour le passage EN')+checkInput(i,'timingOk','Repères vérifiés sur chaque voix')+checkInput(i,'rightsOk','Droits confirmés pour l’usage prévu')+
+'<button class="secondary" data-remove="'+i+'">Retirer ce plan</button></div>';
+host.appendChild(card)});
+const ready=rows.filter(check).length;$('#progress').textContent=rows.length?ready+' / '+rows.length+' associations entièrement renseignées':'Aucun plan chargé';$('#ready').textContent=rows.length&&ready===rows.length?'Prêt à monter : oui':'Prêt à monter : non';$('#ready').className='kpi '+(rows.length&&ready===rows.length?'status-ready':'status-blocked');$('#routeName').textContent='Parcours : '+$('#route').value}
+function field(i,k,label,type,opts='',extra=''){const v=rows[i][k]??'';if(type==='textarea')return '<div class="field full"><label>'+esc(label)+'</label><textarea data-i="'+i+'" data-k="'+k+'">'+esc(v)+'</textarea></div>';if(type==='select')return '<div class="field"><label>'+esc(label)+'</label><select data-i="'+i+'" data-k="'+k+'">'+opts.map(x=>'<option '+(v===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>';return '<div class="field '+extra+'"><label>'+esc(label)+'</label><input data-i="'+i+'" data-k="'+k+'" type="'+type+'" '+(type==='number'?'step="0.01" min="0"':'')+' value="'+esc(v)+'"></div>'}
+function checkInput(i,k,label){return '<label><input type="checkbox" data-i="'+i+'" data-k="'+k+'" '+(rows[i][k]?'checked':'')+'> '+esc(label)+'</label>'}
+host.addEventListener('input',e=>{const t=e.target;if(t.dataset.i===undefined)return;const r=rows[+t.dataset.i];r[t.dataset.k]=t.type==='checkbox'?t.checked:t.value;render()});
+host.addEventListener('change',e=>{const t=e.target;if(t.dataset.img!==undefined){const i=+t.dataset.img,f=t.files[0];if(f){rows[i].preview=URL.createObjectURL(f);if(!rows[i].source)rows[i].source=f.name;render()}}else if(t.dataset.i!==undefined){const r=rows[+t.dataset.i];r[t.dataset.k]=t.type==='checkbox'?t.checked:t.value;render()}});
+host.addEventListener('click',e=>{const i=e.target.dataset.remove;if(i!==undefined){rows.splice(+i,1);render()}});
+$('#add').onclick=()=>{rows.push(blank());render()};
+$('#manifest').onchange=async e=>{try{const m=JSON.parse(await e.target.files[0].text());$('#route').value=m.route_id||$('#route').value;rows=[];(m.scenes||[]).filter(s=>!s.deleted).forEach(s=>(s.plans||[]).forEach(p=>rows.push({...blank(),scene:s.id,id:p.id,kind:p.kind||'photo',source:p.source||'',sha256:p.sha256||'',duration:p.duration??'',notes:p.editorial_choice||''})));render()}catch(err){alert('Manifeste JSON illisible : '+err.message)}};
+$('#planfile').onchange=async e=>{try{const p=JSON.parse(await e.target.files[0].text());$('#route').value=p.route_id||$('#route').value;rows=p.plans||[];render()}catch(err){alert('Plan séquence JSON illisible : '+err.message)}};
+$('#export').onclick=()=>{const payload={schema:'velvet-shot-sequence/v1',route_id:$('#route').value,created_at:new Date().toISOString(),status:rows.length&&rows.every(check)?'READY_FOR_ASSEMBLY_REVIEW':'DRAFT_INCOMPLETE',language_tracks:['fr','en'],plans:rows.map(r=>({...r,preview:undefined,association_status:check(r)?'APPROVED_BY_EDITOR':'INCOMPLETE'}))};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download=$('#route').value.replace(/[^a-z0-9_-]/gi,'_')+'_shot-sequence.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+render();
+</script>
+</body></html>
