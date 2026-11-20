@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Velvet Passport — Créateur de plan séquence</title>
+<style>
+:root{--navy:#111827;--ink:#172033;--muted:#657187;--line:#dce2ea;--paper:#f4f6f9;--gold:#c69b4b;--green:#176b52;--red:#a93434}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);font:15px/1.45 Inter,system-ui,Arial,sans-serif;color:var(--ink)}
+header{background:var(--navy);color:white;padding:22px max(20px,calc((100vw - 1180px)/2));border-bottom:4px solid var(--gold)}
+header h1{font-size:24px;margin:0 0 5px}header p{margin:0;color:#d8deea;max-width:850px}
+main{max-width:1180px;margin:24px auto;padding:0 18px}.toolbar,.summary,.card{background:white;border:1px solid var(--line);border-radius:12px}
+.toolbar{padding:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.toolbar label.file{display:inline-flex}
+button,.button{border:0;border-radius:8px;background:var(--navy);color:white;padding:10px 14px;font-weight:650;cursor:pointer;font-size:14px}
+button.secondary,.button.secondary{background:#e8edf4;color:var(--ink)}button.gold{background:#9a7026}button:disabled{opacity:.45;cursor:not-allowed}
+input[type=file]{display:none}.toolbar input[type=text]{padding:10px;border:1px solid var(--line);border-radius:8px}
+.hint{color:var(--muted);font-size:13px;margin:12px 2px}.summary{padding:14px 16px;margin:14px 0;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.kpi{font-weight:700}.status-ready{color:var(--green)}.status-blocked{color:var(--red)}
+.card{margin:14px 0;padding:16px}.cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}.cardhead h2{font-size:18px;margin:0}.badge{font-size:12px;border-radius:99px;padding:4px 9px;background:#fbe8e8;color:var(--red);font-weight:700}.badge.ready{background:#dff3eb;color:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:11px}.field{grid-column:span 3}.field.wide{grid-column:span 6}.field.full{grid-column:1/-1}
+.field label{display:block;font-size:12px;font-weight:750;color:#4d596d;margin:0 0 4px}.field input,.field textarea,.field select{width:100%;border:1px solid #cfd6e0;border-radius:7px;padding:9px 10px;font:inherit;background:#fff;color:var(--ink)}textarea{min-height:74px;resize:vertical}
+.lang{border:1px solid var(--line);border-radius:9px;padding:12px;grid-column:span 6}.lang h3{font-size:14px;margin:0 0 9px;color:#77571e}.lang .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.checks{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}.checks label{display:flex;gap:7px;align-items:center;font-size:13px}.checks input{width:17px;height:17px}
+.preview{max-height:190px;max-width:100%;object-fit:contain;background:#111827;border-radius:7px;display:none;margin-top:8px}.foot{color:var(--muted);font-size:12px;margin:20px 0 35px}
+@media(max-width:760px){.field,.field.wide,.lang{grid-column:1/-1}.lang .grid{grid-template-columns:1fr 1fr}.card{padding:12px}.toolbar>*{flex:1 1 100%}.toolbar button{width:100%}}
+</style>
+</head>
+<body>
+<header><h1>Créateur de plan séquence</h1><p>Associez chaque passage narré à son image source, puis consignez séparément le texte et les repères FR/EN. Aucun montage n’est lancé tant que les associations et les validations éditoriales ne sont pas complètes.</p></header>
+<main>
+<section class="toolbar">
+<input id="route" type="text" value="VP-PAR-05-STOP04" aria-label="Identifiant du parcours">
+<label class="button secondary file" for="manifest">Importer le manifeste V2</label><input id="manifest" type="file" accept=".json,application/json">
+<label class="button secondary file" for="planfile">Reprendre un plan séquence</label><input id="planfile" type="file" accept=".json,application/json">
+<button id="add">Ajouter un plan</button><button id="exportFr" class="gold">Exporter manifeste V2 FR</button><button id="exportEn" class="gold">Exporter manifeste V2 EN</button><button id="exportPlan" class="secondary">Exporter le plan de travail</button>
+</section>
+<p class="hint">Les fichiers restent dans ce navigateur. L’image chargée sert à la prévisualisation; l’export conserve son nom et le chemin source du manifeste, jamais le fichier image lui-même.</p>
+<section class="summary"><span id="progress" class="kpi">Aucun plan chargé</span><span id="ready" class="kpi status-blocked">Prêt à monter : non</span><span id="routeName"></span></section>
+<section id="rows"></section>
+<p class="foot">Le statut « prêt à monter » signifie que chaque association a été renseignée et approuvée dans ce document. Il ne vaut ni autorisation juridique de diffusion, ni contrôle final du montage.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s), host=$('#rows'); let rows=[], sourceManifest=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function blank(){return {scene:'',id:'',kind:'photo',spoken:true,source:'',sha256:'',durationFr:'',durationEn:'',frText:'',enText:'',frStart:'',frEnd:'',enStart:'',enEnd:'',frMode:'voice',enMode:'voice',frAudioPath:'',frAudioSha:'',enAudioPath:'',enAudioSha:'',frOffset:'0',enOffset:'0',matchFr:false,matchEn:false,sourceOk:false,rightsOk:false,frTimingOk:false,enTimingOk:false,frCaptionsOk:false,enCaptionsOk:false,transition:'cut',transitionSeconds:'',transitionLocked:false,notes:'',preview:''}}
+function trackReady(r,l){const d=Number(l==='fr'?r.durationFr:r.durationEn),mode=r[l+'Mode'];const hasAudio=mode==='voice'?!!r[l+'AudioPath']&&/^[a-f0-9]{64}$/i.test(r[l+'AudioSha'])&&Number(r[l+'Offset']||0)>=0:mode==='archive_original_only'?r.kind==='archive_film':mode==='silence'&&!r.spoken;const textOk=!r.spoken||(!!r[l+'Text']&&r[l+'Start']!==''&&r[l+'End']!==''&&Number(r[l+'End'])>Number(r[l+'Start'])&&Number(r[l+'End'])<=d&&r[l+'CaptionsOk']&&r[l+'TimingOk']);return d>0&&hasAudio&&textOk}
+function check(r){return !!(r.id&&r.source&&/^[a-f0-9]{64}$/i.test(r.sha256)&&r.sourceOk&&r.rightsOk&&r.matchFr&&r.matchEn&&trackReady(r,'fr')&&trackReady(r,'en')&&(r.transition!=='crossfade'||(Number(r.transitionSeconds)>0&&r.transitionLocked)))}
+function refreshSummary(){const ready=rows.filter(check).length;$('#progress').textContent=rows.length?ready+' / '+rows.length+' associations entièrement renseignées':'Aucun plan chargé';$('#ready').textContent=rows.length&&ready===rows.length?'Prêt à monter : oui':'Prêt à monter : non';$('#ready').className='kpi '+(rows.length&&ready===rows.length?'status-ready':'status-blocked');$('#routeName').textContent='Parcours : '+$('#route').value}
+function render(){host.innerHTML='';rows.forEach((r,i)=>{const ok=check(r);const card=document.createElement('article');card.className='card';card.innerHTML=
+'<div class="cardhead"><h2>'+esc(r.scene||'Scène')+' · '+esc(r.id||'Plan sans identifiant')+'</h2><span class="badge '+(ok?'ready':'')+'">'+(ok?'ASSOCIATION VALIDÉE':'À COMPLÉTER')+'</span></div>'+
+'<div class="grid">'+
+field(i,'scene','Scène','text')+field(i,'id','ID du plan','text')+field(i,'kind','Type source','select',['photo','archive_film'])+field(i,'durationFr','Durée plan FR (s)','number')+field(i,'durationEn','Durée plan EN (s)','number')+
+field(i,'source','Chemin / nom du fichier original','text','', 'wide')+field(i,'sha256','SHA-256 source','text','','wide')+
+'<div class="field full"><label>Prévisualiser l’original (facultatif)</label><label class="button secondary file" for="img'+i+'">Choisir une image</label><input id="img'+i+'" data-img="'+i+'" type="file" accept="image/*"><img class="preview" id="preview'+i+'" src="'+esc(r.preview)+'" style="'+(r.preview?'display:block':'')+'"></div>'+
+'<section class="lang"><h3>Français — calé sur la voix FR</h3><div class="grid">'+field(i,'frMode','Piste audio FR','select',['voice','archive_original_only','silence'])+field(i,'frAudioPath','Chemin du WAV FR','text','', 'wide')+field(i,'frAudioSha','SHA-256 WAV FR','text','','wide')+field(i,'frOffset','Offset WAV FR (s)','number')+field(i,'frText','Texte narré associé','textarea','')+field(i,'frStart','Début du cue (s)','number')+field(i,'frEnd','Fin du cue (s)','number')+'</div></section>'+
+'<section class="lang"><h3>English — timed to the EN voice</h3><div class="grid">'+field(i,'enMode','EN audio track','select',['voice','archive_original_only','silence'])+field(i,'enAudioPath','EN WAV path','text','', 'wide')+field(i,'enAudioSha','EN WAV SHA-256','text','','wide')+field(i,'enOffset','EN WAV offset (s)','number')+field(i,'enText','Associated spoken text','textarea','')+field(i,'enStart','Cue start (s)','number')+field(i,'enEnd','Cue end (s)','number')+'</div></section>'+
+'<div class="field"><label>Transition sortante</label><select data-i="'+i+'" data-k="transition"><option value="cut" '+(r.transition==='cut'?'selected':'')+'>Coupe</option><option value="crossfade" '+(r.transition==='crossfade'?'selected':'')+'>Fondu enchaîné</option></select></div>'+field(i,'transitionSeconds','Durée fondu (s)','number')+'<div class="field"><label>Fondu approuvé</label><input type="checkbox" data-i="'+i+'" data-k="transitionLocked" '+(r.transitionLocked?'checked':'')+'></div>'+
+'<div class="field full"><label>Notes éditoriales</label><textarea data-i="'+i+'" data-k="notes">'+esc(r.notes)+'</textarea></div>'+
+'</div><div class="checks">'+checkInput(i,'sourceOk','Original vérifié (identité et SHA)')+checkInput(i,'matchFr','Image pertinente pour le passage FR')+checkInput(i,'matchEn','Image pertinente pour le passage EN')+checkInput(i,'frTimingOk','Synchronisation FR vérifiée')+checkInput(i,'enTimingOk','EN timing verified')+checkInput(i,'frCaptionsOk','Sous-titres FR relus')+checkInput(i,'enCaptionsOk','EN captions reviewed')+checkInput(i,'rightsOk','Droits confirmés pour l’usage prévu')+
+'<button class="secondary" data-remove="'+i+'">Retirer ce plan</button></div>';
+host.appendChild(card)});
+const ready=rows.filter(check).length;$('#progress').textContent=rows.length?ready+' / '+rows.length+' associations entièrement renseignées':'Aucun plan chargé';$('#ready').textContent=rows.length&&ready===rows.length?'Prêt à monter : oui':'Prêt à monter : non';$('#ready').className='kpi '+(rows.length&&ready===rows.length?'status-ready':'status-blocked');$('#routeName').textContent='Parcours : '+$('#route').value}
+function field(i,k,label,type,opts='',extra=''){const v=rows[i][k]??'';if(type==='textarea')return '<div class="field full"><label>'+esc(label)+'</label><textarea data-i="'+i+'" data-k="'+k+'">'+esc(v)+'</textarea></div>';if(type==='select')return '<div class="field"><label>'+esc(label)+'</label><select data-i="'+i+'" data-k="'+k+'">'+opts.map(x=>'<option '+(v===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>';return '<div class="field '+extra+'"><label>'+esc(label)+'</label><input data-i="'+i+'" data-k="'+k+'" type="'+type+'" '+(type==='number'?'step="0.01" min="0"':'')+' value="'+esc(v)+'"></div>'}
+function checkInput(i,k,label){return '<label><input type="checkbox" data-i="'+i+'" data-k="'+k+'" '+(rows[i][k]?'checked':'')+'> '+esc(label)+'</label>'}
+host.addEventListener('input',e=>{const t=e.target;if(t.dataset.i===undefined)return;const r=rows[+t.dataset.i];r[t.dataset.k]=t.type==='checkbox'?t.checked:t.value;const card=t.closest('.card');if(card){const badge=card.querySelector('.badge'),ok=check(r);badge.textContent=ok?'ASSOCIATION VALIDÉE':'À COMPLÉTER';badge.className='badge '+(ok?'ready':'')}refreshSummary()});
+host.addEventListener('change',async e=>{const t=e.target;if(t.dataset.img!==undefined){const i=+t.dataset.img,f=t.files[0];if(f){rows[i].preview=URL.createObjectURL(f);if(!rows[i].source)rows[i].source=f.name;try{const digest=await crypto.subtle.digest('SHA-256',await f.arrayBuffer());rows[i].sha256=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')}catch(err){alert('Calcul SHA-256 indisponible dans ce navigateur : '+err.message)}render()}}else if(t.dataset.i!==undefined){const r=rows[+t.dataset.i];r[t.dataset.k]=t.type==='checkbox'?t.checked:t.value;render()}});
+host.addEventListener('click',e=>{const i=e.target.dataset.remove;if(i!==undefined){rows.splice(+i,1);render()}});
+$('#add').onclick=()=>{rows.push(blank());render()};
+$('#manifest').onchange=async e=>{try{if(!e.target.files[0])return;const m=JSON.parse(await e.target.files[0].text());if(m.schema!=='velvet-unified-av/v2'||!Array.isArray(m.expected_plan_ids)||!Array.isArray(m.scenes))throw Error('Ce fichier n’est pas un manifeste Velvet Unified V2.');sourceManifest=m;$('#route').value=m.route_id||$('#route').value;rows=[];(m.scenes||[]).filter(s=>!s.deleted).forEach(s=>(s.plans||[]).forEach(p=>rows.push({...blank(),scene:s.id,id:p.id,kind:p.kind||'photo',spoken:p.spoken!==false,source:p.source||'',sha256:p.sha256||'',durationFr:p.duration??'',durationEn:p.duration??'',frAudioPath:p.audio?.path||'',frAudioSha:p.audio?.sha256||'',frOffset:p.audio?.offset??0,frMode:p.audio?.mode||p.sound_mode||'voice',enMode:p.audio?.mode||p.sound_mode||'voice',transition:p.transition_out?.type||'cut',transitionSeconds:p.transition_out?.seconds||'',transitionLocked:!!p.transition_out?.editorial_lock,notes:p.editorial_choice||''})));render()}catch(err){alert('Manifeste JSON illisible : '+err.message)}};
+$('#planfile').onchange=async e=>{try{if(!e.target.files[0])return;const p=JSON.parse(await e.target.files[0].text());if(!Array.isArray(p.plans))throw Error('Plan de travail invalide : liste de plans absente.');$('#route').value=p.route_id||$('#route').value;rows=p.plans;sourceManifest=p.base_manifest||sourceManifest;render()}catch(err){alert('Plan séquence JSON illisible : '+err.message)}};
+function downloadJson(payload,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function buildV2(lang){
+if(!sourceManifest)throw Error('Importe d’abord le manifeste V2 original.');
+if(!['fr','en'].includes(lang))throw Error('Langue d’export inconnue.');
+const m=JSON.parse(JSON.stringify(sourceManifest));m.route_id=$('#route').value;m.language=lang;
+m.release_requested=false;m.final_human_approval=false;m.rights_signoff=false;m.mobile_qa_passed=false;m.full_narration_qc_passed=false;m.subtitle_qa_passed=false;
+const active=(m.scenes||[]).filter(s=>!s.deleted).flatMap(s=>(s.plans||[]).map(p=>p.id));
+const expected=m.expected_plan_ids||[];
+if(!active.length||active.length!==expected.length||new Set(active).size!==active.length||active.some(id=>!expected.includes(id))||expected.some(id=>!active.includes(id)))throw Error('Les plans actifs du manifeste V2 ne correspondent pas aux identifiants attendus.');
+const ids=rows.map(r=>r.id);
+if(ids.length!==expected.length||new Set(ids).size!==ids.length||ids.some(id=>!expected.includes(id))||expected.some(id=>!ids.includes(id)))throw Error('Le plan séquence doit contenir exactement une ligne par plan attendu, sans doublon.');
+const byId=new Map(rows.map(r=>[r.id,r]));let cursor=0;
+for(const scene of (m.scenes||[])){
+if(scene.deleted)continue;
+for(const p of (scene.plans||[])){
+const r=byId.get(p.id);if(!r)throw Error('Plan absent du plan séquence : '+p.id);
+const rawDuration=lang==='fr'?r.durationFr:r.durationEn;
+const d=rawDuration===''||rawDuration===null||rawDuration===undefined?null:Number(rawDuration);
+if(d!==null&&(!Number.isFinite(d)||!(d>0)))throw Error('Durée '+lang.toUpperCase()+' invalide : '+p.id);
+const source=String(r.source||'').trim(),hash=String(r.sha256||'').trim();
+if(hash&&!/^[a-f0-9]{64}$/i.test(hash))throw Error('SHA-256 source invalide : '+p.id);
+p.source=source||null;p.sha256=hash||null;p.duration=d;
+if(cursor===null)delete p.absolute_start;else p.absolute_start=Number(cursor.toFixed(3));
+p.visual_approved=!!(r.sourceOk&&(lang==='fr'?r.matchFr:r.matchEn));
+p.rights=r.rightsOk?'cleared_commercial':(p.rights||'not_verified');
+p.plan_qa_pass=false;p.timing_verified=!!r[lang+'TimingOk'];
+const mode=r[lang+'Mode'];
+if(!['voice','archive_original_only','silence'].includes(mode))throw Error('Mode audio invalide : '+p.id);
+if(mode==='voice'){
+const path=String(r[lang+'AudioPath']||'').trim(),audioHash=String(r[lang+'AudioSha']||'').trim(),offset=Number(r[lang+'Offset']||0);
+if(!Number.isFinite(offset)||offset<0)throw Error('Offset audio invalide : '+p.id);
+if(audioHash&&!/^[a-f0-9]{64}$/i.test(audioHash))throw Error('SHA-256 WAV invalide : '+p.id);
+p.audio={mode:'voice',path:path||null,sha256:audioHash||null,offset,editorial_lock:false};
+p.sound_mode=null;
+}else{
+if(mode==='archive_original_only'&&p.kind!=='archive_film')throw Error('Audio d’archive réservé aux plans filmés : '+p.id);
+if(mode==='silence'&&r.spoken)throw Error('Un plan avec narration ne peut pas être silencieux : '+p.id);
+p.audio={mode};p.sound_mode=mode==='archive_original_only'?'archive_original_only':null;
+}
+const spoken=!!r.spoken;p.spoken=spoken;
+if(spoken){
+const text=String(r[lang==='fr'?'frText':'enText']||'').trim(),rawStart=r[lang+'Start'],rawEnd=r[lang+'End'];
+if(!text||rawStart===''||rawStart===null||rawStart===undefined||rawEnd===''||rawEnd===null||rawEnd===undefined){p.captions=[];p.subtitle_human_verified=false}
+else{
+const cueStart=Number(rawStart),cueEnd=Number(rawEnd);
+if(!Number.isFinite(cueStart)||!Number.isFinite(cueEnd)||cueStart<0||!(cueEnd>cueStart)||(d!==null&&cueEnd>d))throw Error('Cue '+lang.toUpperCase()+' invalide : '+p.id);
+p.captions=[{text,start:cueStart,end:cueEnd}];p.subtitle_human_verified=!!(r[lang+'CaptionsOk']&&r[lang+'TimingOk'])
+}
+}else{p.captions=[];p.subtitle_human_verified=false}
+if(r.transition==='crossfade'){
+const rawSeconds=r.transitionSeconds,sec=rawSeconds===''||rawSeconds===null||rawSeconds===undefined?0:Number(rawSeconds);
+if(!Number.isFinite(sec)||sec<0||(d!==null&&sec>=d&&sec>0))throw Error('Durée de fondu invalide : '+p.id);
+p.transition_out={type:'crossfade',seconds:sec,editorial_lock:!!r.transitionLocked};
+if(cursor!==null)cursor=d===null?null:cursor+d-sec;
+}else{
+delete p.transition_out;
+if(cursor!==null)cursor=d===null?null:cursor+d;
+}
+}}
+return m
+}
+function exportV2(lang){try{downloadJson(buildV2(lang),$('#route').value.replace(/[^a-z0-9_-]/gi,'_')+'_'+lang.toUpperCase()+'.unified-v2.json')}catch(e){alert('Export bloqué : '+e.message)}}
+$('#exportFr').onclick=()=>exportV2('fr');$('#exportEn').onclick=()=>exportV2('en');
+$('#exportPlan').onclick=()=>downloadJson({schema:'velvet-shot-sequence/v1',route_id:$('#route').value,status:rows.length&&rows.every(check)?'READY_FOR_ASSEMBLY_REVIEW':'DRAFT_INCOMPLETE',base_manifest:sourceManifest,plans:rows.map(r=>({...r,preview:undefined,association_status:check(r)?'APPROVED_BY_EDITOR':'INCOMPLETE'}))},$('#route').value+'_shot-sequence.json');
+$('#route').addEventListener('input',refreshSummary);
+render();
+</script>
+</body></html>
