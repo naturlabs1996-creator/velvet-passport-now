@@ -84,37 +84,48 @@ for(const scene of (m.scenes||[])){
 if(scene.deleted)continue;
 for(const p of (scene.plans||[])){
 const r=byId.get(p.id);if(!r)throw Error('Plan absent du plan séquence : '+p.id);
-const d=Number(lang==='fr'?r.durationFr:r.durationEn);
-if(!Number.isFinite(d)||!(d>0))throw Error('Durée '+lang.toUpperCase()+' manquante : '+p.id);
-if(!r.source||!/^[a-f0-9]{64}$/i.test(r.sha256||''))throw Error('Source originale ou SHA-256 invalide : '+p.id);
-p.source=r.source;p.sha256=r.sha256;p.duration=d;p.absolute_start=Number(cursor.toFixed(3));
+const rawDuration=lang==='fr'?r.durationFr:r.durationEn;
+const d=rawDuration===''||rawDuration===null||rawDuration===undefined?null:Number(rawDuration);
+if(d!==null&&(!Number.isFinite(d)||!(d>0)))throw Error('Durée '+lang.toUpperCase()+' invalide : '+p.id);
+const source=String(r.source||'').trim(),hash=String(r.sha256||'').trim();
+if(hash&&!/^[a-f0-9]{64}$/i.test(hash))throw Error('SHA-256 source invalide : '+p.id);
+p.source=source||null;p.sha256=hash||null;p.duration=d;
+if(cursor===null)delete p.absolute_start;else p.absolute_start=Number(cursor.toFixed(3));
 p.visual_approved=!!(r.sourceOk&&(lang==='fr'?r.matchFr:r.matchEn));
 p.rights=r.rightsOk?'cleared_commercial':(p.rights||'not_verified');
 p.plan_qa_pass=false;p.timing_verified=!!r[lang+'TimingOk'];
 const mode=r[lang+'Mode'];
 if(!['voice','archive_original_only','silence'].includes(mode))throw Error('Mode audio invalide : '+p.id);
 if(mode==='voice'){
-const path=r[lang+'AudioPath'],hash=r[lang+'AudioSha'],offset=Number(r[lang+'Offset']||0);
+const path=String(r[lang+'AudioPath']||'').trim(),audioHash=String(r[lang+'AudioSha']||'').trim(),offset=Number(r[lang+'Offset']||0);
 if(!Number.isFinite(offset)||offset<0)throw Error('Offset audio invalide : '+p.id);
-if(!path||!/^[a-f0-9]{64}$/i.test(hash||''))throw Error('WAV ou SHA-256 '+lang.toUpperCase()+' manquant : '+p.id);
-p.audio={mode:'voice',path,sha256:hash,offset,editorial_lock:false};
+if(audioHash&&!/^[a-f0-9]{64}$/i.test(audioHash))throw Error('SHA-256 WAV invalide : '+p.id);
+p.audio={mode:'voice',path:path||null,sha256:audioHash||null,offset,editorial_lock:false};
+p.sound_mode=null;
 }else{
 if(mode==='archive_original_only'&&p.kind!=='archive_film')throw Error('Audio d’archive réservé aux plans filmés : '+p.id);
 if(mode==='silence'&&r.spoken)throw Error('Un plan avec narration ne peut pas être silencieux : '+p.id);
-p.audio={mode};
-p.sound_mode=mode==='archive_original_only'?'archive_original_only':null;
+p.audio={mode};p.sound_mode=mode==='archive_original_only'?'archive_original_only':null;
 }
 const spoken=!!r.spoken;p.spoken=spoken;
 if(spoken){
-const text=r[lang==='fr'?'frText':'enText'],start=Number(r[lang+'Start']),end=Number(r[lang+'End']);
-if(!text||!Number.isFinite(start)||!Number.isFinite(end)||start<0||!(end>start)||end>d)throw Error('Cue '+lang.toUpperCase()+' invalide : '+p.id);
-p.captions=[{text,start,end}];p.subtitle_human_verified=!!(r[lang+'CaptionsOk']&&r[lang+'TimingOk']);
+const text=String(r[lang==='fr'?'frText':'enText']||'').trim(),rawStart=r[lang+'Start'],rawEnd=r[lang+'End'];
+if(!text||rawStart===''||rawStart===null||rawStart===undefined||rawEnd===''||rawEnd===null||rawEnd===undefined){p.captions=[];p.subtitle_human_verified=false}
+else{
+const cueStart=Number(rawStart),cueEnd=Number(rawEnd);
+if(!Number.isFinite(cueStart)||!Number.isFinite(cueEnd)||cueStart<0||!(cueEnd>cueStart)||(d!==null&&cueEnd>d))throw Error('Cue '+lang.toUpperCase()+' invalide : '+p.id);
+p.captions=[{text,start:cueStart,end:cueEnd}];p.subtitle_human_verified=!!(r[lang+'CaptionsOk']&&r[lang+'TimingOk'])
+}
 }else{p.captions=[];p.subtitle_human_verified=false}
 if(r.transition==='crossfade'){
-const sec=Number(r.transitionSeconds);
-if(!Number.isFinite(sec)||!(sec>0&&sec<d))throw Error('Durée de fondu invalide : '+p.id);
-p.transition_out={type:'crossfade',seconds:sec,editorial_lock:!!r.transitionLocked};cursor+=d-sec;
-}else{delete p.transition_out;cursor+=d}
+const rawSeconds=r.transitionSeconds,sec=rawSeconds===''||rawSeconds===null||rawSeconds===undefined?0:Number(rawSeconds);
+if(!Number.isFinite(sec)||sec<0||(d!==null&&sec>=d&&sec>0))throw Error('Durée de fondu invalide : '+p.id);
+p.transition_out={type:'crossfade',seconds:sec,editorial_lock:!!r.transitionLocked};
+if(cursor!==null)cursor=d===null?null:cursor+d-sec;
+}else{
+delete p.transition_out;
+if(cursor!==null)cursor=d===null?null:cursor+d;
+}
 }}
 return m
 }
