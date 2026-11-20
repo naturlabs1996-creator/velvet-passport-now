@@ -68,6 +68,7 @@ $('#add').onclick=()=>{rows.push(blank());render()};
 $('#manifest').onchange=async e=>{try{const m=JSON.parse(await e.target.files[0].text());$('#route').value=m.route_id||$('#route').value;rows=[];(m.scenes||[]).filter(s=>!s.deleted).forEach(s=>(s.plans||[]).forEach(p=>rows.push({...blank(),scene:s.id,id:p.id,kind:p.kind||'photo',source:p.source||'',sha256:p.sha256||'',duration:p.duration??'',notes:p.editorial_choice||''})));render()}catch(err){alert('Manifeste JSON illisible : '+err.message)}};
 $('#planfile').onchange=async e=>{try{const p=JSON.parse(await e.target.files[0].text());$('#route').value=p.route_id||$('#route').value;rows=p.plans||[];render()}catch(err){alert('Plan séquence JSON illisible : '+err.message)}};
 $('#export').onclick=()=>{const payload={schema:'velvet-shot-sequence/v1',route_id:$('#route').value,created_at:new Date().toISOString(),status:rows.length&&rows.every(check)?'READY_FOR_ASSEMBLY_REVIEW':'DRAFT_INCOMPLETE',language_tracks:['fr','en'],plans:rows.map(r=>({...r,preview:undefined,association_status:check(r)?'APPROVED_BY_EDITOR':'INCOMPLETE'}))};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download=$('#route').value.replace(/[^a-z0-9_-]/gi,'_')+'_shot-sequence.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('#route').addEventListener('input',refreshSummary);
 render();
 </script>
 </body></html>
