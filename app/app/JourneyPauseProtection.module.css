@@ -76,3 +76,8 @@
     font-size: 10px;
   }
 }
+
+/* Brand chrome only; urgency colors remain safety signals. */
+.control{background:rgba(7,22,38,.97);border-color:var(--vp-border);color:var(--vp-text)}
+.control button{border-color:var(--vp-border);background:var(--vp-navy-raised);color:var(--vp-text)}
+.control button:focus-visible{outline:2px solid var(--vp-gold-highlight)}

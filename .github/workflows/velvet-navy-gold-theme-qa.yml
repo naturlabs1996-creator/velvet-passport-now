@@ -1,0 +1,45 @@
+name: Velvet navy gold theme — isolated build and token audit
+on:
+  push:
+    branches:
+      - 'design/velvet-navy-gold-unified-2026-11-01'
+    paths:
+      - 'app/**/*.css'
+      - 'app/globals.css'
+      - 'docs/branding/VELVET-NAVY-GOLD-DESIGN-SYSTEM-LOCK-2026-11-01.md'
+      - '.github/workflows/velvet-navy-gold-theme-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  style_build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Audit shared palette and viewer requirements
+        run: |
+          node - <<'JS'
+          const fs=require("fs");
+          const base=fs.readFileSync("app/globals.css","utf8");
+          const viewer=fs.readFileSync("app/app/films/films.module.css","utf8");
+          const app=fs.readFileSync("app/app/page.module.css","utf8");
+          for(const s of ["--vp-navy-deep: #071626","--vp-navy: #0d233a","--vp-gold: #cba34b","--vp-border: rgba(203,163,75,.42)"]){
+            if(!base.includes(s))throw new Error("Missing palette token "+s);
+          }
+          for(const s of ["background:var(--vp-navy-deep)","border:2px solid var(--vp-gold)"]){
+            if(!viewer.includes(s))throw new Error("Viewer missing "+s);
+          }
+          if(!app.includes(".shell{background:var(--vp-navy);")) throw new Error("NOW app shell is not blue");
+          console.log("PASS: shared tokens, NOW shell and film viewer.");
+          JS
+      - name: Install exact dependencies
+        run: npm ci
+      - name: Next.js production compilation check (no deployment)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

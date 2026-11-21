@@ -287,3 +287,11 @@
     flex-direction: column;
   }
 }
+
+/* Velvet editorial pages retain historical images while adopting the unified palette. */
+.answer-page{background:var(--vp-navy-deep);color:var(--vp-text)}
+.answer-hero-shade{background:linear-gradient(180deg,rgba(7,22,38,.08) 12%,rgba(7,22,38,.48) 58%,rgba(7,22,38,.97) 100%)}
+.answer-eyebrow,.section-kicker,.answer-note-grid span{color:var(--vp-gold-highlight)}
+.answer-section{border-color:var(--vp-border)}
+.answer-lede,.answer-section>p:not(.section-kicker),.answer-conversion>p:not(.section-kicker){color:var(--vp-muted)}
+.answer-note-grid article{background:var(--vp-navy-surface);border-color:var(--vp-border)}

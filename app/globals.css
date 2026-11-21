@@ -294,3 +294,91 @@ footer nav,.legalFooter nav{font-size:11px;line-height:1.4}footer nav a,.legalFo
 .demoScenarioReturn:hover,.demoScenarioReturn:focus-visible{background:#c9a84c;color:#17130c;outline:2px solid #8e753b;outline-offset:2px}
 #demo-options{scroll-margin-top:88px}
 @media(max-width:760px){.demoScenarioReturn{position:sticky;top:78px;z-index:6;min-height:52px;margin-bottom:17px;font-size:11px}.demoDecision{padding-bottom:118px!important}}
+
+
+/* VELVET PASSPORT — durable navy-and-gold design system, 2026-11-01.
+   All public site surfaces and the film viewer inherit these shared tokens.
+   Brand accents are gold, never pale yellow; navy is a visible base, not black.
+   Informational danger/medical/success colors retain their meaning. */
+:root {
+  --vp-navy-deep: #071626;
+  --vp-navy: #0d233a;
+  --vp-navy-surface: #17324b;
+  --vp-navy-raised: #21405c;
+  --vp-gold: #cba34b;
+  --vp-gold-highlight: #e1bf73;
+  --vp-text: #f4f4f0;
+  --vp-muted: #c2cfdb;
+  --vp-border: rgba(203,163,75,.42);
+  --vp-ice: #e8eff6;
+  --vp-ice-light: #f3f7fb;
+  --vp-ink: #0b2239;
+  --paper: var(--vp-navy);
+  --cream: var(--vp-navy-surface);
+  --ink: var(--vp-ink);
+  --gold: var(--vp-gold);
+  --gold2: var(--vp-gold-highlight);
+  --muted: var(--vp-muted);
+  --line: var(--vp-border);
+}
+html { color-scheme: dark; }
+body { background: var(--vp-navy); color: var(--vp-text); }
+:focus-visible { outline: 2px solid var(--vp-gold-highlight); outline-offset: 3px; }
+
+/* Brand chrome: no charcoal/brown backgrounds. */
+.nav,.legalNav { background: rgba(7,22,38,.97); border-bottom: 1px solid var(--vp-border); }
+.nav nav,.trust,.textLink { color: var(--vp-muted); }
+.navCta,.gold,.demoLaunchTop,.uncoveredCta,.mobileStickyCta,.demoCta,
+.legalBack,.legalButton,.contactForm button { background: var(--vp-gold); color: var(--vp-ink); }
+.hero { background: radial-gradient(circle at 80% 15%,rgba(203,163,75,.17),transparent 35%),
+ linear-gradient(125deg,var(--vp-navy-surface),var(--vp-navy-deep) 76%); color:var(--vp-text); }
+.lead { color: var(--vp-muted); }
+.hero h1 em,.problem h2 em,.activation h2 em,.uncovered h2 em,.final h2 em { color: var(--vp-gold-highlight); }
+.kicker,.featureKicker { color:var(--vp-gold-highlight); }
+.rings i,.smallRings i,.largeRings i { border-color:var(--vp-gold); }
+
+/* Page rhythm: deep/navy surfaces replace beige and charcoal. */
+.problem,.howNow,.pricing,.faq,.legalPage { background:var(--vp-navy); color:var(--vp-text); }
+.demo,.activation,.productCompare { background:var(--vp-navy-surface); color:var(--vp-text); }
+.features,.careNow,.final,.uncovered { background:var(--vp-navy-deep); color:var(--vp-text); }
+.uncovered { background:linear-gradient(125deg,var(--vp-navy-surface),var(--vp-navy-deep)); }
+footer,.legalFooter { background:var(--vp-navy-deep); color:var(--vp-muted); border-top:1px solid var(--vp-border); }
+footer>small,.problemGrid article,.featureGrid article,.faq article,.faq article:last-child {
+ border-color: var(--vp-border);
+}
+.problemGrid h3,.featureGrid h3,.faq article button,.legalPage h1,.legalPage h2 { color:var(--vp-text); }
+.problemGrid p,.featureGrid p,.faq article p,.heading>p:last-child { color:var(--vp-muted); }
+
+/* The demonstration and cards use cool silver-blue, not yellowed cream.
+   Dark ink inside the lighter UI preserves readable form controls. */
+.demoGrid,.phone,.flow article,.compareGrid article,.checkout,.legalHighlight,
+.restaurantChoices button,.demoWhy,.demoChange.secondary {
+ background:var(--vp-ice);
+ color:var(--vp-ink);
+ border-color:rgba(12,45,74,.2);
+}
+.demoGrid .decision,.demoDecision { color:var(--vp-ink); }
+.phoneTop,.phoneNav,.controls { background:var(--vp-navy-deep); color:var(--vp-text); }
+.controls button,.controlGroup button { background:var(--vp-navy-surface)!important; border-color:var(--vp-border)!important; color:var(--vp-text)!important; }
+.controls button.active,.controlGroup button.active { background:var(--vp-navy-raised)!important; border-color:var(--vp-gold)!important; color:var(--vp-text)!important; }
+.controlGroup button span { color:var(--vp-gold-highlight)!important; }
+.weather { background:var(--vp-ice-light); border-color:rgba(12,45,74,.22); color:var(--vp-ink); }
+.weather i { background:rgba(12,45,74,.2); }
+.pick { background:linear-gradient(130deg,var(--vp-navy-raised),var(--vp-navy-deep)); }
+.float,.careConsole,.contactForm { background:var(--vp-navy-surface); border-color:var(--vp-border); }
+.float span { color:var(--vp-muted); }
+.proof,.best { background:var(--vp-gold); color:var(--vp-ink); }
+.proof p,.proof strong,.best { color:var(--vp-ink); }
+.demoResultHead>p { color:var(--vp-ink); }
+.compareGrid article.compareNow,.priceGrid>article.featured { background:var(--vp-navy-deep); color:var(--vp-text); }
+.priceGrid>article,.uncovered aside { background:var(--vp-navy-surface); color:var(--vp-text); border-color:var(--vp-border); }
+.priceGrid article>p,.priceGrid li { color:var(--vp-muted); }
+.priceGrid ul { border-color:var(--vp-border); }
+.featured button { background:var(--vp-gold); color:var(--vp-ink); }
+.demoScenarioReturn { background:var(--vp-navy-deep); border-color:var(--vp-gold); color:var(--vp-gold-highlight); }
+.demoScenarioReturn:hover,.demoScenarioReturn:focus-visible { background:var(--vp-gold); color:var(--vp-ink); }
+.careUnified { background:var(--vp-navy-surface); border-color:var(--vp-border); }
+.restaurantChoices button.selected { background:var(--vp-ice-light); border-color:var(--vp-gold); }
+.restaurantChoices button h4 { color:var(--vp-ink); }
+.legalHighlight { color:var(--vp-ink); }
+.contactForm input,.contactForm select,.contactForm textarea { background:var(--vp-navy-deep); border-color:var(--vp-border); color:var(--vp-text); }

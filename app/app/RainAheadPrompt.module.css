@@ -95,3 +95,11 @@
   .actions { grid-template-columns: 1fr; }
   .message { font-size: 15px; }
 }
+
+/* Harmonized rain alert, without weakening its warning/error hierarchy. */
+.card{background:rgba(13,35,58,.97);border-color:var(--vp-border)}
+.topline{color:var(--vp-gold-highlight)}
+.message{color:var(--vp-text)}
+.detail{color:var(--vp-muted)}
+.actions button{background:var(--vp-navy-raised);border-color:var(--vp-border);color:var(--vp-text)}
+.actions button:first-child{background:var(--vp-gold);border-color:var(--vp-gold);color:var(--vp-ink)}
