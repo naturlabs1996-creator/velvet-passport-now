@@ -1,6 +1,6 @@
 {
   "id": "PARIS05-STOP04-APPROVED-THREE-SCENES-2026-11-22",
-  "origin": "Exact FR narration approved by the user in STOP04_POINT_DE_REPRISE_R8_20261120; only numeric spelling for TTS is expanded in speech_text.",
+  "origin": "Narration approved by the user; speech_text expands only numerals/abbreviation for pronunciation.",
   "status": "EDITORIAL_TEXT_LOCKED_AUDIO_QA_PENDING",
   "voice_reference": "kyutai/tts-voices developer-1.mp3",
   "tts": {
@@ -17,18 +17,18 @@
   "scenes": [
     {
       "id": "S07",
-      "text": "Le témoignage familial attribue l’ordre de tirer à un officier allemand. La reconstitution proposée situe la sentinelle sur un balcon de la Kommandantur, au 2 place de l’Opéra, face au 38 où Guillois a été atteint. Le balcon exact reste inconnu.",
-      "speech_text": "Le témoignage familial attribue l’ordre de tirer à un officier allemand. La reconstitution proposée situe la sentinelle sur un balcon de la Kommandantur, au deux place de l’Opéra, face au trente-huit où Guillois a été atteint. Le balcon exact reste inconnu."
+      "editorial_text": "Le témoignage familial attribue l’ordre de tirer à un officier allemand. La reconstitution proposée situe la sentinelle sur un balcon de la Kommandantur, au 2 place de l’Opéra, face au 38 où Guillois a été atteint. Le balcon exact reste inconnu.",
+      "text": "Le témoignage familial attribue l’ordre de tirer à un officier allemand. La reconstitution proposée situe la sentinelle sur un balcon de la Kommandantur, au deux place de l’Opéra, face au trente-huit où Guillois a été atteint. Le balcon exact reste inconnu."
     },
     {
       "id": "S16",
-      "text": "Puis vient la reddition de la Kommandantur. Avenue de l’Opéra, des militaires allemands avancent sous un drapeau blanc. Devant les résistants et les soldats de la 2e DB, ils déposent les armes.",
-      "speech_text": "Puis vient la reddition de la Kommandantur. Avenue de l’Opéra, des militaires allemands avancent sous un drapeau blanc. Devant les résistants et les soldats de la deuxième division blindée, ils déposent les armes."
+      "editorial_text": "Puis vient la reddition de la Kommandantur. Avenue de l’Opéra, des militaires allemands avancent sous un drapeau blanc. Devant les résistants et les soldats de la 2e DB, ils déposent les armes.",
+      "text": "Puis vient la reddition de la Kommandantur. Avenue de l’Opéra, des militaires allemands avancent sous un drapeau blanc. Devant les résistants et les soldats de la deuxième division blindée, ils déposent les armes."
     },
     {
       "id": "S19",
-      "text": "Après la capitulation de la Kommandantur, un homme décroche de la façade l’immense banderole allemande. À l’angle de l’avenue de l’Opéra et de la rue du Quatre-Septembre, le symbole de l’Occupation disparaît sous les yeux des Parisiens.",
-      "speech_text": "Après la capitulation de la Kommandantur, un homme décroche de la façade l’immense banderole allemande. À l’angle de l’avenue de l’Opéra et de la rue du Quatre-Septembre, le symbole de l’Occupation disparaît sous les yeux des Parisiens."
+      "editorial_text": "Après la capitulation de la Kommandantur, un homme décroche de la façade l’immense banderole allemande. À l’angle de l’avenue de l’Opéra et de la rue du Quatre-Septembre, le symbole de l’Occupation disparaît sous les yeux des Parisiens.",
+      "text": "Après la capitulation de la Kommandantur, un homme décroche de la façade l’immense banderole allemande. À l’angle de l’avenue de l’Opéra et de la rue du Quatre-Septembre, le symbole de l’Occupation disparaît sous les yeux des Parisiens."
     }
   ]
 }
