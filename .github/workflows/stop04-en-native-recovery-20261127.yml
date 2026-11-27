@@ -1,0 +1,78 @@
+name: STOP04 English native recovery - preserve completed takes
+on:
+  push:
+    branches: [work/paris05-delivery-20261128]
+    paths: ['.github/workflows/stop04-en-native-recovery-20261127.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  wait-for-original-artifacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - name: Let original batches finish preserving their output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+          url="https://api.github.com/repos/naturlabs1996-creator/velvet-passport-now/actions/runs/46079609426"
+          for attempt in range(280):
+              req=urllib.request.Request(url,headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Accept":"application/vnd.github+json","User-Agent":"VelvetPassportAudioRecovery"})
+              with urllib.request.urlopen(req,timeout=30) as r:obj=json.load(r)
+              if obj["status"]=="completed":
+                  print("Original run completed:",obj["conclusion"],flush=True)
+                  break
+              if attempt%6==0:print("Original voice batches still running; preserving completed work",flush=True)
+              time.sleep(20)
+          else:raise TimeoutError("Original run did not finish within recovery window")
+          PY
+  recover-english:
+    needs: wait-for-original-artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        group: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate corrected script syntax
+        run: python -m py_compile scripts/audio/resume_stop04_en_liberation_r21.py
+      - name: Recover source-run takes from this group
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: stop04-en-liberation-r21-group-${{ matrix.group }}
+          run-id: 46079609426
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: prior
+      - name: Install the pinned existing engine
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile numpy faster-whisper==1.2.1
+      - name: Fetch existing p232 reference
+        run: |
+          mkdir -p reference
+          curl --fail --location --retry 3 -o reference/p232.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true"
+      - name: Reuse hash-matched takes and generate only missing plans
+        run: |
+          python -u scripts/audio/resume_stop04_en_liberation_r21.py \
+            --manifest docs/pilots/stop04-en-liberation-r21-20261127.json \
+            --group '${{ matrix.group }}' --reference reference/p232.wav \
+            --reuse prior --out generated/recovery-group-${{ matrix.group }}
+      - name: Preserve recovered English and measurable QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stop04-en-liberation-r21-recovery-group-${{ matrix.group }}
+          path: generated/recovery-group-${{ matrix.group }}/*
+          if-no-files-found: warn
+          retention-days: 2
