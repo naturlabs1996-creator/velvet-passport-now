@@ -1,0 +1,63 @@
+name: STOP04 English Liberation - 28 native voice plans
+on:
+  push:
+    branches: [work/paris05-delivery-20261128]
+    paths:
+      - '.github/workflows/stop04-en-liberation-r21-20261127.yml'
+      - 'docs/pilots/stop04-en-liberation-r21-20261127.json'
+      - 'scripts/audio/render_stop04_en_liberation_r21.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-english:
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        group: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate the Liberation script and 28-plan coverage
+        run: |
+          python -m py_compile scripts/audio/render_stop04_en_liberation_r21.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('docs/pilots/stop04-en-liberation-r21-20261127.json').read_text())
+          assert m['stop_id']=='STOP04' and 'Liberation' in m['subject']
+          assert len(m['plans'])==28 and len(m['archive_plans'])==2
+          assert len({p['id'] for p in m['plans']})==28
+          assert all(p['end']>p['start'] and p['text'] for p in m['plans'])
+          assert not m['release_approved']
+          print('28 English voice plans; two documentary plans retain original audio')
+          PY
+      - name: Install the pinned existing Chatterbox engine
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 torchaudio==2.6.0
+          python -m pip install "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" soundfile numpy faster-whisper==1.2.1
+          ffmpeg -version | head -n 1
+      - name: Fetch the existing p232 reference
+        run: |
+          mkdir -p reference
+          curl --fail --location --retry 3 -o reference/p232.wav "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true"
+      - name: Render seven English voice plans without speed changes
+        run: |
+          python -u scripts/audio/render_stop04_en_liberation_r21.py \
+            --manifest docs/pilots/stop04-en-liberation-r21-20261127.json \
+            --group '${{ matrix.group }}' --reference reference/p232.wav \
+            --out generated/english-group-${{ matrix.group }}
+      - name: Preserve all generated voices and measurable QA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stop04-en-liberation-r21-group-${{ matrix.group }}
+          path: generated/english-group-${{ matrix.group }}/*
+          if-no-files-found: warn
+          retention-days: 2
