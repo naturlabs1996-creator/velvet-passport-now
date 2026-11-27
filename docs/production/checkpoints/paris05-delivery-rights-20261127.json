@@ -1,0 +1,330 @@
+{
+  "schema_version": "1.0",
+  "route": "Paris 05",
+  "requested_delivery_date": "2026-11-28",
+  "timezone": "America/Toronto",
+  "not_a_delivery_guarantee": true,
+  "release_approved": false,
+  "scope": "STOP04 current R21 sources; STOP05 early English and rights reconciliation",
+  "english_stop04": {
+    "status": "RENDER_IN_PROGRESS",
+    "run_id": 46079609426,
+    "url": "https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/46079609426",
+    "voice_plans": 28,
+    "archive_plans_original_sound": 2,
+    "source": "docs/pilots/stop04-en-liberation-r21-20261127.json",
+    "native_tempo": 1,
+    "digital_time_stretch": false,
+    "voice_reference_license": "CC BY 4.0, VCTK p232, https://huggingface.co/kyutai/tts-voices/blob/main/README.md",
+    "listening_passed": false
+  },
+  "rights_policy": {
+    "source": "https://www.parismuseescollections.paris.fr/fr/les-images-sous-droits",
+    "rule": "Apply licenses to exact selected original and its components. No blanket CC0 by institution, year or file category.",
+    "paid_license_purchased": false,
+    "third_party_contact_sent": false,
+    "locked_media_replaced": false
+  },
+  "stop04": [
+    {
+      "plan_id": "S01-P01",
+      "source_notice": "https://www.loc.gov/item/92515470/",
+      "status": "INSTITUTION_NO_KNOWN_RESTRICTIONS_FILE_MATCH_PENDING",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "evidence": "LOC LCCN 92515470: No known restrictions on publication. Match exact active photochrome before applying this notice.",
+      "credit": "Paris, L'Opera, 1890–1900. Library of Congress, Photochrom Print Collection, LC-DIG-ppmsca-52491."
+    },
+    {
+      "plan_id": "S02-P01",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S02-P02",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S03-P01",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S03-P02",
+      "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-22-25-aout-1944-barricade-devant-le-siege-social-du",
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S04-P01",
+      "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/place-de-l-opera-passants-soldats-et-vehicules-allemands-camoufles-devant",
+      "status": "PERMISSION_OR_LICENSED_REPLACEMENT_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "author": "André Gandner",
+      "inventory": "1992.124",
+      "evidence": "Institutional page and under-rights reproduction policy. No CC0 proof found."
+    },
+    {
+      "plan_id": "S05-P01",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S05-P02",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S06-P01",
+      "source_notice": "https://parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/representations-caricaturales-de-hitler-et-etoile-jaune-sur-une-barricade",
+      "status": "CC0_INSTITUTION_NOTICE_VERIFIED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "author": "SAFARA",
+      "inventory": "2002.373",
+      "evidence": "Official page explicitly states CC0 Paris Musées. Active R21 replacement is SAFARA 2002.373; do not reuse older Roger-Viollet notice.",
+      "credit": "SAFARA, Représentations caricaturales de Hitler et étoile jaune sur une barricade, vers le 25 août 1944, inv. 2002.373. CC0 Paris Musées / Musée de la Libération de Paris – musée du général Leclerc – musée Jean Moulin."
+    },
+    {
+      "plan_id": "S06-P02",
+      "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/en-de-veritables-combats-de-rues",
+      "status": "CC0_INSTITUTION_NOTICE_VERIFIED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "author": "Anonyme",
+      "inventory": "PH19376",
+      "evidence": "Official page explicitly CC0. Use active R21 PH19376; not older user-substitution provenance.",
+      "credit": "Anonyme, ...EN DE VERITABLES COMBATS DE RUES., 1944, PH19376. CC0 Paris Musées / Musée Carnavalet – Histoire de Paris."
+    },
+    {
+      "plan_id": "S07-P01",
+      "source_notice": null,
+      "status": "COMPOSITE_COMPONENTS_TO_DOCUMENT",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "evidence": "R21 composite old building + portrait/plaque/arrow. Previous PH20748 CC0 alone does not clear all components of current composite."
+    },
+    {
+      "plan_id": "S08-P01",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S09-P01",
+      "source_notice": null,
+      "status": "GOVERNMENT_SOURCE_PROOF_TO_ATTACH",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "inventory": "US Navy Lot 4568-2",
+      "evidence": "Active R21 US Navy replacement; do not apply superseded Paris Musées half-track notice."
+    },
+    {
+      "plan_id": "S10-P01",
+      "source_notice": "https://www.icp.org/browse/archive/objects/french-civilians-and-members-of-the-resistance-helping-the-french-troops-root",
+      "status": "PERMISSION_OR_LICENSED_REPLACEMENT_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "author": "Robert Capa",
+      "inventory": "ICP 3057.1992",
+      "evidence": "Exact ICP accession verified. Institutional ownership/credit is not an open-use license. No commercial permission found."
+    },
+    {
+      "plan_id": "S11-P01",
+      "source_notice": "https://parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/photo-lapi-ndeg-28403-attaque-de-la-kommandantur-par-la-11iii-rmt-un-half",
+      "status": "PERMISSION_EVIDENCE_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "inventory": "LAPI 28403",
+      "evidence": "Exact institutional notice identified; CC0 not established."
+    },
+    {
+      "plan_id": "S12-P01",
+      "source_notice": null,
+      "status": "PERMISSION_EVIDENCE_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "inventory": "1994.681.2",
+      "author": "Pierre Vals",
+      "evidence": "Active R21 replacement; do not apply older source accession."
+    },
+    {
+      "plan_id": "S14-P01",
+      "source_notice": "https://www.upi.com/Top_News/2024/08/25/On-This-Day-Paris-liberated-from-German-occupation-in-WWII/3321724552476/",
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S15-P01",
+      "source_notice": "https://commons.wikimedia.org/wiki/File:La_Lib%C3%A9ration_de_Paris,_1944.ogv",
+      "status": "AUDIOVISUAL_RIGHTS_UNRESOLVED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "source_range_seconds": [
+        1160,
+        1190
+      ],
+      "evidence": "Commons anonymous-public-domain template is not accepted as clearance for exact INA-marked R21 copy, known authors and original soundtrack. Preserve approved 30 seconds and original sound, no VP narration."
+    },
+    {
+      "plan_id": "S16-P01",
+      "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-militaires-allemands-se-rendant-avenue-et",
+      "status": "PERMISSION_EVIDENCE_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "inventory": "PH11026",
+      "evidence": "Official exact notice credits © Agence LAPI – Paris Musées and links reproduction information. No CC0 badge."
+    },
+    {
+      "plan_id": "S17-P01",
+      "source_notice": null,
+      "status": "GOVERNMENT_SOURCE_PROOF_TO_ATTACH",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "inventory": "US Signal Corps SC192995",
+      "evidence": "Active R21 government-source replacement, not older museum photograph."
+    },
+    {
+      "plan_id": "S18-P01",
+      "source_notice": "https://www.parismuseescollections.paris.fr/fr/musee-jean-moulin/oeuvres/place-de-l-opera-a-l-angle-avec-le-boulevard-des-capucines-prisonniers",
+      "status": "PERMISSION_OR_LICENSED_REPLACEMENT_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "author": "André Gandner",
+      "inventory": "1992.339",
+      "evidence": "Exact institution and under-rights reproduction policy verified. No CC0 proof."
+    },
+    {
+      "plan_id": "S19-P01",
+      "source_notice": "https://parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/liberation-de-paris-25-aout-1944-apres-la-capitulation-de-la-kommandantur",
+      "status": "PERMISSION_EVIDENCE_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "inventory": "PH10999 / LAPI 28397",
+      "evidence": "Official record includes LAPI Droits Réservés stamps. No reusable open license found."
+    },
+    {
+      "plan_id": "S20-P01",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S20-P02",
+      "source_notice": "https://commons.wikimedia.org/wiki/File:La_Lib%C3%A9ration_de_Paris,_1944.ogv",
+      "status": "AUDIOVISUAL_RIGHTS_UNRESOLVED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "source_range_seconds": [
+        756,
+        772
+      ],
+      "evidence": "Same audiovisual clearance as S15; preserve original 16 seconds and original sound."
+    },
+    {
+      "plan_id": "S21-P01",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S22-P01",
+      "source_notice": null,
+      "status": "ATTRIBUTION_AND_LICENSE_PROOF_REQUIRED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "evidence": "Modern user-supplied Garnier photograph; exact photographer/license needed."
+    },
+    {
+      "plan_id": "S23-P01",
+      "source_notice": null,
+      "status": "GOVERNMENT_SOURCE_PROOF_TO_ATTACH",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "inventory": "NARA NLR-PHOCO-A-65638-20",
+      "evidence": "Active R21 NARA replacement; preserve full provenance before clearance."
+    },
+    {
+      "plan_id": "S23-P02",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S23-P03",
+      "source_notice": null,
+      "status": "EVIDENCE_INCOMPLETE",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true
+    },
+    {
+      "plan_id": "S24-P01",
+      "source_notice": null,
+      "status": "INTERNAL_GRAPHIC_ORIGIN_RECORDED",
+      "verification_date": "2026-11-27",
+      "source_identity_requires_r21_match": true,
+      "evidence": "Internally created graphic; underlying image components, if any, still require source matching."
+    }
+  ],
+  "stop05": {
+    "public_stop_id": "STOP05",
+    "legacy_segment_id": "STOP-04",
+    "french_source": "docs/pilots/paris-05-fr-v4-tts-and-cues.json",
+    "english_source": "docs/pilots/paris-05-en-production-stop04.json",
+    "english_text_found": true,
+    "english_audio": {
+      "successful_historical_run": 39767974795,
+      "run_date": "2026-10-22",
+      "artifacts_currently_returned": 0,
+      "status": "HISTORICAL_GENERATION_CONFIRMED_DURABLE_AUDIO_NOT_RECOVERED"
+    },
+    "duration_warning": "Full-route old chapter has FR 886.28 s and EN 880.44 s. Do not impose these onto a different shorter approved STOP05 montage without exact source/text comparison.",
+    "portrait_identity_correction": {
+      "incorrect_registry_name": "César, duc de Beaufort",
+      "correct_name": "François de Vendôme, duc de Beaufort (1616–1669)",
+      "gallica_id": "btv1b8405032k",
+      "evidence": "https://commons.wikimedia.org/wiki/File:Portrait_de_Fran%C3%A7ois_de_Vend%C3%B4me,_duc_de_Beaufort,_en_buste,_de_3-4_dirig%C3%A9_%C3%A0_gauche_dans_une_bordure_ovale_-_estampe_-_btv1b8405032k.jpg"
+    },
+    "verified_portrait": {
+      "person": "Anne-Marie-Louise d’Orléans, Grande Mademoiselle",
+      "inventory": "P1983",
+      "license": "CC0",
+      "source": "https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/portrait-d-anne-marie-louise-d-orleans-duchesse-de-montpensier-dite-la",
+      "iiif_manifest": "https://apicollections.parismusees.paris.fr/iiif/320022160/manifest",
+      "credit": "Anonyme, Portrait d’Anne-Marie-Louise d’Orléans, duchesse de Montpensier, dite la Grande Mademoiselle (1627–1693), XVIIe siècle, P1983. CC0 Paris Musées / Musée Carnavalet – Histoire de Paris."
+    },
+    "nemours_portrait": {
+      "source": "https://commons.wikimedia.org/wiki/File:Charles_Am%C3%A9d%C3%A9e_of_Savoy,_Duke_of_Nemours_in_1652.jpg",
+      "reference": "Royal Collection RCIN 615675",
+      "status": "COMMONS_PD_ART_NOT_A_LICENSE_FOR_DIFFERENT_RCT_DOWNLOAD",
+      "original_dimensions": [
+        850,
+        1250
+      ]
+    },
+    "preserved_decisions": [
+      "Duel LOCK preserved; no substitution from rejected candidates.",
+      "Existing reconstructions keep RECONSTITUTION labels and pending review; no new generated images.",
+      "Use approved sound sources; two actual distinct shots in narrated order, no rejected synthetic effects.",
+      "No invented word timing or silent reapproval."
+    ]
+  }
+}
