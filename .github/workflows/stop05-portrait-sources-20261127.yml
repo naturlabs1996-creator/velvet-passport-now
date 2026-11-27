@@ -1,0 +1,70 @@
+name: STOP05 recover historical portrait originals and source evidence
+on:
+  push:
+    branches: [work/paris05-delivery-20261128]
+    paths: ['.github/workflows/stop05-portrait-sources-20261127.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recover-public-originals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install Pillow
+      - name: Download exact source files and retain license evidence
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import urllib.request, json, hashlib, time
+          from PIL import Image
+          out=Path('stop05-portrait-sources');out.mkdir(exist_ok=True)
+          def get(url):
+              for attempt in range(3):
+                  try:
+                      req=urllib.request.Request(url,headers={'User-Agent':'VelvetPassportSourcePreservation/1.0 (historical audiovisual production)'})
+                      return urllib.request.urlopen(req,timeout=45).read()
+                  except Exception:
+                      if attempt==2:raise
+                      time.sleep(2*(attempt+1))
+          sources=[
+              {'id':'BEAUFORT','person':'Francois de Vendome, duc de Beaufort (1616-1669)','notice':'https://commons.wikimedia.org/wiki/File:Portrait_de_Fran%C3%A7ois_de_Vend%C3%B4me,_duc_de_Beaufort,_en_buste,_de_3-4_dirig%C3%A9_%C3%A0_gauche_dans_une_bordure_ovale_-_estampe_-_btv1b8405032k.jpg','url':'https://upload.wikimedia.org/wikipedia/commons/2/20/Portrait_de_Fran%C3%A7ois_de_Vend%C3%B4me%2C_duc_de_Beaufort%2C_en_buste%2C_de_3-4_dirig%C3%A9_%C3%A0_gauche_dans_une_bordure_ovale_-_estampe_-_btv1b8405032k.jpg','rights':'Commons PD-France statement; BnF commercial reuse conditions still to reconcile','credit':'Bibliotheque nationale de France, departement Estampes et photographie, btv1b8405032k'},
+              {'id':'NEMOURS','person':'Charles-Amedee de Savoie, duc de Nemours (1624-1652)','notice':'https://commons.wikimedia.org/wiki/File:Charles_Am%C3%A9d%C3%A9e_of_Savoy,_Duke_of_Nemours_in_1652.jpg','url':'https://upload.wikimedia.org/wikipedia/commons/0/0c/Charles_Am%C3%A9d%C3%A9e_of_Savoy%2C_Duke_of_Nemours_in_1652.jpg','rights':'Commons PD-old-100-expired / PD-Art, exact Commons reproduction; not a license for a separate RCT download','credit':'Charles Amedee de Savoie, Daret, Paris, 1652. Royal Collection reference RCIN 615675; Commons copy source altesses.eu.'},
+              {'id':'GRANDE_MADEMOISELLE','person':'Anne-Marie-Louise d Orleans, Grande Mademoiselle','notice':'https://www.parismuseescollections.paris.fr/fr/musee-carnavalet/oeuvres/portrait-d-anne-marie-louise-d-orleans-duchesse-de-montpensier-dite-la','manifest':'https://apicollections.parismusees.paris.fr/iiif/320022160/manifest','rights':'CC0 explicitly on institutional page and IIIF canvas','credit':'Anonyme, Portrait d Anne-Marie-Louise d Orleans, duchesse de Montpensier, dite la Grande Mademoiselle (1627-1693), P1983. CC0 Paris Musees / Musee Carnavalet - Histoire de Paris.'}
+          ]
+          report=[]
+          for source in sources:
+              item=dict(source);item['visual_lock']=False;item['commercial_release_approved']=False
+              try:
+                  if 'manifest' in source:
+                      raw=get(source['manifest']);(out/(source['id']+'_IIIF.json')).write_bytes(raw)
+                      m=json.loads(raw);canvas=m['sequences'][0]['canvases'][0]
+                      meta=canvas.get('metadata',[])
+                      assert any('creativecommons.org/publicdomain/zero/1.0' in str(x.get('value','')) for x in meta)
+                      item['url']=canvas['images'][0]['resource']['@id']
+                  raw=get(item['url']);path=out/(source['id']+'_ORIGINAL_SOURCE.jpg');path.write_bytes(raw)
+                  with Image.open(path) as im:
+                      im.verify()
+                  with Image.open(path) as im:item['dimensions_px']=list(im.size)
+                  item.update(file=path.name,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),status='ORIGINAL_DOWNLOADED_NOT_MONTAGE_APPROVED')
+                  try:(out/(source['id']+'_SOURCE_NOTICE.html')).write_bytes(get(source['notice']))
+                  except Exception as e:item['source_snapshot_error']=str(e)
+              except Exception as e:
+                  item.update(status='DOWNLOAD_FAILED',error=str(e))
+              report.append(item)
+              (out/'SOURCE_REPORT.json').write_text(json.dumps({'public_stop':'STOP05','legacy_segment':'STOP-04','date':'2026-11-27','assets':report,'release_approved':False},ensure_ascii=False,indent=2))
+              print(item['id'],item['status'],item.get('bytes',0),flush=True)
+          if any(r['status']=='DOWNLOAD_FAILED' for r in report):raise RuntimeError('Source retrieval incomplete; preserve report and successful originals')
+          PY
+      - name: Preserve originals, hashes and exact source notices
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stop05-historical-portraits-sources-20261127
+          path: stop05-portrait-sources/*
+          if-no-files-found: error
+          retention-days: 2
