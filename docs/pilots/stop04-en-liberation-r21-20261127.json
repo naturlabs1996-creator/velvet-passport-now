@@ -1,0 +1,321 @@
+{
+  "schema": "velvet-stop04-en-production/v1",
+  "route_id": "VP-PAR-NOW-05",
+  "stop_id": "STOP04",
+  "subject": "Liberation of Paris, August 1944; NOT the 1652 duel",
+  "source_fr_version": "R21 source-first 2026-11-27",
+  "editorial_status": "FAITHFUL_TRANSLATION_WORKING_COPY_REVIEW_REQUIRED",
+  "release_approved": false,
+  "voice": {
+    "engine": "Chatterbox Multilingual V3",
+    "upstream_commit": "5de7a54aa4e5e2baadb0182dde554908b48b85c2",
+    "speaker": "p232",
+    "reference_url": "https://huggingface.co/kyutai/tts-voices/resolve/main/vctk/p232_023_enhanced.wav?download=true",
+    "language": "en",
+    "tempo": 1,
+    "digital_time_stretch": false,
+    "pause_ms": 420,
+    "exaggeration": 0.72,
+    "cfg_weight": 0.3,
+    "temperature": 0.8,
+    "commercial_rights_review": "pending evidence, do not auto-approve",
+    "reference_license": "VCTK: CC BY 4.0 as documented by the source repository; attribution required",
+    "license_evidence": "https://huggingface.co/kyutai/tts-voices/blob/main/README.md"
+  },
+  "archive_plans": [
+    {
+      "id": "S15-P01",
+      "start": 255.6,
+      "end": 285.6,
+      "mode": "original_French_documentary_audio_only"
+    },
+    {
+      "id": "S20-P02",
+      "start": 350,
+      "end": 366,
+      "mode": "original_French_documentary_audio_only"
+    }
+  ],
+  "plans": [
+    {
+      "id": "S01-P01",
+      "start": 0,
+      "end": 21.28,
+      "target_duration": 21.28,
+      "text": "Look at the Palais Garnier. Take a moment to study its façade. The monumental steps. The statues. The columns. The grand perspectives. This building was designed to impress. It evokes evenings at the opera, lights, stage sets and fashionable society.",
+      "group": 0,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S02-P01",
+      "start": 21.28,
+      "end": 30.72,
+      "target_duration": 9.44,
+      "text": "But in August nineteen forty-four, this square looks nothing like a gala scene. German soldiers still hold positions across the capital.",
+      "group": 1,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S02-P02",
+      "start": 30.72,
+      "end": 38.64,
+      "target_duration": 7.92,
+      "text": "Paris is in revolt. A German command post in the Opéra district becomes one of the flashpoints of those days.",
+      "group": 2,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S03-P01",
+      "start": 38.64,
+      "end": 46.4,
+      "target_duration": 7.76,
+      "text": "Let us go back to August nineteenth, nineteen forty-four. After four years of occupation, events are moving quickly.",
+      "group": 3,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S03-P02",
+      "start": 46.4,
+      "end": 62.72,
+      "target_duration": 16.32,
+      "text": "Police officers, Resistance members and armed groups try to regain control of different districts. But German forces remain. The city is not yet free. Communications are difficult. The danger varies from one street to the next.",
+      "group": 0,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S04-P01",
+      "start": 62.72,
+      "end": 86.4,
+      "target_duration": 23.68,
+      "text": "Photographs taken in this area show German soldiers, their vehicles and their positions. These images are precious. They save us from imagining a vanished Paris entirely from scratch. They show uniformed figures outside buildings we can still recognise. Compare a window. A corner of a façade.",
+      "group": 1,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S05-P01",
+      "start": 86.4,
+      "end": 93.56,
+      "target_duration": 7.16,
+      "text": "The perspective of an avenue. It is exactly the same neighbourhood. But it is no longer the same world.",
+      "group": 2,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S05-P02",
+      "start": 93.56,
+      "end": 110.16,
+      "target_duration": 16.6,
+      "text": "The next day, August twentieth, tension turns deadly. Two French police officers are nearby: Michel Guillois and Pierre Gormond. Guillois is helping circulate an order or message about a ceasefire.",
+      "group": 3,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S06-P01",
+      "start": 110.16,
+      "end": 121.04,
+      "target_duration": 10.88,
+      "text": "The situation is confused. In insurgent Paris, attempts at a truce seek to prevent further fighting. They do not make every position safe.",
+      "group": 0,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S06-P02",
+      "start": 121.04,
+      "end": 125.16,
+      "target_duration": 4.12,
+      "text": "Near the German command post, shots ring out.",
+      "group": 1,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S07-P01",
+      "start": 125.16,
+      "end": 143.48,
+      "target_duration": 18.32,
+      "text": "The family account attributes the order to shoot to a German officer. This reconstruction places the sentry on a balcony of the command post at two Place de l’Opéra, facing number thirty-eight, where Guillois was hit. The exact balcony remains unknown.",
+      "group": 2,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S08-P01",
+      "start": 143.48,
+      "end": 169.6,
+      "target_duration": 26.12,
+      "text": "Michel Guillois is hit. He dies. According to the account preserved, Pierre Gormond is wounded in the leg by two bullets. This happens five days before the Liberation of Paris. Look at the windows around you. For the police officers travelling here, this monumental architecture offered no protection. A German position could still open fire. A journey along a familiar street could become fatal.",
+      "group": 3,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S09-P01",
+      "start": 169.6,
+      "end": 197.68,
+      "target_duration": 28.08,
+      "text": "These events explain why it would be misleading to tell only the story of the command post’s capture on August twenty-fifth. The final fighting followed days of clashes, uncertainty and victims. The Palais Garnier was already caught up in the war before the French tanks arrived. We now move forward a few days. On the evening of August twenty-fourth, advance units of General Philippe Leclerc’s Second Armoured Division enter Paris.",
+      "group": 0,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S10-P01",
+      "start": 197.68,
+      "end": 220.88,
+      "target_duration": 23.2,
+      "text": "On August twenty-fifth, other units advance through the capital. Resistance fighters, insurgent police and French soldiers retake different positions. But the German forces have not vanished overnight. Each strongpoint may require an attack. The Opéra district is one of them. It is August twenty-fifth.",
+      "group": 1,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S11-P01",
+      "start": 220.88,
+      "end": 241.64,
+      "target_duration": 20.76,
+      "text": "In mid-afternoon, French units attack the command post. Among them is the Eleventh Company of the Third Battalion of the Chad Marching Regiment. The name may sound technical. But this regiment is one of the formations accompanying the Second Armoured Division as it advances.",
+      "group": 2,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S12-P01",
+      "start": 241.64,
+      "end": 250.24,
+      "target_duration": 8.6,
+      "text": "Outside the Palais Garnier, French soldiers escort German prisoners. The German positions do not all surrender at the same time.",
+      "group": 3,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S14-P01",
+      "start": 250.24,
+      "end": 255.6,
+      "target_duration": 5.36,
+      "text": "To understand the intensity of those days, watch this footage filmed during the Liberation of Paris.",
+      "group": 0,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S16-P01",
+      "start": 285.6,
+      "end": 305.6,
+      "target_duration": 20,
+      "text": "Then the German command post surrenders. On Avenue de l’Opéra, German servicemen advance under a white flag. Before the Resistance fighters and the soldiers of the Second Armoured Division, they lay down their arms.",
+      "group": 1,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S17-P01",
+      "start": 305.6,
+      "end": 316.72,
+      "target_duration": 11.12,
+      "text": "Around them mingle French soldiers, Resistance fighters and civilians. Just moments or hours earlier, the men of this position were still an armed occupation force.",
+      "group": 2,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S18-P01",
+      "start": 316.72,
+      "end": 325.6,
+      "target_duration": 8.88,
+      "text": "On Place de l’Opéra, at the corner of Boulevard des Capucines, German soldiers raise their hands. Now prisoners, they are guarded by French Resistance fighters.",
+      "group": 3,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S19-P01",
+      "start": 325.6,
+      "end": 344.6,
+      "target_duration": 19,
+      "text": "After the German command post surrenders, a man removes the huge German banner from its façade. At the corner of Avenue de l’Opéra and Rue du Quatre-Septembre, a symbol of the Occupation disappears before the eyes of Parisians.",
+      "group": 0,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S20-P01",
+      "start": 344.6,
+      "end": 350,
+      "target_duration": 5.4,
+      "text": "But liberation comes at a price. These archival images speak for themselves.",
+      "group": 1,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S21-P01",
+      "start": 366,
+      "end": 383.6,
+      "target_duration": 17.6,
+      "text": "Outside the Palais Garnier, the crowd gathers. After the fighting and the sacrifices. Paris! Paris outraged! Paris broken! Paris martyred! But Paris liberated!",
+      "group": 2,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S22-P01",
+      "start": 383.6,
+      "end": 404.96,
+      "target_duration": 21.36,
+      "text": "Take a few seconds to look at the Opéra. Its architecture seems built to last. It had survived the fall of the Second Empire, under which construction began. It had watched the neighbourhood change. Then came the Occupation. And finally those days of August nineteen forty-four. There is one last thing to do here.",
+      "group": 3,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S23-P01",
+      "start": 404.96,
+      "end": 411.6,
+      "target_duration": 6.64,
+      "text": "Look at these images from August twenty-fifth, nineteen forty-four. German soldiers are surrendering.",
+      "group": 0,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S23-P02",
+      "start": 411.6,
+      "end": 417.04,
+      "target_duration": 5.44,
+      "text": "Outside the Palais Garnier, the crowd unfurls the Reich flag recovered from the German command post.",
+      "group": 1,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S23-P03",
+      "start": 417.04,
+      "end": 425.84,
+      "target_duration": 8.8,
+      "text": "Farther along, Parisians take down the German road signs. In moments, the symbols of the Occupation disappear from the Opéra district.",
+      "group": 2,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    },
+    {
+      "id": "S24-P01",
+      "start": 425.84,
+      "end": 453.2,
+      "target_duration": 27.36,
+      "text": "The old image and the place you see today are not identical. Yet this story happened here, in the Opéra district. We will now make a much greater leap back in time. The Opéra will disappear from our mental landscape. So will the great avenues. Our final stop takes us to sixteen fifty-two, during the Fronde, when two brothers-in-law decide to settle a quarrel by force of arms.",
+      "group": 3,
+      "audio_status": "TO_GENERATE_QA",
+      "human_approved": false
+    }
+  ]
+}
