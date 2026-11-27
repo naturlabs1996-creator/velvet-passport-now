@@ -179,7 +179,10 @@
         1160,
         1190
       ],
-      "evidence": "Commons anonymous-public-domain template is not accepted as clearance for exact INA-marked R21 copy, known authors and original soundtrack. Preserve approved 30 seconds and original sound, no VP narration."
+      "evidence": "Commons anonymous-public-domain template is not accepted as clearance for exact INA-marked R21 copy, known authors and original soundtrack. Preserve approved 30 seconds and original sound, no VP narration. INA catalogue confirms named authors. AERI exact Kommandantur film notice states © INA - Droits réservés; anonymous-work template does not resolve this conflict.",
+      "official_catalogue_notice": "https://catalogue.ina.fr/doc/TV-RADIO/DA_AFE99000038/journal-de-la-resistance-la-liberation-de-paris",
+      "source_rights_evidence": "https://museedelaresistanceenligne.org/musee/mediatheque/pageDoc_eysses.php?media_id=4610",
+      "catalogue_authorship": "André Zwobada; texte Pierre Bost; commentaire Pierre Blanchar. INA AFE99000038."
     },
     {
       "plan_id": "S16-P01",
@@ -235,7 +238,10 @@
         756,
         772
       ],
-      "evidence": "Same audiovisual clearance as S15; preserve original 16 seconds and original sound."
+      "evidence": "Same audiovisual clearance as S15; preserve original 16 seconds and original sound. INA catalogue confirms named authors. AERI exact Kommandantur film notice states © INA - Droits réservés; anonymous-work template does not resolve this conflict.",
+      "official_catalogue_notice": "https://catalogue.ina.fr/doc/TV-RADIO/DA_AFE99000038/journal-de-la-resistance-la-liberation-de-paris",
+      "source_rights_evidence": "https://museedelaresistanceenligne.org/musee/mediatheque/pageDoc_eysses.php?media_id=4610",
+      "catalogue_authorship": "André Zwobada; texte Pierre Bost; commentaire Pierre Blanchar. INA AFE99000038."
     },
     {
       "plan_id": "S21-P01",
@@ -325,6 +331,29 @@
       "Existing reconstructions keep RECONSTITUTION labels and pending review; no new generated images.",
       "Use approved sound sources; two actual distinct shots in narrated order, no rejected synthetic effects.",
       "No invented word timing or silent reapproval."
-    ]
+    ],
+    "portrait_download": {
+      "run_id": 46080465029,
+      "status": "SUCCESS",
+      "artifact_id": 15236452323,
+      "artifact_name": "stop05-historical-portraits-sources-20261127",
+      "artifact_sha256": "e63b04daad093d9d4c5f6f0f78285cad7552d355740dc2be5f8c7411c9d73598",
+      "expires_utc": "2026-11-29T23:06:18Z",
+      "sources": [
+        {
+          "id": "BEAUFORT",
+          "bytes": 3991773
+        },
+        {
+          "id": "NEMOURS",
+          "bytes": 880155
+        },
+        {
+          "id": "GRANDE_MADEMOISELLE",
+          "bytes": 811973
+        }
+      ],
+      "approval": "ORIGINALS_RECOVERED_NOT_MONTAGE_APPROVED"
+    }
   }
 }
