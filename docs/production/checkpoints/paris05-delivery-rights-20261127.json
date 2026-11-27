@@ -7,7 +7,7 @@
   "release_approved": false,
   "scope": "STOP04 current R21 sources; STOP05 early English and rights reconciliation",
   "english_stop04": {
-    "status": "RENDER_IN_PROGRESS",
+    "status": "ORIGINAL_BATCHES_RUNNING_PARTIAL_AUDIO_PRESERVED_RECOVERY_SCHEDULED",
     "run_id": 46079609426,
     "url": "https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/46079609426",
     "voice_plans": 28,
@@ -16,7 +16,32 @@
     "native_tempo": 1,
     "digital_time_stretch": false,
     "voice_reference_license": "CC BY 4.0, VCTK p232, https://huggingface.co/kyutai/tts-voices/blob/main/README.md",
-    "listening_passed": false
+    "listening_passed": false,
+    "recovery": {
+      "run_id": 46080857015,
+      "url": "https://github.com/naturlabs1996-creator/velvet-passport-now/actions/runs/46080857015",
+      "workflow": "stop04-en-native-recovery-20261127.yml",
+      "script": "scripts/audio/resume_stop04_en_liberation_r21.py",
+      "reason": "Group 1 stopped at S10-P01: generated floating waveform peak 1.027109861. Original strict check prevented PCM clipping.",
+      "preserved_original_artifact": 15236662579,
+      "preserved_confirmed_plans": [
+        {
+          "id": "S02-P01",
+          "duration": 8.94
+        },
+        {
+          "id": "S04-P01",
+          "duration": 22.26
+        },
+        {
+          "id": "S06-P02",
+          "duration": 3.32
+        }
+      ],
+      "behavior": "Wait original run completion, download each group's existing takes, verify SHA-256/text, reuse them, generate only missing plans, linearly attenuate peaks to .95 before PCM, retain raw FLOAT WAV when attenuation is applied; preserve native tempo and sample count.",
+      "artifact_name_pattern": "stop04-en-liberation-r21-recovery-group-{0,1,2,3}",
+      "output_not_yet_verified": true
+    }
   },
   "rights_policy": {
     "source": "https://www.parismuseescollections.paris.fr/fr/les-images-sous-droits",
